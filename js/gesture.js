@@ -20,6 +20,7 @@ const EXTENDED = 1.15; // tip/pip distance ratio above which a finger counts as 
 const CURLED = 1.0; // below this a finger is clearly folded; in between it's half-open
 const THUMB_OUT = 0.85; // thumb tip → middle knuckle, over palm length, above which the thumb sticks out
 const THUMB_OFF_INDEX = 0.62; // thumb tip → index knuckle and → index middle joint, over palm width
+const THUMBS_UP = 0.85; // thumbs up: thumb tip → index knuckle, over palm width (a loose fist thumb is ~0.5)
 const STRAIGHT_COS = 0.64; // index knuckle→joint vs joint→tip within ~50°: the finger points straight
 
 /**
@@ -52,21 +53,34 @@ export function thumbOut(lm) {
   return dist(lm[4], lm[5]) / palmW > THUMB_OFF_INDEX && dist(lm[4], lm[6]) / palmW > THUMB_OFF_INDEX;
 }
 
-/** Cosine of the bend at the index finger's middle joint: ~1 straight, <0 folded into a fist. */
-export function indexStraightness(lm) {
-  const [a, b, c] = [lm[5], lm[6], lm[8]];
+/**
+ * Thumbs up: the thumb is straight and stands well clear of the fist. Stricter than thumbOut, so
+ * a fist with the thumb resting loosely on the side doesn't count.
+ */
+export function thumbsUp(lm) {
+  return dist(lm[4], lm[5]) / dist(lm[5], lm[17]) > THUMBS_UP && straightness(lm, 2, 3, 4) > STRAIGHT_COS;
+}
+
+/** Cosine of the bend at joint b along a→b→c: ~1 straight, <0 folded back. */
+function straightness(lm, ia, ib, ic) {
+  const [a, b, c] = [lm[ia], lm[ib], lm[ic]];
   const v1 = { x: b.x - a.x, y: b.y - a.y, z: (b.z ?? 0) - (a.z ?? 0) };
   const v2 = { x: c.x - b.x, y: c.y - b.y, z: (c.z ?? 0) - (b.z ?? 0) };
   const dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
   return dot / (Math.hypot(v1.x, v1.y, v1.z) * Math.hypot(v2.x, v2.y, v2.z) || 1);
 }
 
+/** Cosine of the bend at the index finger's middle joint: ~1 straight, <0 folded into a fist. */
+export function indexStraightness(lm) {
+  return straightness(lm, 5, 6, 8);
+}
+
 /**
  * Classify one hand.
  * @param {{x:number,y:number,z?:number}[]} lm 21 landmarks (world landmarks preferred)
  * `power` names the power-up a sign stands for (see POWERS in fight.js). Those signs are fouls
- * as a throw, but held between throws they arm a power-up: finger gun = power, horns = reverse,
- * index finger up = shield.
+ * as a throw, but held between throws they arm a power-up: finger gun = power, horns = reverse.
+ * Thumbs up (shield) is a fist, so as a throw it's rock; it only arms the shield between throws.
  * @returns {{gesture: string|null, foul: string|null, power: string|null, confidence: number, extended: boolean[], thumb: boolean}}
  */
 export function classify(lm) {
@@ -97,7 +111,7 @@ export function classify(lm) {
 
   let power = null;
   if (foul === "gun") power = "power";
-  else if (foul === "one" && index) power = "shield";
+  else if (gesture === "rock" && thumbsUp(lm)) power = "shield";
   else if (foul === "badScissors" && index && pinky) power = "reverse";
 
   // Confidence: how clearly the least-certain finger sits on its side of the threshold.

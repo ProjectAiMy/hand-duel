@@ -345,13 +345,14 @@ function updateBadges() {
     const l = live[i];
     let text = "No hand";
     let cls = "";
-    if (l.gesture) {
-      text = `${GESTURES[l.gesture].emoji} ${GESTURES[l.gesture].label}`;
-      cls = "found";
-    } else if (l.signing) {
+    if (l.signing) {
+      // Before the gesture check: thumbs up is also a rock shape.
       const p = POWERS[l.signing];
       text = armed[i] === l.signing ? `${p.emoji} ${p.label} armed!` : `${p.emoji} Hold to arm ${p.label}…`;
       cls = "power";
+    } else if (l.gesture) {
+      text = `${GESTURES[l.gesture].emoji} ${GESTURES[l.gesture].label}`;
+      cls = "found";
     } else if (l.foul) {
       text = `🚫 ${FOULS[l.foul].label}: ${FOULS[l.foul].hint}`;
       cls = "foul";
@@ -689,7 +690,7 @@ async function present(a, b, ev, note, fouls = [null, null]) {
   if (ev.result === "blocked") {
     announce("Blocked!", "small gold");
     sfx.clash();
-    setResult(`${text} — ☝️ ${who(ev.loser, "you block", "blocks")} ${ev.blocked}${x2}${note}`, youPov ? (ev.loser === 0 ? "win" : "lose") : "draw");
+    setResult(`${text} — 👍 ${who(ev.loser, "you block", "blocks")} ${ev.blocked}${x2}${note}`, youPov ? (ev.loser === 0 ? "win" : "lose") : "draw");
     renderHud();
     return;
   }

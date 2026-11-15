@@ -67,7 +67,10 @@ test("illegal shapes are reported as fouls", () => {
   // Power-up signs.
   assert.equal(foul([1, 0, 0, 0], { thumb: true }).power, "power");
   assert.equal(foul([1, 0, 0, 1]).power, "reverse");
-  assert.equal(foul([1, 0, 0, 0]).power, "shield");
+  assert.equal(foul([1, 0, 0, 0]).power, null); // index up is just a foul now
+  assert.equal(foul([0, 0, 0, 0], { thumb: true }).power, "shield"); // thumbs up
+  assert.equal(foul([0, 0, 0, 0], { thumb: true }).gesture, "rock"); // ...which throws as rock
+  assert.equal(foul([0, 0, 0, 0]).power, null); // plain fist
   assert.equal(foul([0, 1, 0, 0]).power, null);
   assert.equal(foul([1, 1, 0, 0]).power, null);
   // Finger gun with the index pointed toward the camera: foreshortened, but straight.

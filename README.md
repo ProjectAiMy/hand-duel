@@ -61,7 +61,8 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
 - **Power-ups**: you hold at most one of each. Arm one *between* throws by holding its hand sign for 0.5 s
   (or tap its chip / press its key); it fires on your next throw and is spent whatever happens
   (a draw wastes it; a throw with no hands doesn't). Unheld ones are dimmed.
-  - ☝️ **Shield** (index finger up): both fighters start every round with one. Lose the throw and take no damage.
+  - 👍 **Shield** (thumbs up): both fighters start every round with one. Lose the throw and take no damage.
+    A thumbs up is still a fist, so thrown on “Shoot!” it counts as rock.
   - 👉 **Power** (finger gun): earned by winning 2 throws in a row. Win the throw for 2× damage.
   - 🤘 **Reverse** (horns, index + pinky): earned by losing 2 throws in a row. Lose the throw and the damage hits
     the winner instead. It can K.O. them.

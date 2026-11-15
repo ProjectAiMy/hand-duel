@@ -27,7 +27,7 @@ README.md explains the features, controls, rules and architecture, so read it fi
 - Fouls (`FOULS` in `js/gesture.js`): VS CPU replays the throw with a hint; 2P/online a foul loses like "too slow".
   Online sends the foul code in the reveal as display-only (not hashed).
 - Power-ups (`POWERS` in `js/fight.js`, chips/arming in `js/main.js`), rules set by the user:
-  shield (index up) given to both at round start; power (finger gun, 2× damage) earned by 2 wins in a row;
+  shield (thumbs up; the user found index-up unreliable) given to both at round start; power (finger gun, 2× damage) earned by 2 wins in a row;
   reverse (horns) earned by 2 losses in a row. Armed between throws (hold sign `ARM_HOLD_MS` = 500, blips under
   `SIGN_GAP_MS` forgiven, blocked for `ARM_BLOCK_MS` after a throw), spent on the next non-void throw.
 - The user saw finger gun read as rock: `classify` now also counts a straight-pointing index (bend angle) and a

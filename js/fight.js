@@ -17,7 +17,7 @@ export const DAMAGE = [25, 35, 45];
 export const POWERS = {
   power: { emoji: "👉", sign: "Finger gun", label: "Power", desc: "Win this throw for 2× damage", earn: "Win 2 throws in a row to earn it" },
   reverse: { emoji: "🤘", sign: "Horns", label: "Reverse", desc: "Lose this throw and the damage hits them instead", earn: "Lose 2 throws in a row to earn it" },
-  shield: { emoji: "☝️", sign: "1 finger", label: "Shield", desc: "Lose this throw and take no damage", earn: "You get one each round" },
+  shield: { emoji: "👍", sign: "Thumbs up", label: "Shield", desc: "Lose this throw and take no damage", earn: "You get one each round" },
 };
 export const POWER_KEYS = Object.keys(POWERS);
 export const EARN_AFTER = 2; // wins (power) or losses (reverse) in a row

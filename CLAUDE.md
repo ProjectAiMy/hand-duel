@@ -17,7 +17,7 @@ README.md explains the features, controls, rules and architecture, so read it fi
 - Live at https://projectaimy.github.io/hand-duel/ via GitHub Pages (branch `main`, root, with `.nojekyll`).
 - Remote: https://github.com/ProjectAiMy/hand-duel. `git push` publishes in about a minute. The user's token is in
   the macOS keychain. There's no `gh` CLI, no Homebrew and no SSH key on this Mac.
-- Ask before pushing: it changes the public site.
+- **Work locally and commit, but always ask the user before `git push`**: a push updates the live site.
 
 ## Things that were tuned with the user
 - Capture timing is in `js/main.js`: `CAPTURE_BEFORE = 0`, `CAPTURE_AFTER = 700` ms after "Shoot!".
@@ -29,7 +29,8 @@ README.md explains the features, controls, rules and architecture, so read it fi
 
 ## Not yet verified
 - Two-hand tracking with a real camera in 2-player mode.
-- Online play between two real devices with cameras, and the self-signed HTTPS LAN path on a phone.
+- The self-signed HTTPS LAN path (`:8443`) on a phone.
+- Verified by the user: online play on real devices via the GitHub Pages site.
 
 ## Other
 - `rockpaper.mp4` in the folder is the user's gameplay recording (gitignored). Don't commit videos.

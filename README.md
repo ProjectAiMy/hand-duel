@@ -17,11 +17,26 @@ python3 serve.py        # or: npm start
 Open <http://localhost:8000>. `serve.py` is a plain static server that turns off browser caching, so your edits show up on a normal reload.
 Browsers only allow the camera on **HTTPS or localhost**.
 
-### On a phone, or online with a friend
-Other devices can't reach your `localhost`, so they need an HTTPS URL:
+### Same wifi (phone, tablet, another laptop)
+`serve.py` also serves HTTPS on port **8443** at your computer's wifi address and prints it, e.g.
+`https://192.168.1.20:8443`. Browsers only give the camera to HTTPS pages, so open that on the other device.
+It uses a self-signed certificate (made with openssl, kept in `.cert/`), so each device shows a
+one-time warning: **Advanced → Proceed** (Chrome) or **Show Details → visit this website** (Safari).
 
-- **Host it** (best for online play): push the folder to GitHub Pages, Netlify or Cloudflare Pages. There's no build step.
-- **Tunnel for testing**: `npx localtunnel --port 8000` or `cloudflared tunnel --url http://localhost:8000`.
+1. On the computer, open <http://localhost:8000>, choose **Online → Create room**.
+2. On the other device, open the printed `https://…:8443` address (also shown under the room code), choose **Online**, and enter the code.
+
+Both devices need internet for the first handshake (the free PeerJS server matches the room code);
+after that, video and moves go directly between them over the wifi.
+If it can't connect, the router may isolate devices (common on guest/hotel wifi): use a hosted copy instead.
+
+### Over the internet (friends anywhere)
+The game is plain static files, so any free static host works. It gives you a real HTTPS address, so no warnings:
+
+- **GitHub Pages**: push this folder to a GitHub repo, then Settings → Pages → Deploy from branch `main` / root.
+  Your game is at `https://<user>.github.io/<repo>/`.
+- **Netlify Drop**: drag the folder onto <https://app.netlify.com/drop>.
+- **Quick test without hosting**: `cloudflared tunnel --url http://localhost:8000` (`brew install cloudflared`) gives a temporary public HTTPS link.
 
 ## Controls
 
@@ -46,9 +61,9 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
 |---|---|---|
 | Hand tracking | `js/tracker.js` | MediaPipe Hand Landmarker 0.10.14 (21 3D points per hand, GPU with CPU fallback). Tracks 1 hand, or 2 in 2-player mode. |
 | Gesture rules | `js/gesture.js` | Compares wrist→fingertip with wrist→middle-joint distance for each finger, so hand angle doesn't matter. |
-| Fair capture | `GestureBuffer` | Every frame is logged. On “Shoot!” it takes the last gesture held steady (3+ frames) from 100 ms before to 350 ms after, so the fist pumped during the countdown doesn't count. |
+| Fair capture | `GestureBuffer` | Every frame is logged. It reads your hand for 0.7 s after “Shoot!” and takes the last gesture held steady (3+ frames), so the fist pumped during the countdown doesn't count. |
 | 2 players | `js/main.js` `loop` | Each hand belongs to whichever half of the screen it's on, so P1 can't throw for P2. |
-| Online | `js/net.js` | WebRTC via PeerJS 1.5.4. The free PeerJS server only introduces the two browsers; video and moves go directly between them. Throws use **commit-reveal**: each side sends a hash first, so nobody can wait and counter. The host's state is the source of truth after every throw. A heartbeat notices if the opponent drops. |
+| Online | `js/net.js` | WebRTC via PeerJS 1.5.4. The free PeerJS server only introduces the two browsers; video and moves go directly between them. Throws use **commit-reveal** (SHA-256, with a JS fallback on plain-http pages): each side sends a hash first, so nobody can wait and counter. The host's state is the source of truth after every throw. A heartbeat notices if the opponent drops. |
 | Arenas | `js/arenas.js` | 4 arenas drawn in SVG with CSS particles (petals, rain, embers, sparkles). Choose one, or random per round. |
 | Sound | `js/audio.js` | Web Audio synth, no sound files. |
 

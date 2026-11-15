@@ -10,7 +10,7 @@ const el = Object.fromEntries(
   [
     "video", "overlay", "stage", "noCam", "halfL", "halfR", "badgeL", "badgeR", "tip", "stageR", "remoteVideo",
     "cpuHand", "ring", "announcer", "result", "play", "pause", "autoNext", "arenaSelect", "switchCam", "mute",
-    "menuBtn", "menu", "useCam", "status", "lobby", "lobbyChoose", "lobbyHost", "roomCode", "copyLink",
+    "menuBtn", "menu", "useCam", "status", "lobby", "lobbyChoose", "lobbyHost", "roomCode", "copyLink", "shareUrl",
     "lobbyStatus", "lobbyBack", "createRoom", "joinForm", "joinCode", "matchModal", "matchEmoji", "matchTitle",
     "matchScore", "rematch", "matchMenu", "fx", "arenaBg", "nameL", "nameR", "pipsL", "pipsR", "hpL", "hpR",
     "ghostL", "ghostR", "roundLabel", "arenaName", "manualL", "manualR",
@@ -20,8 +20,8 @@ const ctx2d = el.overlay.getContext("2d");
 
 // ---------- timing (ms) ----------
 const BEAT = 480; // per countdown word
-const CAPTURE_BEFORE = 100; // accept a throw made just before "Shoot!"...
-const CAPTURE_AFTER = 350; // ...or just after; the last gesture held in this window counts
+const CAPTURE_BEFORE = 0; // the throw is read from "Shoot!"...
+const CAPTURE_AFTER = 700; // ...until this long after; the last gesture held steady in it counts
 const NEXT_DELAY_S = 3; // pause after each throw before auto-next starts the next one
 const MAX_VOIDS = 3; // auto-play pauses after this many throws in a row with no hands
 
@@ -797,6 +797,7 @@ async function createRoom() {
     try {
       await n.host(code);
       el.roomCode.textContent = code;
+      el.shareUrl.textContent = `Or open ${await shareBase()} and enter the code.`;
       el.lobbyChoose.hidden = true;
       el.lobbyHost.hidden = false;
       el.lobbyStatus.textContent = "";
@@ -828,6 +829,20 @@ async function joinRoom(code) {
   }
 }
 
+/** Base URL for invite links. On localhost, use the dev server's wifi HTTPS address instead. */
+let lanBase;
+async function shareBase() {
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  if (local && lanBase === undefined) {
+    lanBase = await fetch("/lan.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => j?.url?.replace(/\/$/, "") + location.pathname)
+      .catch(() => null);
+    if (!lanBase?.startsWith("https://")) lanBase = null;
+  }
+  return (local && lanBase) || `${location.origin}${location.pathname}`;
+}
+
 // ---------- events ----------
 document.querySelectorAll(".mode").forEach((b) => b.addEventListener("click", () => chooseMode(b.dataset.mode)));
 el.play.addEventListener("click", () => {
@@ -846,7 +861,7 @@ el.joinForm.addEventListener("submit", (e) => {
   joinRoom(el.joinCode.value);
 });
 el.copyLink.addEventListener("click", async () => {
-  const url = `${location.origin}${location.pathname}?room=${el.roomCode.textContent}`;
+  const url = `${await shareBase()}?room=${el.roomCode.textContent}`;
   try {
     await navigator.clipboard.writeText(url);
     el.copyLink.textContent = "Link copied ✓";

@@ -296,3 +296,5 @@ kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; backg
   .settings { justify-content: center; }
   .announcer { top: 22dvh; }
 }
+
+.share-url { font-size: 0.8rem; opacity: 0.75; word-break: break-all; margin: 0.5rem 0 0; }

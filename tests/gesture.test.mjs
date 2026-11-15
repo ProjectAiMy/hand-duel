@@ -58,3 +58,24 @@ test("buffer votes for the majority in a window", () => {
   assert.equal(b.vote(190, 210), "paper");
   assert.equal(b.vote(140, 160), null);
 });
+
+test("settled takes the last held gesture, not the countdown fist", () => {
+  const b = new GestureBuffer(5000);
+  // Fist pumped through the window, scissors formed late and held.
+  for (let t = 0; t <= 200; t += 33) b.push("rock", t);
+  b.push(null, 233);
+  for (let t = 266; t <= 400; t += 33) b.push("scissors", t);
+  assert.equal(b.settled(0, 400), "scissors");
+  // A one-frame flicker at the end doesn't override a held gesture.
+  b.push("paper", 420);
+  assert.equal(b.settled(0, 420), "scissors");
+  // Held rock stays rock.
+  const r = new GestureBuffer(5000);
+  for (let t = 0; t <= 400; t += 33) r.push("rock", t);
+  assert.equal(r.settled(0, 400), "rock");
+  // Only a brief glimpse: fall back to it; nothing at all: null.
+  const g = new GestureBuffer(5000);
+  g.push(null, 0); g.push("paper", 50); g.push(null, 100);
+  assert.equal(g.settled(0, 400), "paper");
+  assert.equal(new GestureBuffer().settled(0, 400), null);
+});

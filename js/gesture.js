@@ -72,6 +72,31 @@ export class GestureBuffer {
     for (const [g, c] of Object.entries(counts)) if (c > bestN) [best, bestN] = [g, c];
     return best && bestN / slice.length >= minShare ? best : null;
   }
+  /**
+   * The gesture the hand settled on last in [from, to]: the latest unbroken run of one gesture
+   * lasting at least `minFrames` frames or `holdMs`. Earlier gestures (like the fist people pump
+   * during the countdown) are ignored, so a late change to scissors counts as scissors.
+   * Falls back to the last gesture seen if no run is long enough; null if no hand at all.
+   */
+  settled(from, to, { minFrames = 3, holdMs = 90 } = {}) {
+    const slice = this.items.filter((i) => i.t >= from && i.t <= to);
+    let result = null;
+    let lastSeen = null;
+    let run = null;
+    for (const it of slice) {
+      if (!it.gesture) {
+        run = null;
+        continue;
+      }
+      lastSeen = it.gesture;
+      if (run && run.gesture === it.gesture) {
+        run.n++;
+        run.end = it.t;
+      } else run = { gesture: it.gesture, n: 1, start: it.t, end: it.t };
+      if (run.n >= minFrames || run.end - run.start >= holdMs) result = run.gesture;
+    }
+    return result || lastSeen;
+  }
   clear() {
     this.items = [];
   }

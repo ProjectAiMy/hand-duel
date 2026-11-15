@@ -46,7 +46,7 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
 |---|---|---|
 | Hand tracking | `js/tracker.js` | MediaPipe Hand Landmarker 0.10.14 (21 3D points per hand, GPU with CPU fallback). Tracks 1 hand, or 2 in 2-player mode. |
 | Gesture rules | `js/gesture.js` | Compares wrist→fingertip with wrist→middle-joint distance for each finger, so hand angle doesn't matter. |
-| Fair capture | `GestureBuffer` | Every frame is logged. “Shoot!” takes a majority vote from 150 ms before to 450 ms after. |
+| Fair capture | `GestureBuffer` | Every frame is logged. On “Shoot!” it takes the last gesture held steady (3+ frames) from 100 ms before to 350 ms after, so the fist pumped during the countdown doesn't count. |
 | 2 players | `js/main.js` `loop` | Each hand belongs to whichever half of the screen it's on, so P1 can't throw for P2. |
 | Online | `js/net.js` | WebRTC via PeerJS 1.5.4. The free PeerJS server only introduces the two browsers; video and moves go directly between them. Throws use **commit-reveal**: each side sends a hash first, so nobody can wait and counter. The host's state is the source of truth after every throw. A heartbeat notices if the opponent drops. |
 | Arenas | `js/arenas.js` | 4 arenas drawn in SVG with CSS particles (petals, rain, embers, sparkles). Choose one, or random per round. |

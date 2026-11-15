@@ -20,8 +20,8 @@ const ctx2d = el.overlay.getContext("2d");
 
 // ---------- timing (ms) ----------
 const BEAT = 480; // per countdown word
-const CAPTURE_BEFORE = 150; // accept gestures slightly before "Shoot!" (people throw early)...
-const CAPTURE_AFTER = 450; // ...and shortly after
+const CAPTURE_BEFORE = 100; // accept a throw made just before "Shoot!"...
+const CAPTURE_AFTER = 350; // ...or just after; the last gesture held in this window counts
 const NEXT_DELAY_S = 3; // pause after each throw before auto-next starts the next one
 const MAX_VOIDS = 3; // auto-play pauses after this many throws in a row with no hands
 
@@ -405,7 +405,7 @@ async function countdown() {
   collecting = false;
   el.cpuHand.classList.remove("pump");
   const pick = (i) =>
-    manual[i] || (cameraOn ? buffers[i].vote(shootAt - CAPTURE_BEFORE, shootAt + CAPTURE_AFTER, 0.4) : null);
+    manual[i] || (cameraOn ? buffers[i].settled(shootAt - CAPTURE_BEFORE, shootAt + CAPTURE_AFTER) : null);
   return [pick(0), mode === "local" ? pick(1) : null];
 }
 

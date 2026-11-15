@@ -122,6 +122,32 @@ body[data-mode="local"] .half.right::before { content: "P2"; right: 12px; color:
 .detect-badge.warn { background: rgba(255,204,51,.92); color: #221800; }
 .detect-badge.foul { background: rgba(255,93,115,.92); color: #2a0008; }
 .detect-badge { max-width: calc(100% - 20px); line-height: 1.3; }
+.detect-badge.power { background: rgba(181,123,255,.94); color: #14002e; }
+
+/* power-up chips: one column in each fighter's corner */
+.powers { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; flex-direction: column; gap: 5px; }
+body[data-mode="local"] .half.left .powers { left: auto; right: 8px; top: 8px; }
+body[data-mode="local"] .half.right .powers { left: 8px; top: 8px; }
+.powers button {
+  display: flex; align-items: center; gap: 5px; padding: 3px 9px 3px 6px; border-radius: 999px;
+  border: 1px solid #fff3; background: rgba(10,10,30,.62); backdrop-filter: blur(6px);
+  font-size: 1rem; line-height: 1.4; transition: transform .15s, background .15s, opacity .2s;
+}
+.powers button span { font-size: .68rem; font-weight: 700; letter-spacing: .03em; color: #e6dcff; }
+.powers button:not(:disabled):hover { background: rgba(181,123,255,.4); }
+.powers button.armed {
+  background: #b57bff; border-color: #fff; transform: scale(1.08); box-shadow: 0 0 14px #b57bffcc;
+  animation: armed 1s ease-in-out infinite;
+}
+.powers button.armed span { color: #14002e; }
+.powers button.used { opacity: .28; filter: grayscale(1); text-decoration: line-through; }
+.powers button:disabled { cursor: default; }
+.powers.theirs button:disabled:not(.used) { opacity: .85; }
+.power-pop {
+  position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); z-index: 4; white-space: nowrap;
+  padding: 5px 14px; border-radius: 999px; background: #b57bff; color: #14002e; font-weight: 900;
+  font-size: clamp(.8rem, 2.4vw, 1.05rem); box-shadow: 0 0 22px #b57bffaa; animation: pop .35s cubic-bezier(.2,1.6,.4,1);
+}
 .tip {
   position: absolute; left: 50%; top: 10px; transform: translateX(-50%); max-width: 90%;
   padding: 6px 12px; border-radius: 10px; background: rgba(255,204,51,.92); color: #221800;
@@ -263,6 +289,7 @@ kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; backg
 @keyframes shake { 0%,100% { transform: translate(0); } 20% { transform: translate(-10px, 4px); } 40% { transform: translate(9px, -5px); } 60% { transform: translate(-6px, 3px); } 80% { transform: translate(4px, -2px); } }
 @keyframes hitflash { 0% { background: rgba(255,40,60,.65); } 100% { background: transparent; } }
 @keyframes dmg { 0% { transform: translate(-50%, -50%) scale(.4); opacity: 0; } 20% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; } 100% { transform: translate(-50%, -150%) scale(1); opacity: 0; } }
+@keyframes armed { 50% { box-shadow: 0 0 22px #d4b0ff; } }
 @keyframes blink { 50% { opacity: .55; } }
 @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
 @keyframes petal { 0% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(60px, 55vh) rotate(200deg); } 100% { transform: translate(-30px, 110vh) rotate(400deg); } }
@@ -312,6 +339,13 @@ kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; backg
   .announcer { top: 22dvh; }
   .announcer.small { font-size: clamp(1.4rem, 7vw, 2.2rem); }
   .result { padding: 2px 12px 0; }
+
+  /* power chips: emoji only */
+  .powers { top: 6px; left: 6px; gap: 4px; }
+  .powers button { padding: 2px 6px; font-size: .9rem; }
+  .powers button span { display: none; }
+  body[data-mode="cpu"] .opponent .powers { flex-direction: row; }
+  body[data-mode="cpu"] .opponent .power-pop { bottom: auto; top: 6px; left: auto; right: 6px; transform: none; }
 
   /* controls: Fight + throw buttons share one row, settings in a compact row under them */
   .controls {
@@ -372,6 +406,8 @@ kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; backg
   .settings .long { display: none; }
   .icon-btn { width: 32px; height: 32px; font-size: .85rem; }
   .announcer.small { top: 14dvh; }
+  .powers button { padding: 2px 6px; font-size: .85rem; }
+  .powers button span { display: none; }
 }
 
 .share-url { font-size: 0.8rem; opacity: 0.75; word-break: break-all; margin: 0.5rem 0 0; }

@@ -43,6 +43,7 @@ The game is plain static files, so any free static host works. It gives you a re
 | | Solo / Online | 2 Players (keyboard) |
 |---|---|---|
 | Throw | camera, or **R P S** / **1 2 3** / buttons | P1 **A S D**, P2 **J K L** |
+| Power-ups | hand sign between throws, or **Q W E** / chips | P1 **Q W E**, P2 **U I O** |
 | Next throw | **Space** / Enter | same |
 | Pause auto-play | **Esc** | same |
 | Mute | **M** | same |
@@ -57,6 +58,13 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
   *3 fingers*, or *wrong scissors* (any two fingers other than index + middle, like horns). Paper needs all 4 fingers
   open (a pinky that's only half-open still counts). VS CPU replays a foul with a hint; in 2-player and online a foul
   loses to a legal throw, like being too slow.
+- **Power-ups**: each fighter gets three per round, one use each. Arm one *between* throws by holding its hand sign
+  for 0.7 s (or tap its chip / press its key); it fires on your next throw and is spent whatever happens
+  (a draw wastes it; a throw with no hands doesn't).
+  - 👉 **Power** (finger gun): win the throw for 2× damage.
+  - 🤘 **Reverse** (horns, index + pinky): lose the throw and the damage hits the winner instead. It can K.O. them.
+  - ☝️ **Shield** (index finger up): lose the throw and take no damage. Blocks and reverses reset both win streaks.
+  - The CPU uses its powers now and then. Online, your armed power is hashed with your throw, so your rival can't see it coming.
 - Best of 3 rounds. Rounds show *Perfect!* when the winner took no damage.
 
 ## How it works
@@ -64,7 +72,7 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
 | Piece | File | Notes |
 |---|---|---|
 | Hand tracking | `js/tracker.js` | MediaPipe Hand Landmarker 0.10.14 (21 3D points per hand, GPU with CPU fallback). Tracks 1 hand, or 2 in 2-player mode. |
-| Gesture rules | `js/gesture.js` | Compares wrist→fingertip with wrist→middle-joint distance for each finger, so hand angle doesn't matter. Each finger is straight, half-open or curled; the thumb is only checked for the finger-gun foul. Illegal shapes come back as a `foul` code (`FOULS`). |
+| Gesture rules | `js/gesture.js` | Compares wrist→fingertip with wrist→middle-joint distance for each finger, so hand angle doesn't matter. Each finger is straight, half-open or curled; the thumb is only checked for the finger-gun foul. Illegal shapes come back as a `foul` code (`FOULS`); three of them also carry a `power` (the power-up sign). |
 | Fair capture | `GestureBuffer` | Every frame is logged. It reads your hand for 0.7 s after “Shoot!” and takes the last gesture held steady (3+ frames), so the fist pumped during the countdown doesn't count. One dropped tracker frame doesn't break a hold. If a hand is in view but hasn't settled on a legal shape by then, it waits up to 0.5 s longer. |
 | 2 players | `js/main.js` `loop` | Each hand belongs to whichever half of the screen it's on, so P1 can't throw for P2. |
 | Online | `js/net.js` | WebRTC via PeerJS 1.5.4. The free PeerJS server only introduces the two browsers; video and moves go directly between them. Throws use **commit-reveal** (SHA-256, with a JS fallback on plain-http pages): each side sends a hash first, so nobody can wait and counter. The host's state is the source of truth after every throw. A heartbeat notices if the opponent drops. |

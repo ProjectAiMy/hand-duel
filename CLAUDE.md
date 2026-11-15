@@ -26,13 +26,17 @@ README.md explains the features, controls, rules and architecture, so read it fi
 - `CAPTURE_GRACE = 500` ms: extra wait only while a visible hand hasn't settled on a legal shape.
 - Fouls (`FOULS` in `js/gesture.js`): VS CPU replays the throw with a hint; 2P/online a foul loses like "too slow".
   Online sends the foul code in the reveal as display-only (not hashed).
+- Power-ups (`POWERS` in `js/fight.js`, chips/arming in `js/main.js`): finger gun = 2× damage, horns = reverse,
+  index up = shield. Once per round each, armed between throws (hold sign `ARM_HOLD_MS` = 700, blocked for
+  `ARM_BLOCK_MS` after a throw), spent on the next non-void throw. Online the power is in the commit hash
+  (`ex:g:p:nonce`), so old and new clients can't play each other.
 - `NEXT_DELAY_S = 3`: a countdown before auto-next.
 - Online uses PeerJS 1.5.4 cloud signalling with peer ids `handduel-v1-CODE`, commit-reveal throws, the host as
   the source of truth, and a heartbeat. `sha256` falls back to the pure-JS version on plain http, where crypto.subtle is missing.
 
 ## Not yet verified
 - Foul detection, the capture grace period, and the compact mobile layout (Nov 2026) haven't been tried on a real
-  camera/phone yet; the user said they'd test these themselves.
+  camera/phone yet; the user said they'd test these themselves. Same for power-ups (Nov 2026).
 - Two-hand tracking with a real camera in 2-player mode.
 - The self-signed HTTPS LAN path (`:8443`) on a phone.
 - Verified by the user: online play on real devices via the GitHub Pages site.

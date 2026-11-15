@@ -1,7 +1,7 @@
 import { GESTURES, GESTURE_KEYS, FOULS, GestureBuffer, classify } from "./gesture.js";
 import { Tracker, CameraError } from "./tracker.js";
 import { sfx, unlockAudio, setMuted, isMuted } from "./audio.js";
-import { Fight, MAX_HP, ROUNDS_TO_WIN } from "./fight.js";
+import { Fight, MAX_HP, ROUNDS_TO_WIN, POWERS, POWER_KEYS } from "./fight.js";
 import { ARENAS, showArena, randomArena, arenaById } from "./arenas.js";
 import { Net, makeRoomCode, cleanCode, sha256, nonce } from "./net.js";
 
@@ -25,6 +25,9 @@ const CAPTURE_AFTER = 700; // ...until this long after; the last gesture held st
 const CAPTURE_GRACE = 500; // if a hand is in view but hasn't settled on a legal shape yet, wait up to this much longer
 const NEXT_DELAY_S = 3; // pause after each throw before auto-next starts the next one
 const MAX_VOIDS = 3; // auto-play pauses after this many throws in a row with no hands
+const ARM_HOLD_MS = 700; // hold a power sign this long between throws to arm it
+const ARM_BLOCK_MS = 1200; // ...but not right after a throw, so a fouled throw doesn't arm by accident
+const CPU_POWER_CHANCE = 0.25; // chance the CPU uses one of its remaining powers on a throw
 
 const MODES = {
   cpu: { names: ["YOU", "CPU"], hands: 1 },
@@ -54,6 +57,9 @@ let arenaId = null;
 let net = null;
 let exCount = 0;
 let guestQueue = Promise.resolve();
+let armed = [null, null]; // power-up each side has armed for its next throw
+const signHold = [{}, {}]; // power sign currently held per side: { p, since, done }
+let armBlockUntil = 0;
 
 const names = () => MODES[mode].names;
 const isGuest = () => mode === "online" && net && !net.isHost;
@@ -203,7 +209,17 @@ function loop(now) {
     const c = h ? classify(h.world || h.landmarks) : { gesture: null, foul: null, confidence: 0 };
     live[i] = { ...c, visible: !!h, edge: h ? nearEdge(h.landmarks) : false };
     buffers[i].push(c.gesture, t, c.foul);
-    const color = c.foul ? "#ff5d73" : mode === "local" ? SIDE_COLORS[i] : c.gesture ? "#3ee08f" : "#ffcc33";
+    const signing = trackSign(i, c.power, t);
+    live[i].signing = signing;
+    const color = signing
+      ? "#b57bff"
+      : c.foul
+        ? "#ff5d73"
+        : mode === "local"
+          ? SIDE_COLORS[i]
+          : c.gesture
+            ? "#3ee08f"
+            : "#ffcc33";
     if (h) drawHand(h.landmarks, color);
   });
   updateBadges();
@@ -211,6 +227,81 @@ function loop(now) {
     lastLightCheck = t;
     checkLight();
   }
+}
+
+// ---------- power-ups ----------
+/** Side `i` may arm power `p` now: between throws, in a live round, and not used yet this round. */
+function canArm(i, p) {
+  if (i === 1 && mode !== "local") return false;
+  if (!el.menu.hidden || !el.lobby.hidden || !el.matchModal.hidden) return false;
+  if (collecting || fight.matchWinner !== null || fight.roundWinner !== null) return false;
+  return fight.canUse(i, p);
+}
+
+/** Follow a held power sign; arm it once held for ARM_HOLD_MS. Returns the sign being held, if armable. */
+function trackSign(i, p, t) {
+  const h = signHold[i];
+  if (!p || t < armBlockUntil || !canArm(i, p)) {
+    signHold[i] = {};
+    return null;
+  }
+  if (h.p !== p) signHold[i] = { p, since: t, done: false };
+  else if (!h.done && t - h.since >= ARM_HOLD_MS) {
+    h.done = true;
+    if (armed[i] !== p) setArmed(i, p);
+  }
+  return p;
+}
+
+function setArmed(i, p) {
+  armed[i] = p;
+  if (p) sfx.arm();
+  renderPowers();
+}
+
+/** Button / key: arm a power, or disarm it if it's already armed. */
+function toggleArm(i, p) {
+  unlockAudio();
+  if (armed[i] === p) return setArmed(i, null);
+  if (canArm(i, p)) setArmed(i, p);
+}
+
+/** CPU: sometimes spends one of its remaining powers. */
+function cpuPower() {
+  const left = POWER_KEYS.filter((k) => fight.canUse(1, k));
+  if (!left.length || Math.random() >= CPU_POWER_CHANCE) return null;
+  return left[Math.floor(Math.random() * left.length)];
+}
+
+/** Power chips on each fighter's corner: available, armed (own side only) or used. */
+const powerBars = [document.createElement("div"), document.createElement("div")];
+powerBars.forEach((bar, i) => {
+  bar.className = "powers";
+  bar.innerHTML = POWER_KEYS.map(
+    (k) =>
+      `<button type="button" data-power="${k}" title="${POWERS[k].label} (${POWERS[k].sign}): ${POWERS[k].desc}">` +
+      `${POWERS[k].emoji}<span>${POWERS[k].label}</span></button>`,
+  ).join("");
+  bar.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-power]");
+    if (b) toggleArm(i, b.dataset.power);
+  });
+});
+
+function renderPowers() {
+  const mine = (i) => i === 0 || mode === "local";
+  powerBars.forEach((bar, i) => {
+    const home = i === 0 ? el.halfL : mode === "local" ? el.halfR : el.stageR;
+    if (bar.parentElement !== home) home.appendChild(bar);
+    bar.classList.toggle("theirs", !mine(i));
+    if (armed[i] && !fight.canUse(i, armed[i])) armed[i] = null;
+    bar.querySelectorAll("button").forEach((b) => {
+      const k = b.dataset.power;
+      b.disabled = !mine(i) || !fight.canUse(i, k);
+      b.classList.toggle("used", !fight.canUse(i, k));
+      b.classList.toggle("armed", mine(i) && armed[i] === k);
+    });
+  });
 }
 
 function nearEdge(lm) {
@@ -246,6 +337,10 @@ function updateBadges() {
     if (l.gesture) {
       text = `${GESTURES[l.gesture].emoji} ${GESTURES[l.gesture].label}`;
       cls = "found";
+    } else if (l.signing) {
+      const p = POWERS[l.signing];
+      text = armed[i] === l.signing ? `${p.emoji} ${p.label} armed!` : `${p.emoji} Hold to arm ${p.label}…`;
+      cls = "power";
     } else if (l.foul) {
       text = `🚫 ${FOULS[l.foul].label}: ${FOULS[l.foul].hint}`;
       cls = "foul";
@@ -305,6 +400,7 @@ function renderHud() {
   });
   const last = fight.roundWins[0] === ROUNDS_TO_WIN - 1 && fight.roundWins[1] === ROUNDS_TO_WIN - 1;
   el.roundLabel.textContent = last ? "FINAL ROUND" : `ROUND ${fight.round}`;
+  renderPowers();
 }
 
 function announce(text, cls = "", anim = "pop") {
@@ -350,7 +446,7 @@ function sideEl(i) {
 }
 
 function resetThrowVisuals() {
-  document.querySelectorAll(".throw-badge, .dmg").forEach((n) => n.remove());
+  document.querySelectorAll(".throw-badge, .dmg, .power-pop").forEach((n) => n.remove());
   el.cpuHand.textContent = "✊";
   el.cpuHand.classList.remove("reveal", "pump");
   document.querySelectorAll(".manual").forEach((g) => g.classList.remove("locked"));
@@ -360,6 +456,7 @@ function resetThrowVisuals() {
 function startMatch() {
   cancelFlow();
   fight.newMatch();
+  armed = [null, null];
   needIntro = true;
   voidStreak = 0;
   paused = false;
@@ -414,6 +511,7 @@ async function countdown() {
   while (unsettled() && performance.now() - shootAt < CAPTURE_AFTER + CAPTURE_GRACE) await sleep(60);
   const endAt = performance.now();
   collecting = false;
+  armBlockUntil = endAt + ARM_BLOCK_MS;
   el.cpuHand.classList.remove("pump");
   const read = (i) => {
     if (manual[i]) return { gesture: manual[i], foul: null };
@@ -433,6 +531,7 @@ async function turn(intro, ex) {
   const { throws, fouls } = await countdown();
   let [a, b] = throws;
   let note = "";
+  const pw = [armed[0], mode === "local" ? armed[1] : null]; // locked in at "Shoot!"
 
   if (mode === "cpu") {
     if (!a) {
@@ -452,9 +551,10 @@ async function turn(intro, ex) {
       return "next";
     }
     b = cpuPick();
+    pw[1] = cpuPower();
   } else if (mode === "online") {
     announce("…", "small");
-    const res = await exchangeOnline(ex, a, fouls[0]);
+    const res = await exchangeOnline(ex, a, fouls[0], pw[0]);
     checkAlive(gen);
     if (res.timeout) {
       clearAnnounce();
@@ -464,20 +564,25 @@ async function turn(intro, ex) {
     }
     b = res.gesture;
     fouls[1] = res.foul;
+    pw[1] = res.power;
     if (res.cheat) note = " (opponent's throw didn't verify)";
   }
 
   let ev;
   try {
-    ev = fight.exchange(a, b);
+    ev = fight.exchange(a, b, pw);
   } catch {
-    ev = { result: "void" };
+    ev = { result: "void", used: [null, null] };
   }
+  ev.used.forEach((p, i) => p && armed[i] === p && (armed[i] = null));
   if (mode === "online" && !net.isHost) {
     // The host's state is the source of truth; fixes any drift after a network hiccup.
     const s = await receive(`state:${ex}`, 4000);
     checkAlive(gen);
-    if (s) fight.restore(s.fight, true);
+    if (s) {
+      fight.restore(s.fight, true);
+      if (armed[0] && !fight.canUse(0, armed[0])) armed[0] = null;
+    }
   } else if (mode === "online") {
     net.send({ t: "state", ex, fight: fight.snapshot() });
   }
@@ -516,10 +621,20 @@ function throwBadge(i, g, foul = null) {
   sideEl(i).appendChild(b);
 }
 
+function powerPop(i, p) {
+  const n = document.createElement("div");
+  n.className = "power-pop";
+  n.textContent = `${POWERS[p].emoji} ${POWERS[p].label}`;
+  sideEl(i).appendChild(n);
+}
+
 async function present(a, b, ev, note, fouls = [null, null]) {
   clearAnnounce();
   throwBadge(0, a, fouls[0]);
   throwBadge(1, b, fouls[1]);
+  ev.used?.forEach((p, i) => p && powerPop(i, p));
+  if (ev.used?.some(Boolean)) sfx.power();
+  renderPowers();
   const n = names();
   const label = (g) => (g ? GESTURES[g].label : "nothing");
   const youPov = mode !== "local"; // colour results from the local player's point of view
@@ -541,7 +656,8 @@ async function present(a, b, ev, note, fouls = [null, null]) {
   if (ev.result === "draw") {
     announce("Clash!", "small");
     sfx.clash();
-    setResult(`Both ${label(a)} — clash!${note}`, "draw");
+    const wasted = ev.used.some(Boolean) ? " (power-up spent)" : "";
+    setResult(`Both ${label(a)} — clash!${wasted}${note}`, "draw");
     return;
   }
 
@@ -556,14 +672,29 @@ async function present(a, b, ev, note, fouls = [null, null]) {
       ? `Foul! ${n[ev.loser]} threw ${FOULS[lf].label.toLowerCase()}`
       : `${n[ev.loser]} ${verb} too slow!`;
   if (lf) announce("Foul!", "small red");
-  const takes = n[ev.loser] === "YOU" ? "you take" : `${n[ev.loser]} takes`;
-  setResult(`${text} — ${takes} ${ev.damage}${note}`, youPov ? (w === 0 ? "win" : "lose") : "win");
+  const who = (i, you, them) => (n[i] === "YOU" ? you : `${n[i]} ${them}`);
+  const x2 = ev.boosted ? " (×2 power)" : "";
+
+  if (ev.result === "blocked") {
+    announce("Blocked!", "small gold");
+    sfx.clash();
+    setResult(`${text} — ☝️ ${who(ev.loser, "you block", "blocks")} ${ev.blocked}${x2}${note}`, youPov ? (ev.loser === 0 ? "win" : "lose") : "draw");
+    renderHud();
+    return;
+  }
+
+  const hurt = ev.hurt;
+  const tail = ev.reversed
+    ? `🤘 Reversed! ${who(hurt, "you take", "takes")} ${ev.damage}`
+    : `${who(hurt, "you take", "takes")} ${ev.damage}`;
+  setResult(`${text} — ${tail}${x2}${note}`, youPov ? (hurt === 1 ? "win" : "lose") : "win");
 
   // damage number + flash on the side that got hit
-  const target = sideEl(ev.loser);
+  const target = sideEl(hurt);
   const dmg = document.createElement("div");
   dmg.className = "dmg";
-  dmg.innerHTML = `−${ev.damage}${ev.combo > 1 ? `<small>${ev.combo} HIT COMBO</small>` : ""}`;
+  const tag = ev.reversed ? "REVERSED" : ev.boosted ? "POWER ×2" : ev.combo > 1 ? `${ev.combo} HIT COMBO` : "";
+  dmg.innerHTML = `−${ev.damage}${tag ? `<small>${tag}</small>` : ""}`;
   target.appendChild(dmg);
   setTimeout(() => dmg.remove(), 1100);
   target.classList.remove("hit-flash");
@@ -573,7 +704,9 @@ async function present(a, b, ev, note, fouls = [null, null]) {
   void el.ring.offsetWidth;
   el.ring.classList.add("shake");
   sfx.hit(ev.combo);
-  if (ev.combo > 1) announce(`${ev.combo} hit combo!`, "small gold");
+  if (ev.reversed) announce("Reversed!", "small gold");
+  else if (ev.boosted) announce("Power ×2!", "small gold");
+  else if (ev.combo > 1) announce(`${ev.combo} hit combo!`, "small gold");
   renderHud();
 }
 
@@ -587,7 +720,7 @@ async function koSequence(ev) {
     announce("Perfect!", "big gold", "slam");
     await sleep(1100);
   }
-  const n = names()[ev.winner];
+  const n = names()[ev.victor];
   announce(n === "YOU" ? "You win the round" : `${n} wins the round`, "small gold");
   await sleep(1300);
   clearAnnounce();
@@ -711,19 +844,24 @@ function receive(key, ms) {
 }
 
 /** Commit-reveal: send a hash of my throw, wait for theirs, then reveal. Nobody can copy. */
-async function exchangeOnline(ex, mine, myFoul = null) {
+async function exchangeOnline(ex, mine, myFoul = null, myPower = null) {
   const g = mine || "none";
+  const p = myPower || "none"; // the power-up is committed with the throw, so nobody can react to it
   const n = nonce();
-  net.send({ t: "commit", ex, hash: await sha256(`${ex}:${g}:${n}`) });
+  net.send({ t: "commit", ex, hash: await sha256(`${ex}:${g}:${p}:${n}`) });
   const theirs = await receive(`commit:${ex}`, 8000);
   if (!theirs) return { timeout: true };
   // f (which foul, if any) is display-only, so it isn't part of the hash.
-  net.send({ t: "reveal", ex, g, n, f: mine ? null : myFoul });
+  net.send({ t: "reveal", ex, g, p, n, f: mine ? null : myFoul });
   const r = await receive(`reveal:${ex}`, 8000);
   if (!r) return { timeout: true };
-  const valid = (await sha256(`${ex}:${r.g}:${r.n}`)) === theirs.hash && (r.g === "none" || r.g in GESTURES);
+  const valid =
+    (await sha256(`${ex}:${r.g}:${r.p}:${r.n}`)) === theirs.hash &&
+    (r.g === "none" || Object.hasOwn(GESTURES, r.g)) &&
+    (r.p === "none" || Object.hasOwn(POWERS, r.p));
   const gesture = valid && r.g !== "none" ? r.g : null;
-  return { gesture, foul: !gesture && Object.hasOwn(FOULS, r.f ?? "") ? r.f : null, cheat: !valid };
+  const power = valid && r.p !== "none" ? r.p : null;
+  return { gesture, power, foul: !gesture && Object.hasOwn(FOULS, r.f ?? "") ? r.f : null, cheat: !valid };
 }
 
 function onNetMessage(m) {
@@ -755,6 +893,7 @@ function onNetMessage(m) {
       guestQueue = Promise.resolve();
       mailbox.clear();
       fight.newMatch();
+      armed = [null, null];
       el.matchModal.hidden = true;
       resetThrowVisuals();
       renderHud();
@@ -951,6 +1090,12 @@ const DUO_KEYS = {
   j: [1, "rock"], k: [1, "paper"], l: [1, "scissors"],
 };
 const keyThrow = (k) => (mode === "local" ? DUO_KEYS[k] : SOLO_KEYS[k] && [0, SOLO_KEYS[k]]);
+// Power-ups: Q W E (P2 in 2-player mode: U I O) for power, reverse, shield.
+const POWER_KEYMAP = { q: [0, 0], w: [0, 1], e: [0, 2], u: [1, 0], i: [1, 1], o: [1, 2] };
+const keyPower = (k) => {
+  const m = POWER_KEYMAP[k];
+  return m && (m[0] === 0 || mode === "local") ? [m[0], POWER_KEYS[m[1]]] : null;
+};
 document.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
   if (e.metaKey || e.ctrlKey || e.altKey || !el.menu.hidden || !el.lobby.hidden) return;
@@ -969,6 +1114,7 @@ document.addEventListener("keydown", (e) => {
   } else if (k === "escape") togglePause();
   else if (k === "m") el.mute.click();
   else if (keyThrow(k)) throwManually(...keyThrow(k));
+  else if (keyPower(k)) toggleArm(...keyPower(k));
 });
 
 // Free the camera while the page is in the background on mobile; resume on return.

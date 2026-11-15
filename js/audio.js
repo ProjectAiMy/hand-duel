@@ -102,5 +102,9 @@ export const sfx = {
       noise(0, 0.6, 400, 0.6);
       sweep(220, 30, 0, 1.1, "sine", 0.45);
     }),
+  /** A power-up was armed: rising shimmer. */
+  arm: () => play(() => { sweep(500, 1600, 0, 0.25, "triangle", 0.1); tone(1600, 0.2, 0.15, "sine", 0.08); }),
+  /** A power-up fired on the throw. */
+  power: () => play(() => { sweep(120, 900, 0, 0.3, "sawtooth", 0.12); noise(0.05, 0.3, 2500, 0.2); }),
   matchLose: () => play(() => [392, 370, 349, 262].forEach((f, i) => tone(f, i * 0.16, 0.3, "sawtooth", 0.08))),
 };

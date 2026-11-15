@@ -49,10 +49,13 @@ export function thumbOut(lm) {
 /**
  * Classify one hand.
  * @param {{x:number,y:number,z?:number}[]} lm 21 landmarks (world landmarks preferred)
- * @returns {{gesture: string|null, foul: string|null, confidence: number, extended: boolean[], thumb: boolean}}
+ * `power` names the power-up a sign stands for (see POWERS in fight.js). Those signs are fouls
+ * as a throw, but held between throws they arm a power-up: finger gun = power, horns = reverse,
+ * index finger up = shield.
+ * @returns {{gesture: string|null, foul: string|null, power: string|null, confidence: number, extended: boolean[], thumb: boolean}}
  */
 export function classify(lm) {
-  if (!lm || lm.length < 21) return { gesture: null, foul: null, confidence: 0, extended: [], thumb: false };
+  if (!lm || lm.length < 21) return { gesture: null, foul: null, power: null, confidence: 0, extended: [], thumb: false };
   const ratios = fingerRatios(lm);
   const ext = ratios.map((r) => r > EXTENDED);
   const curled = ratios.map((r) => r < CURLED);
@@ -71,10 +74,15 @@ export function classify(lm) {
   else if (n === 1) foul = index && thumb ? "gun" : "one";
   else if (n === 2) foul = "badScissors"; // horns, middle + ring, etc.
 
+  let power = null;
+  if (foul === "gun") power = "power";
+  else if (foul === "one" && index) power = "shield";
+  else if (foul === "badScissors" && index && pinky) power = "reverse";
+
   // Confidence: how clearly the least-certain finger sits on its side of the threshold.
   const margin = Math.min(...ratios.map((r) => Math.abs(r - EXTENDED)));
   const confidence = gesture || foul ? Math.min(1, 0.4 + margin * 3) : 0;
-  return { gesture, foul, confidence, extended: ext, thumb };
+  return { gesture, foul, power, confidence, extended: ext, thumb };
 }
 
 /** Rolling buffer of recent classifications, used to smooth jitter and read the throw at "Shoot!". */

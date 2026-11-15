@@ -58,3 +58,67 @@ test("both sides computing from their own view stay in sync", () => {
   }
   assert.deepEqual(host.hp, [...guest.hp].reverse());
 });
+
+test("power doubles damage and is used up for the round", () => {
+  const f = new Fight();
+  const ev = f.exchange("rock", "scissors", ["power", null]);
+  assert.equal(ev.damage, 50);
+  assert.equal(ev.boosted, true);
+  assert.deepEqual(ev.used, ["power", null]);
+  assert.equal(f.canUse(0, "power"), false);
+  // Already used: ignored on the next throw.
+  assert.equal(f.exchange("rock", "scissors", ["power", null]).damage, 35);
+  assert.equal(f.hp[1], MAX_HP - 85);
+});
+
+test("a power is spent even when the throw is lost or drawn, but not on a void", () => {
+  const f = new Fight();
+  f.exchange("rock", "rock", ["power", null]);
+  assert.equal(f.canUse(0, "power"), false);
+  f.exchange(null, null, [null, "shield"]);
+  assert.equal(f.canUse(1, "shield"), true);
+});
+
+test("shield blocks the hit and resets streaks", () => {
+  const f = new Fight();
+  f.exchange("rock", "scissors"); // left streak 1
+  const ev = f.exchange("rock", "scissors", [null, "shield"]);
+  assert.equal(ev.result, "blocked");
+  assert.equal(ev.blocked, 35);
+  assert.equal(f.hp[1], MAX_HP - 25);
+  assert.deepEqual(f.streak, [0, 0]);
+});
+
+test("reverse sends the damage back to the winner of the throw", () => {
+  const f = new Fight();
+  const ev = f.exchange("rock", "scissors", ["power", "reverse"]);
+  assert.equal(ev.winner, 0);
+  assert.equal(ev.hurt, 0);
+  assert.equal(ev.reversed, true);
+  assert.equal(ev.damage, 50); // the ×2 bounces back too
+  assert.equal(f.hp[0], MAX_HP - 50);
+  assert.equal(f.hp[1], MAX_HP);
+});
+
+test("a reversed hit can K.O. the attacker, who loses the round", () => {
+  const f = new Fight();
+  f.hp[0] = 20;
+  const ev = f.exchange("paper", "rock", [null, "reverse"]);
+  assert.equal(ev.ko, true);
+  assert.equal(ev.victor, 1);
+  assert.deepEqual(f.roundWins, [0, 1]);
+});
+
+test("powers reset each round and survive snapshot/restore mirrored", () => {
+  const f = new Fight();
+  f.exchange("rock", "scissors", ["shield", "reverse"]);
+  const g = new Fight();
+  g.restore(f.snapshot(), true);
+  assert.equal(g.canUse(0, "reverse"), false); // the guest is the host's right side
+  assert.equal(g.canUse(1, "shield"), false);
+  assert.equal(g.canUse(1, "power"), true);
+  f.hp[1] = 0;
+  f.roundWinner = 0;
+  f.nextRound();
+  assert.equal(f.canUse(0, "shield"), true);
+});

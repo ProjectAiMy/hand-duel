@@ -63,6 +63,12 @@ test("illegal shapes are reported as fouls", () => {
     assert.equal(foul(f, { thumb: true }).foul, null);
   }
   assert.equal(foul([1, 1, 0, 0], { thumb: true }).gesture, "scissors");
+  // Power-up signs.
+  assert.equal(foul([1, 0, 0, 0], { thumb: true }).power, "power");
+  assert.equal(foul([1, 0, 0, 1]).power, "reverse");
+  assert.equal(foul([1, 0, 0, 0]).power, "shield");
+  assert.equal(foul([0, 1, 0, 0]).power, null);
+  assert.equal(foul([1, 1, 0, 0]).power, null);
   // An open hand whose pinky reads half-open is still paper, not "3 fingers".
   assert.equal(foul([1, 1, 1, 0], { half: [3] }).gesture, "paper");
 });

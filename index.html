@@ -65,10 +65,10 @@
         <button data-side="1" data-throw="scissors" title="P2 Scissors">✌️<span>Scissors</span><kbd>L</kbd></button>
       </div>
       <div class="settings">
-        <label title="Start the next throw automatically"><input type="checkbox" id="autoNext" checked /> Auto-next</label>
-        <label>Arena
-          <select id="arenaSelect">
-            <option value="random">Random each round</option>
+        <label title="Start the next throw automatically"><input type="checkbox" id="autoNext" checked /> <span>Auto<span class="long">-next</span></span></label>
+        <label title="Arena"><span class="long">Arena</span>
+          <select id="arenaSelect" aria-label="Arena">
+            <option value="random">🎲 Random</option>
           </select>
         </label>
         <button id="pause" class="icon-btn" title="Pause auto-play (Esc)" aria-label="Pause">⏸</button>

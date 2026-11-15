@@ -120,6 +120,8 @@ body[data-mode="local"] .half.right::before { content: "P2"; right: 12px; color:
 .half.right .detect-badge { left: auto; right: 10px; }
 .detect-badge.found { background: rgba(62,224,143,.9); color: #04140c; }
 .detect-badge.warn { background: rgba(255,204,51,.92); color: #221800; }
+.detect-badge.foul { background: rgba(255,93,115,.92); color: #2a0008; }
+.detect-badge { max-width: calc(100% - 20px); line-height: 1.3; }
 .tip {
   position: absolute; left: 50%; top: 10px; transform: translateX(-50%); max-width: 90%;
   padding: 6px 12px; border-radius: 10px; background: rgba(255,204,51,.92); color: #221800;
@@ -174,7 +176,10 @@ body[data-mode="online"] .opponent:has(video.live) .waiting { display: none; }
 .announcer.pop { animation: announce .55s cubic-bezier(.2,1.5,.4,1); }
 .announcer.slam { animation: slam .6s cubic-bezier(.2,1.5,.4,1); }
 
-.result { text-align: center; font-size: 1.15rem; font-weight: 800; min-height: 1.6em; padding: 4px 16px 0; text-shadow: 0 2px 6px #000; }
+.result {
+  text-align: center; font-size: clamp(.85rem, 2.4vw + .3rem, 1.15rem); font-weight: 800; line-height: 1.3;
+  min-height: 1.6em; padding: 4px 16px 0; text-shadow: 0 2px 6px #000; text-wrap: balance;
+}
 .result.win { color: var(--win); }
 .result.lose { color: var(--lose); }
 .result.draw { color: var(--draw); }
@@ -272,13 +277,21 @@ kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; backg
   .particles { display: none; }
 }
 
+/* touch screens have no keyboard, so hide the key hints */
+@media (hover: none) {
+  .manual button kbd { display: none; }
+}
+
 /* ---------- phones / portrait ---------- */
 @media (max-width: 760px), (orientation: portrait) and (max-width: 1000px) {
   .hud { padding: 8px 12px 4px; gap: 8px; }
-  .name { font-size: .9rem; }
-  .hp { height: 16px; }
+  .name { font-size: clamp(.78rem, 3.2vw, .95rem); }
+  .hp { height: clamp(12px, 3.6vw, 16px); }
   .pips i { width: 10px; height: 10px; }
-  .round-label { font-size: .8rem; }
+  .round-label { font-size: clamp(.68rem, 2.8vw, .8rem); }
+  .arena-name { font-size: .64rem; }
+
+  /* video feed sizes: unchanged */
   .ring, body[data-mode="cpu"] .ring { grid-template-columns: 1fr; gap: 8px; padding: 4px 12px; }
   body[data-mode="cpu"] #cornerR { order: -1; }
   body[data-mode="cpu"] .opponent { aspect-ratio: auto; height: 90px; overflow: visible; }
@@ -289,12 +302,76 @@ kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; backg
   body[data-mode="online"] .stage { aspect-ratio: 3 / 4; }
   .stage { aspect-ratio: 3 / 4; max-height: 50dvh; width: 100%; margin: 0 auto; }
   body[data-mode="local"] .stage { aspect-ratio: 4 / 3; }
-  .modes { grid-template-columns: 1fr; }
-  .controls { gap: 8px; padding-bottom: 14px; }
-  .primary { width: 100%; max-width: 360px; }
-  .manual button { min-width: 54px; font-size: 1.3rem; }
-  .settings { justify-content: center; }
+
+  /* overlays on the video: smaller text so they don't cover the hand */
+  .detect-badge { left: 8px; bottom: 8px; padding: 3px 9px; font-size: clamp(.66rem, 2.9vw, .82rem); }
+  .half.right .detect-badge { right: 8px; }
+  body[data-mode="local"] .detect-badge { max-width: calc(100% - 16px); }
+  .tip { font-size: clamp(.66rem, 2.9vw, .8rem); padding: 4px 9px; }
+  body[data-mode="local"] .half::before { font-size: .8rem; top: 6px; }
   .announcer { top: 22dvh; }
+  .announcer.small { font-size: clamp(1.4rem, 7vw, 2.2rem); }
+  .result { padding: 2px 12px 0; }
+
+  /* controls: Fight + throw buttons share one row, settings in a compact row under them */
+  .controls {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+    gap: 8px; padding: 6px 12px 12px;
+  }
+  #play { grid-column: 1; grid-row: 1; }
+  #manualL { grid-column: 2; grid-row: 1; }
+  #play[hidden] + #manualL { grid-column: 1 / -1; justify-self: center; }
+  .settings { grid-column: 1 / -1; grid-row: 2; justify-content: center; flex-wrap: nowrap; gap: 6px; font-size: .78rem; min-width: 0; }
+  body[data-mode="local"] .controls { grid-template-columns: 1fr 1fr; }
+  body[data-mode="local"] #manualL { grid-column: 1; grid-row: 1; justify-self: start; }
+  body[data-mode="local"] #manualR { grid-column: 2; grid-row: 1; justify-self: end; }
+  body[data-mode="local"] #play { grid-column: 1 / -1; grid-row: 2; }
+  body[data-mode="local"] .settings { grid-row: 3; }
+
+  .primary { width: 100%; padding: clamp(9px, 2.6vw, 12px) 14px; font-size: clamp(.88rem, 3.8vw, 1.02rem); box-shadow: 0 4px 0 #b38a00; }
+  .manual { gap: 4px; }
+  .manual button {
+    min-width: 0; width: clamp(40px, 12vw, 52px); padding: 5px 0; border-radius: 10px;
+    font-size: clamp(1.05rem, 5.4vw, 1.35rem);
+  }
+  .manual button span, .manual button kbd { display: none; }
+  #manualR { padding-left: 6px; }
+  body[data-mode="local"] #manualL { padding-right: 6px; }
+  .settings label { padding: 4px 8px; gap: 4px; white-space: nowrap; }
+  .settings .long { display: none; }
+  .settings select { max-width: 30vw; text-overflow: ellipsis; }
+  .icon-btn { width: clamp(30px, 8.6vw, 36px); height: clamp(30px, 8.6vw, 36px); font-size: .88rem; padding: 0; flex: none; }
+
+  /* menus */
+  .modal { padding: 12px; }
+  .card { padding: 18px 14px; border-radius: 18px; }
+  .card h2 { font-size: clamp(1.3rem, 6vw, 1.7rem); }
+  .sub { margin: 6px 0 12px; font-size: .9rem; }
+  .modes { grid-template-columns: 1fr; gap: 8px; }
+  .mode { flex-direction: row; align-items: baseline; justify-content: space-between; padding: 11px 14px; text-align: left; }
+  .mode b { font-size: .98rem; }
+  .mode span { font-size: .74rem; }
+  .cam-toggle { font-size: .82rem; margin: 12px 0 4px; }
+  .tips { font-size: .8rem; }
+  .room-code { font-size: clamp(2rem, 11vw, 3rem); }
+}
+
+/* phones held sideways: very little height, so trim everything around the video */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hud { padding: 4px 12px 2px; }
+  .name { font-size: .85rem; }
+  .hp { height: 12px; }
+  .ring { padding: 2px 12px; }
+  .result { font-size: .85rem; min-height: 1.3em; padding-top: 0; }
+  .controls { gap: 6px; padding: 4px 12px 6px; }
+  .primary { padding: 8px 18px; font-size: .9rem; box-shadow: 0 4px 0 #b38a00; }
+  .manual button { padding: 3px 8px; min-width: 44px; font-size: 1.15rem; }
+  .manual button span, .manual button kbd { display: none; }
+  .settings { font-size: .76rem; gap: 6px; }
+  .settings label { padding: 3px 8px; }
+  .settings .long { display: none; }
+  .icon-btn { width: 32px; height: 32px; font-size: .85rem; }
+  .announcer.small { top: 14dvh; }
 }
 
 .share-url { font-size: 0.8rem; opacity: 0.75; word-break: break-all; margin: 0.5rem 0 0; }

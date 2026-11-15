@@ -53,6 +53,10 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
 - 100 HP each. A won throw deals 25, the 2nd straight win deals 35, and the 3rd or more deals 45, so three in a row is a K.O.
 - A draw is a *clash*: no damage, and both win streaks reset.
 - 2-player and online: if one side shows nothing on “Shoot!”, they're *too slow* and take the hit. If neither side throws, the throw is replayed.
+- **Fouls**: a hand that isn't a legal shape is called out by name: *1 finger*, *finger gun* (index + thumb),
+  *3 fingers*, or *wrong scissors* (any two fingers other than index + middle, like horns). Paper needs all 4 fingers
+  open (a pinky that's only half-open still counts). VS CPU replays a foul with a hint; in 2-player and online a foul
+  loses to a legal throw, like being too slow.
 - Best of 3 rounds. Rounds show *Perfect!* when the winner took no damage.
 
 ## How it works
@@ -60,8 +64,8 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
 | Piece | File | Notes |
 |---|---|---|
 | Hand tracking | `js/tracker.js` | MediaPipe Hand Landmarker 0.10.14 (21 3D points per hand, GPU with CPU fallback). Tracks 1 hand, or 2 in 2-player mode. |
-| Gesture rules | `js/gesture.js` | Compares wrist→fingertip with wrist→middle-joint distance for each finger, so hand angle doesn't matter. |
-| Fair capture | `GestureBuffer` | Every frame is logged. It reads your hand for 0.7 s after “Shoot!” and takes the last gesture held steady (3+ frames), so the fist pumped during the countdown doesn't count. |
+| Gesture rules | `js/gesture.js` | Compares wrist→fingertip with wrist→middle-joint distance for each finger, so hand angle doesn't matter. Each finger is straight, half-open or curled; the thumb is only checked for the finger-gun foul. Illegal shapes come back as a `foul` code (`FOULS`). |
+| Fair capture | `GestureBuffer` | Every frame is logged. It reads your hand for 0.7 s after “Shoot!” and takes the last gesture held steady (3+ frames), so the fist pumped during the countdown doesn't count. One dropped tracker frame doesn't break a hold. If a hand is in view but hasn't settled on a legal shape by then, it waits up to 0.5 s longer. |
 | 2 players | `js/main.js` `loop` | Each hand belongs to whichever half of the screen it's on, so P1 can't throw for P2. |
 | Online | `js/net.js` | WebRTC via PeerJS 1.5.4. The free PeerJS server only introduces the two browsers; video and moves go directly between them. Throws use **commit-reveal** (SHA-256, with a JS fallback on plain-http pages): each side sends a hash first, so nobody can wait and counter. The host's state is the source of truth after every throw. A heartbeat notices if the opponent drops. |
 | Arenas | `js/arenas.js` | 4 arenas drawn in SVG with CSS particles (petals, rain, embers, sparkles). Choose one, or random per round. |

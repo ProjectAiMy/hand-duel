@@ -1,4 +1,4 @@
-import { GESTURES, GESTURE_KEYS, GestureBuffer, classify } from "./gesture.js";
+import { GESTURES, GESTURE_KEYS, FOULS, GestureBuffer, classify } from "./gesture.js";
 import { Tracker, CameraError } from "./tracker.js";
 import { sfx, unlockAudio, setMuted, isMuted } from "./audio.js";
 import { Fight, MAX_HP, ROUNDS_TO_WIN } from "./fight.js";
@@ -22,6 +22,7 @@ const ctx2d = el.overlay.getContext("2d");
 const BEAT = 480; // per countdown word
 const CAPTURE_BEFORE = 0; // the throw is read from "Shoot!"...
 const CAPTURE_AFTER = 700; // ...until this long after; the last gesture held steady in it counts
+const CAPTURE_GRACE = 500; // if a hand is in view but hasn't settled on a legal shape yet, wait up to this much longer
 const NEXT_DELAY_S = 3; // pause after each throw before auto-next starts the next one
 const MAX_VOIDS = 3; // auto-play pauses after this many throws in a row with no hands
 
@@ -199,10 +200,11 @@ function loop(now) {
   }
   const t = performance.now();
   sides.forEach((h, i) => {
-    const c = h ? classify(h.world || h.landmarks) : { gesture: null, confidence: 0 };
+    const c = h ? classify(h.world || h.landmarks) : { gesture: null, foul: null, confidence: 0 };
     live[i] = { ...c, visible: !!h, edge: h ? nearEdge(h.landmarks) : false };
-    buffers[i].push(c.gesture, t);
-    if (h) drawHand(h.landmarks, mode === "local" ? SIDE_COLORS[i] : c.gesture ? "#3ee08f" : "#ffcc33");
+    buffers[i].push(c.gesture, t, c.foul);
+    const color = c.foul ? "#ff5d73" : mode === "local" ? SIDE_COLORS[i] : c.gesture ? "#3ee08f" : "#ffcc33";
+    if (h) drawHand(h.landmarks, color);
   });
   updateBadges();
   if (t - lastLightCheck > 1200) {
@@ -244,6 +246,9 @@ function updateBadges() {
     if (l.gesture) {
       text = `${GESTURES[l.gesture].emoji} ${GESTURES[l.gesture].label}`;
       cls = "found";
+    } else if (l.foul) {
+      text = `🚫 ${FOULS[l.foul].label}: ${FOULS[l.foul].hint}`;
+      cls = "foul";
     } else if (l.visible && l.edge) {
       text = "Hand at the edge — move it in";
       cls = "warn";
@@ -400,13 +405,23 @@ async function countdown() {
   sfx.shoot();
   const shootAt = performance.now();
   const sidesInPlay = mode === "local" ? [0, 1] : [0];
-  const waitForCam = cameraOn && sidesInPlay.some((i) => !manual[i]);
-  await sleep(waitForCam ? CAPTURE_AFTER : 150);
+  const camSides = () => (cameraOn ? sidesInPlay.filter((i) => !manual[i]) : []);
+  await sleep(camSides().length ? CAPTURE_AFTER : 150);
+  // Grace: a hand that's in view but still forming its shape (or showing a foul it may fix)
+  // gets a little longer, so a slightly late or slow-to-track throw still counts.
+  const unsettled = () =>
+    camSides().some((i) => live[i].visible && !buffers[i].hasSettled(shootAt - CAPTURE_BEFORE, performance.now()));
+  while (unsettled() && performance.now() - shootAt < CAPTURE_AFTER + CAPTURE_GRACE) await sleep(60);
+  const endAt = performance.now();
   collecting = false;
   el.cpuHand.classList.remove("pump");
-  const pick = (i) =>
-    manual[i] || (cameraOn ? buffers[i].settled(shootAt - CAPTURE_BEFORE, shootAt + CAPTURE_AFTER) : null);
-  return [pick(0), mode === "local" ? pick(1) : null];
+  const read = (i) => {
+    if (manual[i]) return { gesture: manual[i], foul: null };
+    return cameraOn ? buffers[i].read(shootAt - CAPTURE_BEFORE, endAt) : { gesture: null, foul: null };
+  };
+  const r0 = read(0);
+  const r1 = mode === "local" ? read(1) : { gesture: null, foul: null };
+  return { throws: [r0.gesture, r1.gesture], fouls: [r0.foul, r1.foul] };
 }
 
 /** One full throw. Returns 'next' | 'round' | 'match'. */
@@ -415,22 +430,31 @@ async function turn(intro, ex) {
   if (intro) await roundIntro(intro);
   resetThrowVisuals();
   setResult("");
-  let [a, b] = await countdown();
+  const { throws, fouls } = await countdown();
+  let [a, b] = throws;
   let note = "";
 
   if (mode === "cpu") {
     if (!a) {
       clearAnnounce();
-      setResult("Didn't catch your hand — hold it up on “Shoot!”");
+      if (fouls[0]) {
+        // A shape was seen, just not a legal one: say what, and replay the throw.
+        announce("Foul!", "small red");
+        throwBadge(0, null, fouls[0]);
+        setResult(`${FOULS[fouls[0]].label}? ${FOULS[fouls[0]].hint}. Throw again!`, "lose");
+        voidStreak = 0;
+      } else {
+        setResult("Didn't catch your hand — hold it up on “Shoot!”");
+        voidStreak++;
+      }
       sfx.miss();
-      voidStreak++;
       await holdBeforeNext();
       return "next";
     }
     b = cpuPick();
   } else if (mode === "online") {
     announce("…", "small");
-    const res = await exchangeOnline(ex, a);
+    const res = await exchangeOnline(ex, a, fouls[0]);
     checkAlive(gen);
     if (res.timeout) {
       clearAnnounce();
@@ -439,6 +463,7 @@ async function turn(intro, ex) {
       return "next";
     }
     b = res.gesture;
+    fouls[1] = res.foul;
     if (res.cheat) note = " (opponent's throw didn't verify)";
   }
 
@@ -457,7 +482,7 @@ async function turn(intro, ex) {
     net.send({ t: "state", ex, fight: fight.snapshot() });
   }
 
-  await present(a, b, ev, note);
+  await present(a, b, ev, note, fouls);
   if (ev.ko) return koSequence(ev);
   await holdBeforeNext();
   return "next";
@@ -478,7 +503,7 @@ async function holdBeforeNext() {
   }
 }
 
-function throwBadge(i, g) {
+function throwBadge(i, g, foul = null) {
   if (mode === "cpu" && i === 1) {
     el.cpuHand.textContent = GESTURES[g].emoji;
     el.cpuHand.classList.add("reveal");
@@ -486,21 +511,29 @@ function throwBadge(i, g) {
   }
   const b = document.createElement("div");
   b.className = "throw-badge";
-  b.textContent = g ? GESTURES[g].emoji : "💤";
+  b.textContent = g ? GESTURES[g].emoji : foul ? "🚫" : "💤";
+  if (foul) b.title = FOULS[foul].label;
   sideEl(i).appendChild(b);
 }
 
-async function present(a, b, ev, note) {
+async function present(a, b, ev, note, fouls = [null, null]) {
   clearAnnounce();
-  throwBadge(0, a);
-  throwBadge(1, b);
+  throwBadge(0, a, fouls[0]);
+  throwBadge(1, b, fouls[1]);
   const n = names();
   const label = (g) => (g ? GESTURES[g].label : "nothing");
   const youPov = mode !== "local"; // colour results from the local player's point of view
 
   if (ev.result === "void") {
-    voidStreak++;
-    setResult("No throws seen — again!");
+    if (fouls[0] || fouls[1]) {
+      voidStreak = 0;
+      const what = fouls.filter(Boolean).map((f) => FOULS[f].label).join(" and ");
+      announce("Foul!", "small red");
+      setResult(`No legal throws (${what}) — again!`);
+    } else {
+      voidStreak++;
+      setResult("No throws seen — again!");
+    }
     sfx.miss();
     return;
   }
@@ -515,9 +548,14 @@ async function present(a, b, ev, note) {
   const w = ev.winner;
   const wg = w === 0 ? a : b;
   const lg = w === 0 ? b : a;
-  const text = ev.forfeit
-    ? `${n[ev.loser]} ${n[ev.loser] === "YOU" ? "were" : "was"} too slow!`
-    : `${label(wg)} beats ${label(lg)}`;
+  const lf = fouls[ev.loser];
+  const verb = n[ev.loser] === "YOU" ? "were" : "was";
+  const text = !ev.forfeit
+    ? `${label(wg)} beats ${label(lg)}`
+    : lf
+      ? `Foul! ${n[ev.loser]} threw ${FOULS[lf].label.toLowerCase()}`
+      : `${n[ev.loser]} ${verb} too slow!`;
+  if (lf) announce("Foul!", "small red");
   const takes = n[ev.loser] === "YOU" ? "you take" : `${n[ev.loser]} takes`;
   setResult(`${text} — ${takes} ${ev.damage}${note}`, youPov ? (w === 0 ? "win" : "lose") : "win");
 
@@ -673,17 +711,19 @@ function receive(key, ms) {
 }
 
 /** Commit-reveal: send a hash of my throw, wait for theirs, then reveal. Nobody can copy. */
-async function exchangeOnline(ex, mine) {
+async function exchangeOnline(ex, mine, myFoul = null) {
   const g = mine || "none";
   const n = nonce();
   net.send({ t: "commit", ex, hash: await sha256(`${ex}:${g}:${n}`) });
   const theirs = await receive(`commit:${ex}`, 8000);
   if (!theirs) return { timeout: true };
-  net.send({ t: "reveal", ex, g, n });
+  // f (which foul, if any) is display-only, so it isn't part of the hash.
+  net.send({ t: "reveal", ex, g, n, f: mine ? null : myFoul });
   const r = await receive(`reveal:${ex}`, 8000);
   if (!r) return { timeout: true };
   const valid = (await sha256(`${ex}:${r.g}:${r.n}`)) === theirs.hash && (r.g === "none" || r.g in GESTURES);
-  return { gesture: valid && r.g !== "none" ? r.g : null, cheat: !valid };
+  const gesture = valid && r.g !== "none" ? r.g : null;
+  return { gesture, foul: !gesture && Object.hasOwn(FOULS, r.f ?? "") ? r.f : null, cheat: !valid };
 }
 
 function onNetMessage(m) {

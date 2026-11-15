@@ -22,7 +22,7 @@ const ctx2d = el.overlay.getContext("2d");
 const BEAT = 480; // per countdown word
 const CAPTURE_BEFORE = 150; // accept gestures slightly before "Shoot!" (people throw early)...
 const CAPTURE_AFTER = 450; // ...and shortly after
-const REVEAL_HOLD = 1300;
+const NEXT_DELAY_S = 3; // pause after each throw before auto-next starts the next one
 const MAX_VOIDS = 3; // auto-play pauses after this many throws in a row with no hands
 
 const MODES = {
@@ -424,7 +424,7 @@ async function turn(intro, ex) {
       setResult("Didn't catch your hand — hold it up on “Shoot!”");
       sfx.miss();
       voidStreak++;
-      await sleep(900);
+      await holdBeforeNext();
       return "next";
     }
     b = cpuPick();
@@ -435,7 +435,7 @@ async function turn(intro, ex) {
     if (res.timeout) {
       clearAnnounce();
       setResult("Connection hiccup — replaying the throw");
-      await sleep(900);
+      await holdBeforeNext();
       return "next";
     }
     b = res.gesture;
@@ -459,8 +459,23 @@ async function turn(intro, ex) {
 
   await present(a, b, ev, note);
   if (ev.ko) return koSequence(ev);
-  await sleep(REVEAL_HOLD);
+  await holdBeforeNext();
   return "next";
+}
+
+/**
+ * After a throw: with auto-next on, wait NEXT_DELAY_S seconds and count down on the button.
+ * With auto-next off the player starts the next throw themselves, so only a short beat.
+ * Pausing (Esc) mid-countdown stops it straight away.
+ */
+async function holdBeforeNext() {
+  const autoOn = () => isGuest() || (el.autoNext.checked && !paused);
+  if (!autoOn()) return sleep(600);
+  for (let s = NEXT_DELAY_S; s > 0; s--) {
+    if (!autoOn()) return;
+    el.play.textContent = `Next in ${s}…`;
+    await sleep(1000);
+  }
 }
 
 function throwBadge(i, g) {
@@ -571,7 +586,7 @@ async function hostTurn() {
       voidStreak = 0;
     }
     updatePlayButton();
-    if (el.autoNext.checked && !paused) autoTimer = setTimeout(hostTurn, 250);
+    if (el.autoNext.checked && !paused) autoTimer = setTimeout(hostTurn, 0);
   } catch (e) {
     busy = false;
     updatePlayButton();

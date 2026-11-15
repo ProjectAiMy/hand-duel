@@ -45,7 +45,7 @@ The game is plain static files, so any free static host works. It gives you a re
 | Throw | camera, or **R P S** / **1 2 3** / buttons | P1 **A S D**, P2 **J K L** |
 | Power-ups | hand sign between throws, or **Q W E** / chips | P1 **Q W E**, P2 **U I O** |
 | Next throw | **Space** / Enter | same |
-| Your look (face, background, filter) | 🎭 button | same |
+| Your look (mask, stickers, background, filter) | 🎭 button | same |
 | Pause auto-play | **Esc** | same |
 | Mute | **M** | same |
 
@@ -81,7 +81,8 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
 | 2 players | `js/main.js` `loop` | Each hand belongs to whichever half of the screen it's on, so P1 can't throw for P2. |
 | Online | `js/net.js` | WebRTC via PeerJS 1.5.4. The free PeerJS server only introduces the two browsers; video and moves go directly between them. Throws use **commit-reveal** (SHA-256, with a JS fallback on plain-http pages): each side sends a hash first, so nobody can wait and counter. The host's state is the source of truth after every throw. A heartbeat notices if the opponent drops. |
 | Arenas | `js/arenas.js` | 4 arenas drawn in SVG with CSS particles (petals, rain, embers, sparkles). Choose one, or random per round. |
-| Your look | `js/effects.js` | Video-call style cosmetics: emoji glasses/hats/clown nose or full-face emoji avatars (MediaPipe Face Landmarker), background blur or painted backdrops (Selfie Segmenter), and colour filters. Drawn on a canvas over the camera, so hand tracking still reads the raw video. Online, the styled canvas is what your opponent sees. Models load only when a look needs them, and the choice is remembered on this device. |
+| Face masks | `js/masks.js`, `js/facemesh.js` | Painted masks (war paint, tiger, skull, robot, clown, ninja) drawn in code on MediaPipe's canonical face map and stretched over the 468-point face mesh with WebGL, so they bend as you talk, smile and turn. Eyes and mouth are cut out, and the camera's own light shades the mask. The mesh data is from MediaPipe's `canonical_face_model.obj` (Apache-2.0). |
+| Your look | `js/effects.js` | Video-call style cosmetics: face masks (above), emoji glasses/hats/clown nose or full-face emoji avatars (MediaPipe Face Landmarker), background blur or painted backdrops (Selfie Segmenter), and colour filters. Drawn on a canvas over the camera, so hand tracking still reads the raw video. Online, the styled canvas is what your opponent sees. Models load only when a look needs them, and the choice is remembered on this device. |
 | Sound | `js/audio.js` | Web Audio synth, no sound files. |
 
 Tests: `npm test` (gesture classifier + fight rules).

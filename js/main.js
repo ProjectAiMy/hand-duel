@@ -5,6 +5,7 @@ import { Fight, MAX_HP, ROUNDS_TO_WIN, POWERS, POWER_KEYS } from "./fight.js";
 import { ARENAS, showArena, randomArena, arenaById } from "./arenas.js";
 import { Net, makeRoomCode, cleanCode, sha256, nonce } from "./net.js";
 import { Effects, LOOKS, DEFAULT_LOOK } from "./effects.js";
+import { maskThumb } from "./masks.js";
 
 const $ = (id) => document.getElementById(id);
 const el = Object.fromEntries(
@@ -15,7 +16,7 @@ const el = Object.fromEntries(
     "lobbyStatus", "lobbyBack", "createRoom", "joinForm", "joinCode", "matchModal", "matchEmoji", "matchTitle",
     "matchScore", "rematch", "matchMenu", "fx", "arenaBg", "nameL", "nameR", "pipsL", "pipsR", "hpL", "hpR",
     "ghostL", "ghostR", "roundLabel", "arenaName", "manualL", "manualR",
-    "look", "lookBtn", "lookSheet", "lookStatus", "lookDone", "lookFace", "lookBackground", "lookFilter",
+    "look", "lookBtn", "lookSheet", "lookStatus", "lookDone", "lookMask", "lookFace", "lookBackground", "lookFilter",
   ].map((id) => [id, $(id)]),
 );
 const ctx2d = el.overlay.getContext("2d");
@@ -1119,13 +1120,18 @@ effects.onStatus = (msg, isError = false) => {
   el.lookStatus.classList.toggle("error", isError);
 };
 
-const LOOK_ROWS = { face: el.lookFace, background: el.lookBackground, filter: el.lookFilter };
+const LOOK_ROWS = { mask: el.lookMask, face: el.lookFace, background: el.lookBackground, filter: el.lookFilter };
 function buildLookPicker() {
   for (const [cat, row] of Object.entries(LOOK_ROWS)) {
     row.innerHTML = LOOKS[cat]
       .map((it) => {
         let icon = "";
         if (cat === "face") icon = `<i>${it.emoji}</i>`;
+        else if (cat === "mask")
+          icon =
+            it.id === "none"
+              ? `<i class="swatch">∅</i>`
+              : `<i class="swatch thumb" style="background-image:url(${maskThumb(it.id)})"></i>`;
         else if (cat === "background") {
           const bg = it.stops
             ? `linear-gradient(${it.stops.join(",")})`

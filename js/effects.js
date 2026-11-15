@@ -1,10 +1,11 @@
-// Video cosmetics, like the effects in a video call: face stickers and emoji avatar masks,
-// background blur or replacement, and colour filters.
+// Video cosmetics, like the effects in a video call: face masks that bend with the face
+// (js/masks.js), face stickers and emoji avatars, background blur or replacement, and colour filters.
 //
 // The camera <video> keeps playing underneath (hand tracking reads it untouched); this draws the
 // styled picture onto a canvas laid over it. Online, the canvas is what the opponent receives.
-// MediaPipe models load only when a look needs them: the face model for stickers, the selfie
-// segmenter for backgrounds.
+// MediaPipe models load only when a look needs them: the face model for masks and stickers, the
+// selfie segmenter for backgrounds.
+import { MASKS, MaskRenderer } from "./masks.js";
 
 const MP_VERSION = "0.10.14";
 const MP_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}`;
@@ -45,6 +46,7 @@ export const LOOKS = {
     { id: "ocean", label: "Ocean", stops: ["#021a2b", "#0b4f6c", "#36c3c9"] },
     { id: "studio", label: "Studio", stops: ["#1a1c33", "#2b2f55", "#1a1c33"] },
   ],
+  mask: MASKS,
   filter: [
     { id: "none", label: "None", css: "none" },
     { id: "glow", label: "Glow", css: "brightness(1.12) contrast(1.05) saturate(1.15)" },
@@ -55,7 +57,7 @@ export const LOOKS = {
     { id: "neon", label: "Neon", css: "saturate(2.4) contrast(1.25) hue-rotate(150deg)" },
   ],
 };
-export const DEFAULT_LOOK = { face: "none", background: "none", filter: "none" };
+export const DEFAULT_LOOK = { mask: "none", face: "none", background: "none", filter: "none" };
 const byId = (list, id) => list.find((x) => x.id === id) || list[0];
 
 // Face landmark indices (MediaPipe 478-point face mesh).
@@ -81,7 +83,10 @@ export class Effects {
     this._running = false;
     this._frame = 0;
     this._lastTime = -1;
-    this._faces = []; // smoothed placement per face
+    this._faces = []; // smoothed sticker placement per face
+    this._meshes = []; // smoothed face-mesh landmarks per face, for masks
+    this._masker = null; // MaskRenderer, made on first use
+    this._maskFailed = false;
     this._mask = document.createElement("canvas");
     this._maskCtx = this._mask.getContext("2d");
     this._maskData = null;
@@ -129,7 +134,7 @@ export class Effects {
   }
 
   async _ensureModels() {
-    const needFace = this.look.face !== "none" && !this.face;
+    const needFace = (this.look.face !== "none" || this.look.mask !== "none") && !this.face;
     const wantSeg = this.look.background !== "none" && !this.segmenter; // blur needs the cutout too
     if (!needFace && !wantSeg) return;
     if (this.loading) return this.loading.then(() => this._ensureModels());
@@ -218,12 +223,15 @@ export class Effects {
     const bg = byId(LOOKS.background, look.background);
     const filter = byId(LOOKS.filter, look.filter).css;
 
-    // Run the models on new frames only. The face model runs every other frame (it's only
-    // placing a sticker), the cutout every frame (edges lag visibly otherwise).
+    // Run the models on new frames only. The cutout runs every frame (edges lag visibly
+    // otherwise). The face model runs every frame for a mask, which has to stay locked on, and
+    // every other frame when it's only placing a sticker.
+    const wantMask = look.mask !== "none" && !this._maskFailed;
     if (fresh) {
       this._frame++;
       if (this.segmenter && bg.id !== "none") this._segment(v, ts);
-      if (this.face && look.face !== "none" && this._frame % 2 === 0) this._detectFaces(v, ts);
+      const faceOn = look.face !== "none" || wantMask;
+      if (this.face && faceOn && (wantMask || this._frame % 2 === 0)) this._detectFaces(v, ts);
     }
 
     const ctx = this.ctx;
@@ -255,7 +263,25 @@ export class Effects {
       ctx.drawImage(this._person, 0, 0);
     }
 
+    if (wantMask) this._drawMasks(v, look.mask, W, H, useCtxFilter ? filter : "none");
     if (look.face !== "none") this._drawFaces(byId(LOOKS.face, look.face), W, H);
+  }
+
+  _drawMasks(v, id, W, H, filter) {
+    const now = performance.now();
+    const faces = this._meshes.filter((m) => now - m.seen < 400).map((m) => m.pts);
+    if (!faces.length) return;
+    try {
+      this._masker ||= new MaskRenderer();
+      const ctx = this.ctx;
+      ctx.filter = filter;
+      ctx.drawImage(this._masker.draw(v, faces, id, W, H), 0, 0);
+      ctx.filter = "none";
+    } catch (e) {
+      console.warn("mask renderer failed", e);
+      this._maskFailed = true;
+      this.onStatus("Masks need WebGL, which this browser has turned off.", true);
+    }
   }
 
   _segment(v, ts) {
@@ -341,6 +367,7 @@ export class Effects {
   _detectFaces(v, ts) {
     const res = this.face.detectForVideo(v, ts);
     const faces = res.faceLandmarks || [];
+    this._meshes = faces.map((lm, i) => this._smoothMesh(lm, this._meshes[i], ts));
     this._faces = faces.map((lm, i) => {
       const P = (k) => ({ x: lm[k].x, y: lm[k].y });
       const next = {
@@ -356,6 +383,29 @@ export class Effects {
       }
       return next;
     });
+  }
+
+  /**
+   * Ease the mesh toward the new points: a little smoothing stops shimmer without dragging behind
+   * fast moves. Start fresh if the face jumped (a different face, with two players).
+   */
+  _smoothMesh(lm, prev, ts) {
+    const n = Math.min(lm.length, 468);
+    if (!prev || Math.hypot(prev.pts[1].x - lm[1].x, prev.pts[1].y - lm[1].y) > 0.15) {
+      return { pts: lm.slice(0, n).map((p) => ({ x: p.x, y: p.y, z: p.z })), seen: ts };
+    }
+    // Follow faster when the face moves a lot, so the mask doesn't trail.
+    const move = Math.hypot(prev.pts[1].x - lm[1].x, prev.pts[1].y - lm[1].y);
+    const k = Math.min(1, 0.55 + move * 25);
+    for (let i = 0; i < n; i++) {
+      const a = prev.pts[i];
+      const b = lm[i];
+      a.x += (b.x - a.x) * k;
+      a.y += (b.y - a.y) * k;
+      a.z += (b.z - a.z) * k;
+    }
+    prev.seen = ts;
+    return prev;
   }
 
   _drawFaces(item, W, H) {

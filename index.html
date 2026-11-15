@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f1020" />
+    <title>Hand Duel</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-mode="cpu">
+    <div id="arenaBg" class="arena-bg" aria-hidden="true"></div>
+
+    <!-- Fighter HUD -->
+    <header class="hud">
+      <div class="fighter left">
+        <div class="name-row"><span class="name" id="nameL">YOU</span><span class="pips" id="pipsL"></span></div>
+        <div class="hp"><div class="hp-ghost" id="ghostL"></div><div class="hp-fill" id="hpL"></div></div>
+      </div>
+      <div class="center">
+        <div class="round-label" id="roundLabel">ROUND 1</div>
+        <div class="arena-name" id="arenaName"></div>
+      </div>
+      <div class="fighter right">
+        <div class="name-row"><span class="pips" id="pipsR"></span><span class="name" id="nameR">CPU</span></div>
+        <div class="hp"><div class="hp-ghost" id="ghostR"></div><div class="hp-fill" id="hpR"></div></div>
+      </div>
+    </header>
+
+    <main class="ring" id="ring">
+      <!-- Your camera (in 2-player mode, both players share it: P1 left half, P2 right half) -->
+      <section class="corner" id="cornerL">
+        <div class="stage" id="stage">
+          <video id="video" playsinline muted autoplay></video>
+          <canvas id="overlay"></canvas>
+          <div class="no-cam" id="noCam" hidden><span>📷</span><p>Camera off — use the buttons or keys</p></div>
+          <div class="half left" id="halfL"><div class="detect-badge" id="badgeL">No hand</div></div>
+          <div class="half right" id="halfR"><div class="detect-badge" id="badgeR">No hand</div></div>
+          <div class="tip" id="tip" hidden></div>
+        </div>
+      </section>
+
+      <section class="corner" id="cornerR">
+        <div class="stage opponent" id="stageR">
+          <video id="remoteVideo" playsinline autoplay></video>
+          <div class="cpu-hand" id="cpuHand">✊</div>
+          <div class="waiting" id="remoteWaiting">Waiting for opponent's camera…</div>
+        </div>
+      </section>
+    </main>
+
+    <div class="announcer" id="announcer" aria-live="assertive"></div>
+    <div class="result" id="result" aria-live="polite"></div>
+
+    <footer class="controls">
+      <button id="play" class="primary">Fight!</button>
+      <div class="manual" id="manualL" role="group" aria-label="Throw manually">
+        <button data-side="0" data-throw="rock" title="Rock">✊<span>Rock</span><kbd>R</kbd></button>
+        <button data-side="0" data-throw="paper" title="Paper">✋<span>Paper</span><kbd>P</kbd></button>
+        <button data-side="0" data-throw="scissors" title="Scissors">✌️<span>Scissors</span><kbd>S</kbd></button>
+      </div>
+      <div class="manual" id="manualR" role="group" aria-label="Player 2 throw manually" hidden>
+        <button data-side="1" data-throw="rock" title="P2 Rock">✊<span>Rock</span><kbd>J</kbd></button>
+        <button data-side="1" data-throw="paper" title="P2 Paper">✋<span>Paper</span><kbd>K</kbd></button>
+        <button data-side="1" data-throw="scissors" title="P2 Scissors">✌️<span>Scissors</span><kbd>L</kbd></button>
+      </div>
+      <div class="settings">
+        <label title="Start the next throw automatically"><input type="checkbox" id="autoNext" checked /> Auto-next</label>
+        <label>Arena
+          <select id="arenaSelect">
+            <option value="random">Random each round</option>
+          </select>
+        </label>
+        <button id="pause" class="icon-btn" title="Pause auto-play (Esc)" aria-label="Pause">⏸</button>
+        <button id="switchCam" class="icon-btn" title="Switch camera" aria-label="Switch camera" hidden>⟲</button>
+        <button id="mute" class="icon-btn" title="Mute (M)" aria-label="Mute sound">🔊</button>
+        <button id="menuBtn" class="icon-btn" title="Main menu" aria-label="Main menu">☰</button>
+      </div>
+    </footer>
+
+    <!-- Main menu -->
+    <div class="modal" id="menu">
+      <div class="card wide">
+        <div class="logo">HAND <span>DUEL</span></div>
+        <p class="sub">Rock-Paper-Scissors, fighting-game style. Throw your hand on <b>“Shoot!”</b></p>
+        <div class="modes">
+          <button class="mode" data-mode="cpu"><b>🤖 VS CPU</b><span>Solo practice</span></button>
+          <button class="mode" data-mode="local"><b>👥 2 Players</b><span>Same device, one camera</span></button>
+          <button class="mode" data-mode="online"><b>🌐 Online</b><span>Play a friend with a room code</span></button>
+        </div>
+        <label class="cam-toggle"><input type="checkbox" id="useCam" checked /> Use camera (off = buttons / keyboard)</label>
+        <details class="tips">
+          <summary>Tips for good tracking</summary>
+          <ul>
+            <li>Light in front of you, not a bright window behind you</li>
+            <li>Keep your whole hand inside the frame, 40–80 cm from the camera</li>
+            <li>2 players: stand side by side, P1 on the left, each raises one hand</li>
+            <li>Video stays on your device (online: sent only to your opponent)</li>
+          </ul>
+        </details>
+        <p class="status" id="status" role="status"></p>
+      </div>
+    </div>
+
+    <!-- Online lobby -->
+    <div class="modal" id="lobby" hidden>
+      <div class="card">
+        <h2>Online match</h2>
+        <div id="lobbyChoose">
+          <button id="createRoom" class="primary">Create room</button>
+          <div class="or">or join a friend</div>
+          <form id="joinForm" class="join">
+            <input id="joinCode" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code" />
+            <button class="primary" type="submit">Join</button>
+          </form>
+        </div>
+        <div id="lobbyHost" hidden>
+          <p>Share this code with your opponent:</p>
+          <div class="room-code" id="roomCode">----</div>
+          <button id="copyLink" class="secondary">Copy invite link</button>
+          <p class="status">Waiting for opponent to join…</p>
+        </div>
+        <p class="status" id="lobbyStatus" role="status"></p>
+        <button id="lobbyBack" class="link">Back</button>
+      </div>
+    </div>
+
+    <!-- Match over -->
+    <div class="modal" id="matchModal" hidden>
+      <div class="card">
+        <div class="big-emoji" id="matchEmoji">🏆</div>
+        <h2 id="matchTitle">You win!</h2>
+        <p id="matchScore"></p>
+        <button id="rematch" class="primary">Rematch</button>
+        <button id="matchMenu" class="link">Main menu</button>
+      </div>
+    </div>
+
+    <div id="fx" aria-hidden="true"></div>
+
+    <script>
+      // Module scripts don't run from file://, so nothing would work. Say why.
+      if (location.protocol === "file:") {
+        var s = document.getElementById("status");
+        s.className = "status error";
+        s.innerHTML =
+          "Opened as a file, so the browser blocks the game's scripts and camera.<br>" +
+          "In Terminal, run <code>python3 -m http.server 8000</code> in this folder, then open <b>http://localhost:8000</b>.";
+        document.querySelectorAll(".mode").forEach(function (b) { b.disabled = true; });
+      }
+    </script>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

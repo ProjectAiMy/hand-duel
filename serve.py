@@ -24,6 +24,18 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 
 if __name__ == "__main__":
-    with Server(("", PORT), NoCacheHandler) as httpd:
-        print(f"Hand Duel running at http://localhost:{PORT}")
-        httpd.serve_forever()
+    try:
+        httpd = Server(("", PORT), NoCacheHandler)
+    except OSError as e:
+        if e.errno in (48, 98):  # address in use (macOS, Linux)
+            sys.exit(
+                f"Port {PORT} is already in use: a server may already be running, so try "
+                f"http://localhost:{PORT}.\nOr start on another port: python3 serve.py {PORT + 1}"
+            )
+        raise
+    with httpd:
+        print(f"Hand Duel running at http://localhost:{PORT}  (Ctrl+C to stop)")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\nStopped.")

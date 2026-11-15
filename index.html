@@ -32,6 +32,7 @@
       <section class="corner" id="cornerL">
         <div class="stage" id="stage">
           <video id="video" playsinline muted autoplay></video>
+          <canvas id="look" hidden></canvas>
           <canvas id="overlay"></canvas>
           <div class="no-cam" id="noCam" hidden><span>📷</span><p>Camera off — use the buttons or keys</p></div>
           <div class="half left" id="halfL"><div class="detect-badge" id="badgeL">No hand</div></div>
@@ -72,11 +73,24 @@
           </select>
         </label>
         <button id="pause" class="icon-btn" title="Pause auto-play (Esc)" aria-label="Pause">⏸</button>
+        <button id="lookBtn" class="icon-btn" title="Your look: face, background, filter" aria-label="Your look">🎭</button>
         <button id="switchCam" class="icon-btn" title="Switch camera" aria-label="Switch camera" hidden>⟲</button>
         <button id="mute" class="icon-btn" title="Mute (M)" aria-label="Mute sound">🔊</button>
         <button id="menuBtn" class="icon-btn" title="Main menu" aria-label="Main menu">☰</button>
       </div>
     </footer>
+
+    <!-- Your look: a bottom sheet, so you can watch yourself while choosing -->
+    <div class="sheet" id="lookSheet" role="dialog" aria-label="Your look" hidden>
+      <div class="sheet-head">
+        <b>🎭 Your look</b>
+        <span class="sheet-status" id="lookStatus" role="status"></span>
+        <button id="lookDone" class="secondary">Done</button>
+      </div>
+      <div class="look-row"><h4>Face</h4><div class="chips" id="lookFace"></div></div>
+      <div class="look-row"><h4>Background</h4><div class="chips" id="lookBackground"></div></div>
+      <div class="look-row"><h4>Filter</h4><div class="chips" id="lookFilter"></div></div>
+    </div>
 
     <!-- Main menu -->
     <div class="modal" id="menu">

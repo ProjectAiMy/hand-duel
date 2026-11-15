@@ -98,6 +98,7 @@ body[data-mode="local"] #cornerR { display: none; }
 body[data-mode="local"] .stage { aspect-ratio: 16 / 9; max-height: 62dvh; margin: 0 auto; width: 100%; }
 .stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .stage.mirrored video, .stage.mirrored canvas { transform: scaleX(-1); }
+.stage video.behind-fx { opacity: 0; } /* still playing for hand tracking; the look canvas shows instead */
 .no-cam { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--muted); background: var(--panel-solid); }
 .no-cam span { font-size: 3rem; }
 
@@ -241,6 +242,35 @@ body[data-mode="local"] #manualL { border-right: 2px solid var(--p1); padding-ri
 .icon-btn.on { background: var(--accent); color: #221800; }
 kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; background: #ffffff14; }
 
+/* ---------- your look (bottom sheet) ---------- */
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 9; max-height: 48dvh; overflow-y: auto;
+  margin: 0 auto; max-width: 760px; padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
+  background: rgba(20,22,44,.96); backdrop-filter: blur(10px); border: 1px solid var(--line); border-bottom: 0;
+  border-radius: 20px 20px 0 0; box-shadow: 0 -10px 40px #0009; animation: sheet-up .25s ease;
+}
+.sheet-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.sheet-head b { font-size: 1.05rem; white-space: nowrap; }
+.sheet-head .secondary { margin-left: auto; padding: 6px 16px; }
+.sheet-status { font-size: .78rem; color: var(--muted); min-width: 0; }
+.sheet-status.error { color: var(--lose); }
+.look-row h4 { margin: 10px 0 6px; font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.chips button {
+  flex: none; scroll-snap-align: start; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  min-width: 62px; padding: 6px 8px; border-radius: 12px; border: 2px solid var(--line); background: #ffffff0a;
+}
+.chips button i { font-style: normal; font-size: 1.6rem; line-height: 1.2; }
+.chips button span { font-size: .7rem; color: var(--muted); white-space: nowrap; }
+.chips button.on { border-color: var(--accent); background: #ffcc3322; }
+.chips button.on span { color: var(--text); }
+.chips .swatch {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 1rem !important;
+  border: 1px solid #fff3; color: var(--muted);
+}
+.chips .swatch.tint { background: linear-gradient(135deg, #f5c4a1 0 35%, #4fa3ff 35% 65%, #3ee08f 65%); }
+.chips button[data-id="none"] .swatch.tint { background: transparent; }
+
 /* ---------- modals ---------- */
 .modal { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: rgba(8,9,20,.72); backdrop-filter: blur(5px); overflow-y: auto; }
 .card {
@@ -290,6 +320,7 @@ kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; backg
 @keyframes hitflash { 0% { background: rgba(255,40,60,.65); } 100% { background: transparent; } }
 @keyframes dmg { 0% { transform: translate(-50%, -50%) scale(.4); opacity: 0; } 20% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; } 100% { transform: translate(-50%, -150%) scale(1); opacity: 0; } }
 @keyframes armed { 50% { box-shadow: 0 0 22px #d4b0ff; } }
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes blink { 50% { opacity: .55; } }
 @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
 @keyframes petal { 0% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(60px, 55vh) rotate(200deg); } 100% { transform: translate(-30px, 110vh) rotate(400deg); } }
@@ -355,7 +386,7 @@ kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; backg
   #play { grid-column: 1; grid-row: 1; }
   #manualL { grid-column: 2; grid-row: 1; }
   #play[hidden] + #manualL { grid-column: 1 / -1; justify-self: center; }
-  .settings { grid-column: 1 / -1; grid-row: 2; justify-content: center; flex-wrap: nowrap; gap: 6px; font-size: .78rem; min-width: 0; }
+  .settings { grid-column: 1 / -1; grid-row: 2; justify-content: center; flex-wrap: wrap; gap: 6px; font-size: .78rem; min-width: 0; }
   body[data-mode="local"] .controls { grid-template-columns: 1fr 1fr; }
   body[data-mode="local"] #manualL { grid-column: 1; grid-row: 1; justify-self: start; }
   body[data-mode="local"] #manualR { grid-column: 2; grid-row: 1; justify-self: end; }
@@ -375,6 +406,12 @@ kbd { font: inherit; font-size: .85em; padding: 0 5px; border-radius: 5px; backg
   .settings .long { display: none; }
   .settings select { max-width: 30vw; text-overflow: ellipsis; }
   .icon-btn { width: clamp(30px, 8.6vw, 36px); height: clamp(30px, 8.6vw, 36px); font-size: .88rem; padding: 0; flex: none; }
+
+  /* look sheet */
+  .sheet { max-height: 44dvh; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .chips button { min-width: 54px; padding: 4px 6px; }
+  .chips button i { font-size: 1.35rem; }
+  .chips .swatch { width: 28px; height: 28px; }
 
   /* menus */
   .modal { padding: 12px; }

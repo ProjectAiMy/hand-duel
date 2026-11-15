@@ -4,6 +4,7 @@ import { sfx, unlockAudio, setMuted, isMuted } from "./audio.js";
 import { Fight, MAX_HP, ROUNDS_TO_WIN, POWERS, POWER_KEYS } from "./fight.js";
 import { ARENAS, showArena, randomArena, arenaById } from "./arenas.js";
 import { Net, makeRoomCode, cleanCode, sha256, nonce } from "./net.js";
+import { Effects, LOOKS, DEFAULT_LOOK } from "./effects.js";
 
 const $ = (id) => document.getElementById(id);
 const el = Object.fromEntries(
@@ -14,6 +15,7 @@ const el = Object.fromEntries(
     "lobbyStatus", "lobbyBack", "createRoom", "joinForm", "joinCode", "matchModal", "matchEmoji", "matchTitle",
     "matchScore", "rematch", "matchMenu", "fx", "arenaBg", "nameL", "nameR", "pipsL", "pipsR", "hpL", "hpR",
     "ghostL", "ghostR", "roundLabel", "arenaName", "manualL", "manualR",
+    "look", "lookBtn", "lookSheet", "lookStatus", "lookDone", "lookFace", "lookBackground", "lookFilter",
   ].map((id) => [id, $(id)]),
 );
 const ctx2d = el.overlay.getContext("2d");
@@ -39,6 +41,7 @@ const SIDE_COLORS = ["#38d6ff", "#ff8a3d"];
 
 // ---------- state ----------
 const tracker = new Tracker(el.video);
+const effects = new Effects(el.video, el.look);
 const fight = new Fight();
 const buffers = [new GestureBuffer(2500), new GestureBuffer(2500)];
 let live = [{}, {}];
@@ -99,6 +102,7 @@ async function ensureCamera() {
   if (!el.useCam.checked) {
     cameraOn = false;
     tracker.stopCamera();
+    effects.setLook(DEFAULT_LOOK);
     return;
   }
   try {
@@ -113,6 +117,7 @@ async function ensureCamera() {
     }
     await tracker.setNumHands(MODES[mode].hands);
     cameraOn = true;
+    effects.setNumFaces(MODES[mode].hands).then(() => effects.setLook(myLook));
     el.switchCam.hidden = (await tracker.cameraCount()) < 2;
     setStatus("");
     if (!loopStarted) {
@@ -166,7 +171,7 @@ function backToMenu(message = "", isError = false) {
   cancelFlow();
   net?.close();
   net = null;
-  el.matchModal.hidden = el.lobby.hidden = true;
+  el.matchModal.hidden = el.lobby.hidden = el.lookSheet.hidden = true;
   el.menu.hidden = false;
   setStatus(message, isError);
 }
@@ -944,7 +949,7 @@ function newNet() {
     onOpen() {
       el.lobby.hidden = true;
       mode = "online";
-      net.localStream = tracker.stream;
+      net.localStream = outgoingStream();
       applyModeUI();
       setResult(net.isHost ? "Opponent joined!" : "Connected! Waiting for the host…");
       net.send({ t: "hello", cam: !!tracker.stream });
@@ -1088,11 +1093,79 @@ el.switchCam.addEventListener("click", async () => {
   try {
     await tracker.startCamera(tracker.facingMode === "user" ? "environment" : "user");
     el.stage.classList.toggle("mirrored", tracker.mirrored);
-    net?.replaceVideoTrack(tracker.stream);
+    net?.replaceVideoTrack(outgoingStream());
   } catch (e) {
     setResult(e.message, "lose");
   }
 });
+
+// ---------- your look (video effects) ----------
+let myLook = { ...DEFAULT_LOOK };
+try {
+  myLook = { ...myLook, ...JSON.parse(localStorage.getItem("handduel-look") || "{}") };
+} catch {
+  /* storage blocked: start plain */
+}
+
+/** What an online opponent sees: the styled canvas when a look is on, else the raw camera. */
+function outgoingStream() {
+  return (effects.active && effects.stream) || tracker.stream;
+}
+effects.onActiveChange = () => {
+  if (net) net.replaceVideoTrack(outgoingStream());
+};
+effects.onStatus = (msg, isError = false) => {
+  el.lookStatus.textContent = msg;
+  el.lookStatus.classList.toggle("error", isError);
+};
+
+const LOOK_ROWS = { face: el.lookFace, background: el.lookBackground, filter: el.lookFilter };
+function buildLookPicker() {
+  for (const [cat, row] of Object.entries(LOOK_ROWS)) {
+    row.innerHTML = LOOKS[cat]
+      .map((it) => {
+        let icon = "";
+        if (cat === "face") icon = `<i>${it.emoji}</i>`;
+        else if (cat === "background") {
+          const bg = it.stops
+            ? `linear-gradient(${it.stops.join(",")})`
+            : it.id === "blur"
+              ? "radial-gradient(circle, #ccd 0 30%, #667 70%)"
+              : "transparent";
+          icon = `<i class="swatch" style="background:${bg}">${it.id === "none" ? "∅" : ""}</i>`;
+        } else icon = `<i class="swatch tint" style="filter:${it.css}">${it.id === "none" ? "∅" : ""}</i>`;
+        return `<button type="button" data-cat="${cat}" data-id="${it.id}">${icon}<span>${it.label}</span></button>`;
+      })
+      .join("");
+  }
+  markLook();
+}
+function markLook() {
+  for (const [cat, row] of Object.entries(LOOK_ROWS))
+    row.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.id === myLook[cat]));
+}
+function chooseLook(cat, id) {
+  myLook = { ...myLook, [cat]: id };
+  try {
+    localStorage.setItem("handduel-look", JSON.stringify(myLook));
+  } catch {
+    /* not saved; still applies now */
+  }
+  markLook();
+  if (cameraOn) effects.setLook(myLook);
+}
+function toggleLookSheet(open = el.lookSheet.hidden) {
+  el.lookSheet.hidden = !open;
+  if (open && !cameraOn) effects.onStatus("Turn on the camera (main menu) to see your look.");
+  else if (open) effects.onStatus("");
+}
+buildLookPicker();
+el.lookSheet.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-cat]");
+  if (b) chooseLook(b.dataset.cat, b.dataset.id);
+});
+el.lookBtn.addEventListener("click", () => toggleLookSheet());
+el.lookDone.addEventListener("click", () => toggleLookSheet(false));
 
 function togglePause() {
   if (isGuest()) return;
@@ -1130,7 +1203,10 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     paused = false;
     hostTurn();
-  } else if (k === "escape") togglePause();
+  } else if (k === "escape") {
+    if (!el.lookSheet.hidden) toggleLookSheet(false);
+    else togglePause();
+  }
   else if (k === "m") el.mute.click();
   else if (keyThrow(k)) throwManually(...keyThrow(k));
   else if (keyPower(k)) toggleArm(...keyPower(k));

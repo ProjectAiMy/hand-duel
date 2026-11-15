@@ -4,8 +4,20 @@
     {
       "name": "rps-cam",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["serve.py", "8000"],
+      "runtimeArgs": [
+        "serve.py",
+        "8000"
+      ],
       "port": 8000
+    },
+    {
+      "name": "rps-cam-test",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "serve.py",
+        "8100"
+      ],
+      "port": 8100
     }
   ]
 }

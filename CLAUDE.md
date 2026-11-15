@@ -37,7 +37,12 @@ README.md explains the features, controls, rules and architecture, so read it fi
 - Online uses PeerJS 1.5.4 cloud signalling with peer ids `handduel-v1-CODE`, commit-reveal throws, the host as
   the source of truth, and a heartbeat. `sha256` falls back to the pure-JS version on plain http, where crypto.subtle is missing.
 
+- Looks (`js/effects.js`, 🎭 sheet in `main.js`): models are the face landmarker and selfie segmenter from the same
+  tasks-vision 0.10.14. `outgoingStream()` swaps the online video track between the raw camera and the effects
+  canvas. `.claude/launch.json` has `rps-cam-test` on port 8100 for checks.
+
 ## Not yet verified
+- Looks with a real camera (sticker placement, cutout quality, phone frame rate) and over an online call.
 - Foul detection, the capture grace period, and the compact mobile layout (Nov 2026) haven't been tried on a real
   camera/phone yet; the user said they'd test these themselves. Same for power-ups (Nov 2026).
 - Two-hand tracking with a real camera in 2-player mode.

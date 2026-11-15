@@ -25,7 +25,8 @@ const CAPTURE_AFTER = 700; // ...until this long after; the last gesture held st
 const CAPTURE_GRACE = 500; // if a hand is in view but hasn't settled on a legal shape yet, wait up to this much longer
 const NEXT_DELAY_S = 3; // pause after each throw before auto-next starts the next one
 const MAX_VOIDS = 3; // auto-play pauses after this many throws in a row with no hands
-const ARM_HOLD_MS = 700; // hold a power sign this long between throws to arm it
+const ARM_HOLD_MS = 500; // hold a power sign this long between throws to arm it
+const SIGN_GAP_MS = 300; // a sign lost for less than this (tracker blink, flicker) doesn't restart the hold
 const ARM_BLOCK_MS = 1200; // ...but not right after a throw, so a fouled throw doesn't arm by accident
 const CPU_POWER_CHANCE = 0.25; // chance the CPU uses one of its remaining powers on a throw
 
@@ -241,14 +242,21 @@ function canArm(i, p) {
 /** Follow a held power sign; arm it once held for ARM_HOLD_MS. Returns the sign being held, if armable. */
 function trackSign(i, p, t) {
   const h = signHold[i];
-  if (!p || t < armBlockUntil || !canArm(i, p)) {
+  const ok = (q) => q && t >= armBlockUntil && canArm(i, q);
+  // Brief dropouts or a frame read as another shape don't restart the hold.
+  const blip = h.p && h.p !== p && t - h.seen < SIGN_GAP_MS && ok(h.p);
+  if (blip) return h.p;
+  if (!ok(p)) {
     signHold[i] = {};
     return null;
   }
-  if (h.p !== p) signHold[i] = { p, since: t, done: false };
-  else if (!h.done && t - h.since >= ARM_HOLD_MS) {
-    h.done = true;
-    if (armed[i] !== p) setArmed(i, p);
+  if (h.p !== p) signHold[i] = { p, since: t, seen: t, done: false };
+  else {
+    h.seen = t;
+    if (!h.done && t - h.since >= ARM_HOLD_MS) {
+      h.done = true;
+      if (armed[i] !== p) setArmed(i, p);
+    }
   }
   return p;
 }
@@ -273,13 +281,13 @@ function cpuPower() {
   return left[Math.floor(Math.random() * left.length)];
 }
 
-/** Power chips on each fighter's corner: available, armed (own side only) or used. */
+/** Power chips on each fighter's corner: held, armed (own side only) or not held (dimmed). */
 const powerBars = [document.createElement("div"), document.createElement("div")];
 powerBars.forEach((bar, i) => {
   bar.className = "powers";
   bar.innerHTML = POWER_KEYS.map(
     (k) =>
-      `<button type="button" data-power="${k}" title="${POWERS[k].label} (${POWERS[k].sign}): ${POWERS[k].desc}">` +
+      `<button type="button" data-power="${k}">` +
       `${POWERS[k].emoji}<span>${POWERS[k].label}</span></button>`,
   ).join("");
   bar.addEventListener("click", (e) => {
@@ -297,9 +305,12 @@ function renderPowers() {
     if (armed[i] && !fight.canUse(i, armed[i])) armed[i] = null;
     bar.querySelectorAll("button").forEach((b) => {
       const k = b.dataset.power;
-      b.disabled = !mine(i) || !fight.canUse(i, k);
-      b.classList.toggle("used", !fight.canUse(i, k));
+      const has = fight.canUse(i, k);
+      b.disabled = !mine(i) || !has;
+      b.classList.toggle("off", !has);
       b.classList.toggle("armed", mine(i) && armed[i] === k);
+      const P = POWERS[k];
+      b.title = `${P.label} (${P.sign}): ${P.desc}. ${has ? (mine(i) ? "Hold the sign or tap to arm." : "Ready.") : P.earn + "."}`;
     });
   });
 }
@@ -704,6 +715,13 @@ async function present(a, b, ev, note, fouls = [null, null]) {
   void el.ring.offsetWidth;
   el.ring.classList.add("shake");
   sfx.hit(ev.combo);
+  const gains = (ev.ko ? [] : ev.earned || []).flatMap((list, i) =>
+    list.map((p) => `${POWERS[p].emoji} ${n[i] === "YOU" ? "You" : n[i]} earned ${POWERS[p].label}!`),
+  );
+  if (gains.length) {
+    el.result.textContent += ` · ${gains.join(" · ")}`;
+    setTimeout(sfx.arm, 350);
+  }
   if (ev.reversed) announce("Reversed!", "small gold");
   else if (ev.boosted) announce("Power ×2!", "small gold");
   else if (ev.combo > 1) announce(`${ev.combo} hit combo!`, "small gold");

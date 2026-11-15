@@ -140,9 +140,9 @@ body[data-mode="local"] .half.right .powers { left: 8px; top: 8px; }
   animation: armed 1s ease-in-out infinite;
 }
 .powers button.armed span { color: #14002e; }
-.powers button.used { opacity: .28; filter: grayscale(1); text-decoration: line-through; }
+.powers button.off { opacity: .28; filter: grayscale(1); }
 .powers button:disabled { cursor: default; }
-.powers.theirs button:disabled:not(.used) { opacity: .85; }
+.powers.theirs button:disabled:not(.off) { opacity: .85; }
 .power-pop {
   position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); z-index: 4; white-space: nowrap;
   padding: 5px 14px; border-radius: 999px; background: #b57bff; color: #14002e; font-weight: 900;

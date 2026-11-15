@@ -8,16 +8,20 @@ export const ROUNDS_TO_WIN = 2; // best of 3 rounds
 export const DAMAGE = [25, 35, 45];
 
 /**
- * Power-ups: armed between throws (by hand sign or button), each usable once per round.
- * An armed power is spent on the next throw that isn't void, whatever the result.
+ * Power-ups: armed between throws (by hand sign or button), spent on the next throw that isn't
+ * void, whatever the result. Each side holds at most one of each:
+ * - Shield: both fighters start every round with one.
+ * - Power: earned by winning 2 throws in a row.
+ * - Reverse: earned by losing 2 throws in a row (the comeback tool).
  */
 export const POWERS = {
-  power: { emoji: "👉", sign: "Finger gun", label: "Power", desc: "Win this throw for 2× damage" },
-  reverse: { emoji: "🤘", sign: "Horns", label: "Reverse", desc: "Lose this throw and the damage hits them instead" },
-  shield: { emoji: "☝️", sign: "1 finger", label: "Shield", desc: "Lose this throw and take no damage" },
+  power: { emoji: "👉", sign: "Finger gun", label: "Power", desc: "Win this throw for 2× damage", earn: "Win 2 throws in a row to earn it" },
+  reverse: { emoji: "🤘", sign: "Horns", label: "Reverse", desc: "Lose this throw and the damage hits them instead", earn: "Lose 2 throws in a row to earn it" },
+  shield: { emoji: "☝️", sign: "1 finger", label: "Shield", desc: "Lose this throw and take no damage", earn: "You get one each round" },
 };
 export const POWER_KEYS = Object.keys(POWERS);
-const freshPowers = () => Object.fromEntries(POWER_KEYS.map((k) => [k, true]));
+export const EARN_AFTER = 2; // wins (power) or losses (reverse) in a row
+const freshPowers = () => ({ power: false, reverse: false, shield: true });
 
 export class Fight {
   constructor() {
@@ -33,12 +37,13 @@ export class Fight {
 
   newRound() {
     this.hp = [MAX_HP, MAX_HP];
-    this.streak = [0, 0];
-    this.powers = [freshPowers(), freshPowers()]; // true = still available this round
+    this.streak = [0, 0]; // throws won in a row
+    this.losses = [0, 0]; // throws lost in a row
+    this.powers = [freshPowers(), freshPowers()]; // true = held and ready to arm
     this.roundWinner = null;
   }
 
-  /** Can `side` still use power `p` this round? */
+  /** Does `side` hold power `p` right now? */
   canUse(side, p) {
     return !!p && this.powers[side][p] === true;
   }
@@ -50,9 +55,11 @@ export class Fight {
 
   /** Plain copy of the state, for the online host to send as the source of truth. */
   snapshot() {
-    const { round, roundWins, hp, streak, roundWinner, matchWinner } = this;
+    const { round, roundWins, hp, streak, losses, roundWinner, matchWinner } = this;
     const powers = this.powers.map((p) => ({ ...p }));
-    return { round, roundWins: [...roundWins], hp: [...hp], streak: [...streak], powers, roundWinner, matchWinner };
+    return {
+      round, roundWins: [...roundWins], hp: [...hp], streak: [...streak], losses: [...losses], powers, roundWinner, matchWinner,
+    };
   }
 
   /** Load a snapshot; mirror=true swaps sides (the guest sees itself on the left). */
@@ -63,6 +70,7 @@ export class Fight {
     this.roundWins = pair(s.roundWins);
     this.hp = pair(s.hp);
     this.streak = pair(s.streak);
+    if (s.losses) this.losses = pair(s.losses);
     if (s.powers) this.powers = pair(s.powers).map((p) => ({ ...freshPowers(), ...p }));
     this.roundWinner = side(s.roundWinner);
     this.matchWinner = side(s.matchWinner);
@@ -72,12 +80,12 @@ export class Fight {
    * Resolve one throw. Side 0 = left player, side 1 = right player.
    * A missing throw (null) loses to any real throw ("too slow"); two misses are void.
    * `powers` = [left's armed power, right's armed power] (null or a POWERS key). Powers a side
-   * has already used this round are ignored. Event fields: winner/loser are who won the throw;
-   * `hurt` is who took the damage (the winner, if it was reversed); `used` = powers spent.
+   * doesn't hold are ignored. Event fields: winner/loser are who won the throw; `hurt` is who took
+   * the damage (the winner, if it was reversed); `used` = powers spent; `earned` = powers gained.
    */
   exchange(a, b, powers = [null, null]) {
     if (this.matchWinner !== null || this.roundWinner !== null) throw new Error("round is over");
-    if (!a && !b) return { result: "void", winner: -1, damage: 0, used: [null, null] };
+    if (!a && !b) return { result: "void", winner: -1, damage: 0, used: [null, null], earned: [[], []] };
 
     const used = [0, 1].map((i) => (this.canUse(i, powers[i]) ? powers[i] : null));
     used.forEach((p, i) => p && (this.powers[i][p] = false));
@@ -91,7 +99,8 @@ export class Fight {
     }
     if (winner === -1) {
       this.streak = [0, 0];
-      return { result: "draw", winner: -1, damage: 0, used };
+      this.losses = [0, 0];
+      return { result: "draw", winner: -1, damage: 0, used, earned: [[], []] };
     }
 
     const loser = 1 - winner;
@@ -101,20 +110,35 @@ export class Fight {
     const boosted = used[winner] === "power";
     if (boosted) damage *= 2;
 
+    // A blocked or reversed hit resets both streaks, like a clash.
+    const earned = [[], []];
     if (used[loser] === "shield") {
       this.streak = [0, 0];
-      return { result: "blocked", winner, loser, hurt: -1, damage: 0, blocked: damage, combo, forfeit, boosted, used };
+      this.losses = [0, 0];
+      return { result: "blocked", winner, loser, hurt: -1, damage: 0, blocked: damage, combo, forfeit, boosted, used, earned };
     }
     const reversed = used[loser] === "reverse";
     const hurt = reversed ? winner : loser;
-    if (reversed) this.streak = [0, 0];
-    else {
+    if (reversed) {
+      this.streak = [0, 0];
+      this.losses = [0, 0];
+    } else {
       this.streak[winner] = combo;
       this.streak[loser] = 0;
+      this.losses[loser]++;
+      this.losses[winner] = 0;
+      const grant = (side, p) => {
+        if (!this.powers[side][p]) {
+          this.powers[side][p] = true;
+          earned[side].push(p);
+        }
+      };
+      if (this.streak[winner] === EARN_AFTER) grant(winner, "power");
+      if (this.losses[loser] === EARN_AFTER) grant(loser, "reverse");
     }
     this.hp[hurt] = Math.max(0, this.hp[hurt] - damage);
 
-    const ev = { result: "hit", winner, loser, hurt, damage, combo: reversed ? 1 : combo, forfeit, boosted, reversed, used, ko: false };
+    const ev = { result: "hit", winner, loser, hurt, damage, combo: reversed ? 1 : combo, forfeit, boosted, reversed, used, earned, ko: false };
     if (this.hp[hurt] === 0) {
       const victor = 1 - hurt;
       ev.ko = true;

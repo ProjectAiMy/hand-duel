@@ -58,12 +58,14 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
   *3 fingers*, or *wrong scissors* (any two fingers other than index + middle, like horns). Paper needs all 4 fingers
   open (a pinky that's only half-open still counts). VS CPU replays a foul with a hint; in 2-player and online a foul
   loses to a legal throw, like being too slow.
-- **Power-ups**: each fighter gets three per round, one use each. Arm one *between* throws by holding its hand sign
-  for 0.7 s (or tap its chip / press its key); it fires on your next throw and is spent whatever happens
-  (a draw wastes it; a throw with no hands doesn't).
-  - 👉 **Power** (finger gun): win the throw for 2× damage.
-  - 🤘 **Reverse** (horns, index + pinky): lose the throw and the damage hits the winner instead. It can K.O. them.
-  - ☝️ **Shield** (index finger up): lose the throw and take no damage. Blocks and reverses reset both win streaks.
+- **Power-ups**: you hold at most one of each. Arm one *between* throws by holding its hand sign for 0.5 s
+  (or tap its chip / press its key); it fires on your next throw and is spent whatever happens
+  (a draw wastes it; a throw with no hands doesn't). Unheld ones are dimmed.
+  - ☝️ **Shield** (index finger up): both fighters start every round with one. Lose the throw and take no damage.
+  - 👉 **Power** (finger gun): earned by winning 2 throws in a row. Win the throw for 2× damage.
+  - 🤘 **Reverse** (horns, index + pinky): earned by losing 2 throws in a row. Lose the throw and the damage hits
+    the winner instead. It can K.O. them.
+  - Draws, blocks and reverses reset both players' runs. Everything resets at the start of a round.
   - The CPU uses its powers now and then. Online, your armed power is hashed with your throw, so your rival can't see it coming.
 - Best of 3 rounds. Rounds show *Perfect!* when the winner took no damage.
 

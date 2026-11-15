@@ -19,6 +19,8 @@ const FINGERS = [
 const EXTENDED = 1.15; // tip/pip distance ratio above which a finger counts as straight
 const CURLED = 1.0; // below this a finger is clearly folded; in between it's half-open
 const THUMB_OUT = 0.85; // thumb tip → middle knuckle, over palm length, above which the thumb sticks out
+const THUMB_OFF_INDEX = 0.62; // thumb tip → index knuckle and → index middle joint, over palm width
+const STRAIGHT_COS = 0.64; // index knuckle→joint vs joint→tip within ~50°: the finger points straight
 
 /**
  * Shapes that are a hand but not a legal throw. They're reported so the player sees what went
@@ -41,9 +43,22 @@ export function fingerRatios(lm) {
   return FINGERS.map(([pip, tip]) => dist(wrist, lm[tip]) / dist(wrist, lm[pip]));
 }
 
-/** True when the thumb sticks out sideways (finger gun / L shape) rather than lying over the fist. */
+/** True when the thumb sticks out (finger gun / L shape) rather than lying over or along the fist. */
 export function thumbOut(lm) {
-  return dist(lm[4], lm[9]) / dist(lm[0], lm[9]) > THUMB_OUT;
+  const palmLen = dist(lm[0], lm[9]);
+  const palmW = dist(lm[5], lm[17]);
+  if (dist(lm[4], lm[9]) / palmLen > THUMB_OUT) return true;
+  // Thumb raised (gun held sideways): its tip is well away from both the index knuckle and joint.
+  return dist(lm[4], lm[5]) / palmW > THUMB_OFF_INDEX && dist(lm[4], lm[6]) / palmW > THUMB_OFF_INDEX;
+}
+
+/** Cosine of the bend at the index finger's middle joint: ~1 straight, <0 folded into a fist. */
+export function indexStraightness(lm) {
+  const [a, b, c] = [lm[5], lm[6], lm[8]];
+  const v1 = { x: b.x - a.x, y: b.y - a.y, z: (b.z ?? 0) - (a.z ?? 0) };
+  const v2 = { x: c.x - b.x, y: c.y - b.y, z: (c.z ?? 0) - (b.z ?? 0) };
+  const dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+  return dot / (Math.hypot(v1.x, v1.y, v1.z) * Math.hypot(v2.x, v2.y, v2.z) || 1);
 }
 
 /**
@@ -59,9 +74,15 @@ export function classify(lm) {
   const ratios = fingerRatios(lm);
   const ext = ratios.map((r) => r > EXTENDED);
   const curled = ratios.map((r) => r < CURLED);
+  const thumb = thumbOut(lm);
+  // The index often points toward the camera in a finger gun, which shortens it in depth and
+  // fails the distance test. If it's clearly not folded and points straight, count it as out.
+  // (In a fist it bends back on itself, so this can't turn rock into a gun.)
+  const straight = indexStraightness(lm);
+  if (!ext[0] && ratios[0] > 0.9 && straight > STRAIGHT_COS) ext[0] = true;
+  else if (!ext[0] && thumb && !curled[0] && straight > 0.3) ext[0] = true; // half-raised index + thumb up = gun
   const [index, middle, ring, pinky] = ext;
   const n = ext.filter(Boolean).length;
-  const thumb = thumbOut(lm);
 
   let gesture = null;
   let foul = null;

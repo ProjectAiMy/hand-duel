@@ -7,8 +7,9 @@ import { classify, outcome, GestureBuffer } from "../js/gesture.js";
 // rot rotates the whole hand in the image plane to check rotation invariance.
 function hand([i, m, r, p], rot = 0, { thumb = false, half = [] } = {}) {
   const pts = Array.from({ length: 21 }, () => ({ x: 0, y: 0, z: 0 }));
-  // thumb: tucked along the fist, or sticking out sideways (finger gun)
-  [1, 2, 3, 4].forEach((k, n) => (pts[k] = thumb ? { x: -3 - n * 2.2, y: 2 + n * 2.6, z: 0 } : { x: -3 - n, y: 2 + n * 1.5, z: 0 }));
+  // thumb: tucked across the curled fingers, or sticking out sideways (finger gun)
+  const tucked = [{ x: -2.5, y: 2 }, { x: -3.5, y: 4.5 }, { x: -2.5, y: 7.5, z: -1.5 }, { x: -0.5, y: 9.5, z: -2.5 }];
+  [1, 2, 3, 4].forEach((k, n) => (pts[k] = thumb ? { x: -3 - n * 2.2, y: 2 + n * 2.6, z: 0 } : { z: 0, ...tucked[n] }));
   const xs = [-2, 0, 2, 3.8];
   const straight = [i, m, r, p];
   [5, 9, 13, 17].forEach((mcp, f) => {
@@ -69,6 +70,15 @@ test("illegal shapes are reported as fouls", () => {
   assert.equal(foul([1, 0, 0, 0]).power, "shield");
   assert.equal(foul([0, 1, 0, 0]).power, null);
   assert.equal(foul([1, 1, 0, 0]).power, null);
+  // Finger gun with the index pointed toward the camera: foreshortened, but straight.
+  const g = hand([1, 0, 0, 0], 0, { thumb: true });
+  g[6] = { x: -2, y: 10.5, z: 0.7 }; // depth is underestimated, so the finger looks short
+  g[7] = { x: -2, y: 11.2, z: 1.1 };
+  g[8] = { x: -2, y: 11.8, z: 1.5 };
+  assert.equal(classify(g).gesture, null);
+  assert.equal(classify(g).power, "power");
+  // A plain fist, thumb up or tucked, stays rock.
+  assert.equal(foul([0, 0, 0, 0], { thumb: true }).gesture, "rock");
   // An open hand whose pinky reads half-open is still paper, not "3 fingers".
   assert.equal(foul([1, 1, 1, 0], { half: [3] }).gesture, "paper");
 });

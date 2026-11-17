@@ -44,12 +44,21 @@ README.md explains the features, controls, rules and architecture, so read it fi
   tasks-vision 0.10.14. `outgoingStream()` swaps the online video track between the raw camera and the effects
   canvas. `.claude/launch.json` has `rps-cam-test` on port 8100 for checks.
 
+- UI v2 (Nov 18 2026, approved from `mockups/`): landing + hand test, camera help, full-screen menu, settings panel,
+  hand cursor (`js/cursor.js`, hold only: the user chose no pinch), spotlight layout with a snapping self tile
+  (default "Spotlight them", not remembered between matches by the user's choice; tile spot and size are saved).
+  Online sends `{t:"hand", b:[x0,y0,x1,y1]}` (raw camera frame, ~6/s) so the opponent's tile can dodge your hand;
+  older clients ignore it. Fonts: Lilita One (display) + Atkinson Hyperlegible (body), from Google Fonts.
+  **The user wants colour and font changes left to the final stage.**
+
 ## Not yet verified
 - Masks on a real face (only checked on the canonical mesh in the browser pane), and their phone frame rate.
 - Looks with a real camera (sticker placement, cutout quality, phone frame rate) and over an online call.
 - Foul detection, the capture grace period, and the compact mobile layout (Nov 2026) haven't been tried on a real
   camera/phone yet; the user said they'd test these themselves. Same for power-ups (Nov 2026).
 - Two-hand tracking with a real camera in 2-player mode.
+- UI v2 with a real camera: hand cursor feel (smoothing/speed defaults), the hand test checks, tile dodging online.
+  Checked in the browser pane with the camera off, a simulated denied camera, and simulated cursor input.
 - The self-signed HTTPS LAN path (`:8443`) on a phone.
 - Verified by the user: online play on real devices via the GitHub Pages site.
 

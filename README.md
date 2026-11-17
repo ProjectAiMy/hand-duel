@@ -51,6 +51,22 @@ The game is plain static files, so any free static host works. It gives you a re
 
 Buttons and keys also override the camera during a countdown. **Auto-next** starts the next throw by itself, and pauses after 3 throws in a row with no hands seen.
 
+**No mouse needed:** on the landing page, menus and panels, point with your palm to move the hand cursor and hold
+still over a button to press it (0.8 s by default). In a match the cursor only appears while the game is idle, so
+it never clashes with a throw.
+
+## Screens and settings
+- **Landing**: what the game is, the webcam ask, and a hand test (hand found, distance, light, try all three shapes).
+  If the camera fails, a help screen explains the fix for that error and browser (blocked, no camera, busy, http, model download).
+- **Menu**: VS CPU, 2 Players, Online, plus How to play, Test hand and Settings.
+- **In a match**: *Side by side*, *Spotlight them* (default: opponent big, you in a small tile, like a video call) or
+  *Spotlight me*. Drag the small tile to any edge or corner and it snaps there; ⤢ resizes it, ⇄ swaps. It moves itself
+  out of the way when the opponent's hand would be behind it (online, each side sends a rough hand box for this).
+  Hand tracking always reads the full camera, whatever the tile size.
+- **Settings** (⚙️, saved on this device): master volume, mute, sound effects, music; video quality (480p/720p/1080p),
+  fullscreen, lite effects; mirror camera, hand skeleton, hand cursor on/off, smoothing, cursor speed, hold time;
+  auto-next and arena.
+
 ## Fight rules (`js/fight.js`)
 - 100 HP each. A won throw deals 25, the 2nd straight win deals 35, and the 3rd or more deals 45, so three in a row is a K.O.
 - A draw is a *clash*: no damage, and both win streaks reset.
@@ -83,7 +99,9 @@ Buttons and keys also override the camera during a countdown. **Auto-next** star
 | Arenas | `js/arenas.js` | 4 arenas drawn in SVG with CSS particles (petals, rain, embers, sparkles). Choose one, or random per round. |
 | Face masks | `js/masks.js`, `js/facemesh.js` | Painted masks (war paint, tiger, skull, robot, clown, ninja) drawn in code on MediaPipe's canonical face map and stretched over the 468-point face mesh with WebGL, so they bend as you talk, smile and turn. Eyes and mouth are cut out, and the camera's own light shades the mask. The mesh data is from MediaPipe's `canonical_face_model.obj` (Apache-2.0). |
 | Your look | `js/effects.js` | Video-call style cosmetics: face masks (above), emoji glasses/hats/clown nose or full-face emoji avatars (MediaPipe Face Landmarker), background blur or painted backdrops (Selfie Segmenter), and colour filters. Drawn on a canvas over the camera, so hand tracking still reads the raw video. Online, the styled canvas is what your opponent sees. Models load only when a look needs them, and the choice is remembered on this device. |
-| Sound | `js/audio.js` | Web Audio synth, no sound files. |
+| Sound | `js/audio.js` | Web Audio synth, no sound files: effects plus a chiptune loop (menu and fight tracks), each on its own bus under a master volume. Music ducks during the countdown. |
+| Hand cursor | `js/cursor.js` | Palm centre, One Euro filtered (steady when still, little lag when moving), gain around the screen centre, magnetic hit areas with a sticky edge, dwell-to-press. |
+| Settings | `js/settings.js` | Defaults, validation and localStorage (`handduel-settings`). |
 
 Tests: `npm test` (gesture classifier + fight rules).
 

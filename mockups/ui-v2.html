@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hand Duel UI v2 mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lilita+One&display=swap" rel="stylesheet" />
+<style>
+/* Mockup only: static screens for approval. Pick one with ?s=landing|denied|menu|game|settings */
+:root {
+  --bg: #0b0c1a;
+  --glass: rgba(18, 20, 40, .72);
+  --glass-hi: rgba(36, 40, 78, .82);
+  --edge: rgba(255,255,255,.22);
+  --text: #ffffff;
+  --muted: #c9cdf0;
+  --accent: #ffd23f;
+  --p1: #3fe0ff;
+  --p2: #ff8f45;
+  --ok: #3ef08f;
+  --bad: #ff5d73;
+  --power: #b98bff;
+  --r: 22px;
+  --tap: 72px;           /* minimum hand/dwell target */
+  --font-display: "Lilita One", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: radial-gradient(1200px 700px at 20% 0%, #2a1d5c 0%, transparent 60%),
+              radial-gradient(900px 600px at 100% 100%, #11385a 0%, transparent 60%), var(--bg);
+  color: var(--text); font-family: var(--font-body); font-size: 18px; overflow: hidden;
+}
+.screen { display: none; position: relative; width: 100vw; height: 100vh; }
+.screen.on { display: block; }
+h1, h2, h3, .display { font-family: var(--font-display); font-weight: 400; letter-spacing: .02em; margin: 0; }
+.glass {
+  background: var(--glass); border: 1.5px solid var(--edge); border-radius: var(--r);
+  backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.btn {
+  min-height: var(--tap); padding: 0 28px; border-radius: 999px; border: 2px solid var(--edge);
+  background: var(--glass-hi); color: var(--text); font: 700 1.15rem var(--font-body);
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px; position: relative;
+}
+.btn.primary { background: var(--accent); color: #1b1400; border-color: #fff; font-family: var(--font-display); font-size: 1.6rem; font-weight: 400; letter-spacing: .03em; }
+.btn .ico { font-size: 1.5rem; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: .95rem; background: rgba(0,0,0,.6); border: 1.5px solid var(--edge); }
+.pill.ok { background: rgba(62,240,143,.95); color: #03170b; border-color: #fff; }
+.pill.warn { background: rgba(255,210,63,.95); color: #231a00; border-color: #fff; }
+.pill.bad { background: rgba(255,93,115,.95); color: #2a0008; border-color: #fff; }
+.muted { color: var(--muted); }
+kbd { font: 700 .8rem var(--font-body); padding: 2px 7px; border-radius: 6px; border: 1.5px solid var(--edge); background: rgba(0,0,0,.35); }
+
+/* fake camera feed */
+.cam { position: relative; overflow: hidden; border-radius: var(--r); background:
+  radial-gradient(60% 70% at 50% 35%, #6b5a52 0%, #3a3036 45%, #1c1a24 100%); }
+.cam.remote { background: radial-gradient(60% 70% at 50% 35%, #4d6170 0%, #2b3442 50%, #141821 100%); }
+.cam svg.person { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cam .skel { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* hand cursor + dwell ring */
+.cursor { position: absolute; width: 64px; height: 64px; margin: -32px 0 0 -32px; pointer-events: none; z-index: 50; }
+.cursor .dot { position: absolute; inset: 20px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(0,0,0,.5), 0 0 18px #fff; }
+.cursor svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.cursor .lbl { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: .8rem; font-weight: 700; background: rgba(0,0,0,.7); padding: 3px 9px; border-radius: 999px; }
+.hovered { outline: 4px solid #fff; outline-offset: 4px; transform: scale(1.04); box-shadow: 0 0 0 10px rgba(255,255,255,.08), 0 20px 50px rgba(0,0,0,.5); }
+
+/* top bar shared */
+.topbar { position: absolute; top: 20px; left: 28px; right: 28px; display: flex; align-items: center; justify-content: space-between; z-index: 5; }
+.logo { font-family: var(--font-display); font-size: 2rem; letter-spacing: .03em; }
+.logo span { color: var(--accent); }
+.icon-btn { width: var(--tap); height: var(--tap); border-radius: 50%; border: 2px solid var(--edge); background: var(--glass-hi); font-size: 1.7rem; display: grid; place-items: center; }
+.tracking-chip { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 999px; background: var(--glass); border: 1.5px solid var(--edge); font-weight: 700; }
+.tracking-chip i { width: 12px; height: 12px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+
+/* ---------- LANDING ---------- */
+#landing .wrap { position: absolute; inset: 110px 48px 40px; display: grid; grid-template-columns: 1fr 1.05fr; gap: 40px; align-items: center; }
+#landing h1 { font-size: 4.6rem; line-height: .95; }
+#landing h1 em { font-style: normal; color: var(--accent); }
+#landing .lede { font-size: 1.35rem; line-height: 1.45; margin: 18px 0 26px; max-width: 520px; color: var(--muted); }
+.steps { display: flex; gap: 14px; margin-bottom: 30px; }
+.step { flex: 1; padding: 16px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1.5px solid var(--edge); }
+.step b { display: block; font-size: 2rem; margin-bottom: 6px; }
+.step span { font-size: .98rem; color: var(--muted); line-height: 1.35; }
+.privacy { margin-top: 18px; font-size: .95rem; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.calib { padding: 18px; }
+.calib .cam { aspect-ratio: 4/3; }
+.calib-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.calib-head h3 { font-size: 1.5rem; }
+.checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+.check { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: rgba(255,255,255,.06); font-weight: 700; font-size: .98rem; }
+.check .st { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 1rem; background: var(--ok); color: #03170b; }
+.check.pending .st { background: transparent; border: 2px dashed var(--muted); color: var(--muted); }
+.try { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
+.try .lbl { font-weight: 700; color: var(--muted); margin-right: 4px; }
+.shape { flex: 1; min-height: 64px; border-radius: 16px; display: grid; place-items: center; font-size: 1.9rem; border: 2px solid var(--edge); background: rgba(255,255,255,.05); position: relative; }
+.shape small { position: absolute; bottom: 4px; font-size: .7rem; font-weight: 700; color: var(--muted); }
+.shape.done { background: rgba(62,240,143,.2); border-color: var(--ok); }
+.shape.done::after { content: "✓"; position: absolute; top: 4px; right: 8px; font-size: .9rem; color: var(--ok); font-weight: 700; }
+.shape.live { border-color: #fff; background: rgba(255,255,255,.18); box-shadow: 0 0 0 4px rgba(255,255,255,.12); }
+.cam-overlay-badge { position: absolute; left: 14px; bottom: 14px; }
+.cam-overlay-top { position: absolute; left: 14px; top: 14px; right: 14px; display: flex; justify-content: space-between; }
+.safe-zone { position: absolute; inset: 9% 9%; border: 2.5px dashed rgba(255,255,255,.45); border-radius: 18px; }
+
+/* ---------- DENIED ---------- */
+#denied .card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 760px; padding: 36px 40px; }
+#denied h2 { font-size: 2.4rem; margin: 6px 0 8px; }
+#denied .big { font-size: 3.4rem; }
+.fix-list { display: grid; gap: 12px; margin: 22px 0; }
+.fix { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1.5px solid var(--edge); }
+.fix .n { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #1b1400; font-family: var(--font-display); font-size: 1.3rem; }
+.fix b { display: block; font-size: 1.1rem; margin-bottom: 3px; }
+.fix span { color: var(--muted); font-size: .98rem; line-height: 1.4; }
+.addr { display: inline-flex; gap: 8px; align-items: center; background: #fff; color: #222; border-radius: 999px; padding: 4px 12px; font-size: .9rem; font-weight: 700; margin-top: 6px; }
+.row { display: flex; gap: 14px; flex-wrap: wrap; }
+
+/* ---------- MENU ---------- */
+#menu .self-bg { position: absolute; inset: 0; opacity: .35; filter: blur(2px) saturate(.8); border-radius: 0; }
+#menu .center { position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%); width: 1000px; text-align: center; }
+#menu .title { font-size: 5rem; line-height: 1; }
+#menu .title span { color: var(--accent); }
+#menu .tag { font-size: 1.3rem; color: var(--muted); margin: 10px 0 34px; }
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.mode { min-height: 210px; padding: 24px; border-radius: 26px; text-align: left; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid var(--edge); background: var(--glass); backdrop-filter: blur(18px); position: relative; transition: transform .15s; }
+.mode .em { font-size: 3rem; }
+.mode h3 { font-size: 2rem; margin-top: 8px; }
+.mode p { margin: 6px 0 0; color: var(--muted); font-size: 1.02rem; }
+.mode.cpu { background: linear-gradient(160deg, rgba(63,224,255,.28), rgba(18,20,40,.75)); }
+.mode.local { background: linear-gradient(160deg, rgba(255,143,69,.28), rgba(18,20,40,.75)); }
+.mode.online { background: linear-gradient(160deg, rgba(185,139,255,.32), rgba(18,20,40,.75)); }
+.secondary-row { display: flex; justify-content: center; gap: 16px; margin-top: 28px; }
+.hint-bar { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; gap: 24px; font-size: .98rem; color: var(--muted); align-items: center; }
+.mini-self { position: absolute; right: 28px; bottom: 28px; width: 220px; aspect-ratio: 4/3; border: 2.5px solid var(--ok); }
+
+/* ---------- GAME (call layout) ---------- */
+#game .hud { position: absolute; top: 14px; left: 24px; right: 24px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: center; z-index: 6; }
+.fighter .name { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .04em; text-shadow: 0 2px 8px #000; display: flex; gap: 10px; align-items: center; }
+.fighter.l .name { color: var(--p1); }
+.fighter.r .name { color: var(--p2); justify-content: flex-end; }
+.pips { display: inline-flex; gap: 6px; }
+.pips i { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid #fff; background: rgba(0,0,0,.5); }
+.pips i.on { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.hp { height: 26px; border-radius: 6px; border: 2.5px solid #fff; background: #4a0e18; overflow: hidden; margin-top: 6px; position: relative; box-shadow: 0 4px 14px rgba(0,0,0,.6); }
+.hp i { position: absolute; top: 0; bottom: 0; background: linear-gradient(180deg, #ffe66d, #ffb01f); }
+.fighter.l .hp { transform: skewX(-12deg); } .fighter.l .hp i { right: 0; width: 72%; }
+.fighter.r .hp { transform: skewX(12deg); }  .fighter.r .hp i { left: 0; width: 46%; }
+.round { text-align: center; font-family: var(--font-display); font-size: 1.5rem; color: var(--accent); text-shadow: 0 2px 8px #000; }
+.round small { display: block; font-family: var(--font-body); font-size: .85rem; color: var(--muted); font-weight: 700; }
+.spotlight { position: absolute; inset: 92px 24px 112px; }
+.spotlight .cam { position: absolute; inset: 0; border: 3px solid var(--p2); }
+.spotlight .tag-name { position: absolute; left: 18px; bottom: 18px; }
+.pip-self { position: absolute; right: 44px; bottom: 132px; width: 300px; aspect-ratio: 4/3; border: 3px solid var(--p1); box-shadow: 0 16px 40px rgba(0,0,0,.6); z-index: 7; }
+.pip-self .cam-overlay-badge { left: 10px; bottom: 10px; }
+.pip-tools { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
+.pip-tools span { width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,.6); border: 1.5px solid var(--edge); display: grid; place-items: center; font-size: 1rem; }
+.announce { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%) rotate(-4deg); font-family: var(--font-display); font-size: 7rem; color: var(--accent); -webkit-text-stroke: 4px #1b1400; text-shadow: 0 8px 0 #1b1400, 0 0 50px rgba(255,210,63,.6); z-index: 8; }
+.dock { position: absolute; left: 24px; right: 24px; bottom: 18px; height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; z-index: 6; }
+.dock .group { display: flex; gap: 10px; align-items: center; }
+.throwbtn { min-height: 60px; min-width: 96px; border-radius: 16px; border: 2px solid var(--edge); background: var(--glass-hi); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 1rem; }
+.throwbtn b { font-size: 1.6rem; }
+.powers { position: absolute; left: 14px; top: 64px; display: flex; flex-direction: column; gap: 8px; }
+.powers span { display: flex; gap: 8px; align-items: center; padding: 6px 12px 6px 8px; border-radius: 999px; background: rgba(0,0,0,.6); border: 1.5px solid var(--edge); font-weight: 700; font-size: .9rem; }
+.powers span.armed { background: var(--power); color: #14002e; border-color: #fff; box-shadow: 0 0 16px var(--power); }
+.layout-switch { display: flex; padding: 5px; gap: 4px; border-radius: 999px; background: var(--glass); border: 1.5px solid var(--edge); }
+.layout-switch span { padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: .95rem; }
+.layout-switch span.on { background: #fff; color: #111; }
+
+/* ---------- SETTINGS ---------- */
+#settings .dim { position: absolute; inset: 0; background: rgba(5,6,15,.55); }
+#settings .panel { position: absolute; right: 28px; top: 28px; bottom: 28px; width: 640px; padding: 26px 30px; display: flex; flex-direction: column; }
+#settings .panel h2 { font-size: 2.2rem; }
+.tabs { display: flex; gap: 8px; margin: 18px 0 8px; }
+.tabs span { flex: 1; text-align: center; padding: 14px 0; border-radius: 14px; font-weight: 700; background: rgba(255,255,255,.06); border: 1.5px solid var(--edge); }
+.tabs span.on { background: #fff; color: #111; }
+.sect { margin-top: 14px; }
+.sect h4 { margin: 0 0 6px; font-size: .85rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.set { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 66px; padding: 8px 0; border-bottom: 1.5px solid rgba(255,255,255,.08); }
+.set .lbl b { display: block; font-size: 1.08rem; }
+.set .lbl span { font-size: .9rem; color: var(--muted); }
+.toggle { width: 70px; height: 40px; border-radius: 999px; background: rgba(255,255,255,.18); border: 2px solid var(--edge); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; top: 4px; left: 4px; width: 28px; height: 28px; border-radius: 50%; background: #fff; }
+.toggle.on { background: var(--ok); border-color: #fff; }
+.toggle.on::after { left: 34px; }
+.slider { width: 230px; height: 40px; position: relative; flex: none; display: flex; align-items: center; gap: 12px; }
+.slider .track { flex: 1; height: 10px; border-radius: 999px; background: rgba(255,255,255,.18); position: relative; }
+.slider .track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--accent); }
+.slider .track b { position: absolute; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+.slider em { font-style: normal; font-weight: 700; width: 44px; text-align: right; }
+.seg { display: flex; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.08); border: 1.5px solid var(--edge); }
+.seg span { padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: .92rem; }
+.seg span.on { background: #fff; color: #111; }
+.foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 16px; }
+.mock-note { position: fixed; left: 12px; bottom: 8px; font: 700 11px var(--font-body); color: rgba(255,255,255,.4); z-index: 100; }
+</style>
+</head>
+<body>
+
+<!-- reusable SVG bits -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="person">
+      <ellipse cx="400" cy="250" rx="92" ry="112" fill="#c99a82"/>
+      <path d="M300 230 q100 -150 200 0 q-10 -110 -100 -118 q-90 8 -100 118z" fill="#2a1f1c"/>
+      <path d="M190 600 q20 -190 210 -210 q190 20 210 210z" fill="#3b4f86"/>
+      <rect x="370" y="340" width="60" height="60" fill="#c99a82"/>
+    </g>
+    <g id="person2">
+      <ellipse cx="400" cy="250" rx="92" ry="112" fill="#8d6450"/>
+      <path d="M300 220 q100 -170 200 0 q-30 -100 -100 -105 q-70 5 -100 105z" fill="#151212"/>
+      <path d="M190 600 q20 -190 210 -210 q190 20 210 210z" fill="#7a2e3e"/>
+      <rect x="370" y="340" width="60" height="60" fill="#8d6450"/>
+    </g>
+    <!-- open-hand skeleton, 21 points-ish -->
+    <g id="hand" stroke-linecap="round" stroke-linejoin="round">
+      <g stroke="currentColor" stroke-width="6" fill="none">
+        <polyline points="0,0 -40,-30 -62,-62 -78,-90 -92,-112"/>
+        <polyline points="0,0 -18,-70 -22,-112 -24,-140 -26,-164"/>
+        <polyline points="0,0 4,-74 6,-120 8,-150 9,-176"/>
+        <polyline points="0,0 24,-68 32,-110 36,-138 39,-160"/>
+        <polyline points="0,0 40,-56 54,-88 62,-110 68,-128"/>
+        <polyline points="-18,-70 4,-74 24,-68 40,-56"/>
+      </g>
+      <g fill="#fff">
+        <circle r="7"/><circle cx="-40" cy="-30" r="6"/><circle cx="-62" cy="-62" r="6"/><circle cx="-78" cy="-90" r="6"/><circle cx="-92" cy="-112" r="6"/>
+        <circle cx="-18" cy="-70" r="6"/><circle cx="-22" cy="-112" r="6"/><circle cx="-24" cy="-140" r="6"/><circle cx="-26" cy="-164" r="6"/>
+        <circle cx="4" cy="-74" r="6"/><circle cx="6" cy="-120" r="6"/><circle cx="8" cy="-150" r="6"/><circle cx="9" cy="-176" r="6"/>
+        <circle cx="24" cy="-68" r="6"/><circle cx="32" cy="-110" r="6"/><circle cx="36" cy="-138" r="6"/><circle cx="39" cy="-160" r="6"/>
+        <circle cx="40" cy="-56" r="6"/><circle cx="54" cy="-88" r="6"/><circle cx="62" cy="-110" r="6"/><circle cx="68" cy="-128" r="6"/>
+      </g>
+    </g>
+    <g id="scissorsHand" stroke-linecap="round">
+      <g stroke="currentColor" stroke-width="6" fill="none">
+        <polyline points="0,0 -36,-26 -40,-52 -26,-62 -8,-60"/>
+        <polyline points="0,0 -18,-70 -34,-112 -44,-140 -52,-164"/>
+        <polyline points="0,0 4,-74 14,-120 20,-150 26,-176"/>
+        <polyline points="0,0 24,-68 26,-84 18,-82 12,-74"/>
+        <polyline points="0,0 40,-56 42,-70 34,-70 28,-62"/>
+        <polyline points="-18,-70 4,-74 24,-68 40,-56"/>
+      </g>
+      <g fill="#fff"><circle r="7"/><circle cx="-52" cy="-164" r="6"/><circle cx="26" cy="-176" r="6"/><circle cx="-34" cy="-112" r="6"/><circle cx="14" cy="-120" r="6"/><circle cx="-18" cy="-70" r="6"/><circle cx="4" cy="-74" r="6"/><circle cx="24" cy="-68" r="6"/><circle cx="40" cy="-56" r="6"/></g>
+    </g>
+  </defs>
+</svg>
+
+<!-- ============ 1. LANDING + CALIBRATION ============ -->
+<section class="screen" id="landing">
+  <div class="topbar">
+    <div class="logo">HAND <span>DUEL</span></div>
+    <div class="row" style="gap:12px">
+      <div class="tracking-chip"><i></i> Hand tracked · 60 fps</div>
+      <div class="icon-btn">⚙️</div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div>
+      <h1>Rock. Paper.<br><em>Scissors.</em> Fight!</h1>
+      <p class="lede">A rock-paper-scissors fighting game you play with your real hand. Throw on <b style="color:#fff">“Shoot!”</b>, land hits, and K.O. the CPU, a friend beside you, or someone online.</p>
+      <div class="steps">
+        <div class="step"><b>📷</b><span>Uses your webcam. Video stays on your device.</span></div>
+        <div class="step"><b>✋</b><span>Raise one hand 40–80 cm from the camera.</span></div>
+        <div class="step"><b>👆</b><span>Point and hold to press buttons. No mouse needed.</span></div>
+      </div>
+      <div class="row">
+        <div class="btn primary hovered">▶&nbsp; PLAY</div>
+        <div class="btn"><span class="ico">⌨️</span> Play without camera</div>
+      </div>
+      <p class="privacy">🔒 Nothing is uploaded. Online matches send video only to your opponent.</p>
+    </div>
+
+    <div class="glass calib">
+      <div class="calib-head">
+        <h3>Test your hand</h3>
+        <span class="pill ok">✓ Ready to play</span>
+      </div>
+      <div class="cam">
+        <svg class="person" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"><use href="#person"/></svg>
+        <div class="safe-zone"></div>
+        <svg class="skel" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"><use href="#hand" x="600" y="470" style="color:#3fe0ff"/></svg>
+        <div class="cam-overlay-top"><span class="pill">🪞 Mirrored</span><span class="pill">💡 Light OK</span></div>
+        <div class="cam-overlay-badge"><span class="pill ok">✋ Paper · steady</span></div>
+      </div>
+      <div class="checks">
+        <div class="check"><span class="st">✓</span>Hand found</div>
+        <div class="check"><span class="st">✓</span>Good distance</div>
+        <div class="check"><span class="st">✓</span>Good light</div>
+      </div>
+      <div class="try">
+        <span class="lbl">Try each:</span>
+        <div class="shape done">✊<small>Rock</small></div>
+        <div class="shape done live">✋<small>Paper</small></div>
+        <div class="shape">✌️<small>Scissors</small></div>
+      </div>
+    </div>
+  </div>
+  <!-- hand cursor dwelling on PLAY -->
+  <div class="cursor" style="left:196px; top:648px">
+    <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="6"/><circle cx="32" cy="32" r="28" fill="none" stroke="#ffd23f" stroke-width="6" stroke-dasharray="176" stroke-dashoffset="62" stroke-linecap="round"/></svg>
+    <div class="dot"></div>
+    <div class="lbl">Hold to press…</div>
+  </div>
+</section>
+
+<!-- ============ 2. CAMERA BLOCKED ============ -->
+<section class="screen" id="denied">
+  <div class="topbar"><div class="logo">HAND <span>DUEL</span></div></div>
+  <div class="card glass">
+    <div class="big">🚫📷</div>
+    <h2>Your camera is blocked</h2>
+    <p class="muted" style="font-size:1.12rem;margin:0">The browser said no to the camera for this site. Here's how to turn it back on (about 10 seconds):</p>
+    <div class="fix-list">
+      <div class="fix"><div class="n">1</div><div><b>Click the camera icon in the address bar</b><span>Set <b style="display:inline;color:#fff">Camera</b> to <b style="display:inline;color:#fff">Allow</b>.</span><br><span class="addr">🔒 projectaimy.github.io &nbsp;📷✕</span></div></div>
+      <div class="fix"><div class="n">2</div><div><b>On a Mac, check System Settings</b><span>Privacy &amp; Security → Camera → turn your browser on, then restart it.</span></div></div>
+      <div class="fix"><div class="n">3</div><div><b>Close other apps using the camera</b><span>Zoom, Teams, FaceTime or OBS can hold onto it.</span></div></div>
+    </div>
+    <div class="row">
+      <div class="btn primary">↻&nbsp; TRY AGAIN</div>
+      <div class="btn"><span class="ico">⌨️</span> Play with buttons</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. MAIN MENU ============ -->
+<section class="screen" id="menu">
+  <div class="cam self-bg"><svg class="person" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"><use href="#person"/></svg></div>
+  <div class="topbar">
+    <div class="logo">HAND <span>DUEL</span></div>
+    <div class="row" style="gap:12px">
+      <div class="tracking-chip"><i></i> Hand tracked</div>
+      <div class="icon-btn">🎭</div>
+      <div class="icon-btn">🔊</div>
+      <div class="icon-btn">⚙️</div>
+    </div>
+  </div>
+  <div class="center">
+    <div class="display title">CHOOSE YOUR <span>FIGHT</span></div>
+    <p class="tag">Point at a mode and hold, or click.</p>
+    <div class="modes">
+      <div class="mode cpu"><div class="em">🤖</div><div><h3>VS CPU</h3><p>Solo practice. Learn the power-ups.</p></div></div>
+      <div class="mode local hovered"><div class="em">👥</div><div><h3>2 Players</h3><p>Same screen, one camera. P1 left, P2 right.</p></div></div>
+      <div class="mode online"><div class="em">🌐</div><div><h3>Online</h3><p>Video duel with a friend by room code.</p></div></div>
+    </div>
+    <div class="secondary-row">
+      <div class="btn"><span class="ico">📖</span> How to play</div>
+      <div class="btn"><span class="ico">✋</span> Re-test hand</div>
+      <div class="btn"><span class="ico">⚙️</span> Settings</div>
+    </div>
+  </div>
+  <div class="cursor" style="left:640px; top:420px">
+    <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="6"/><circle cx="32" cy="32" r="28" fill="none" stroke="#ffd23f" stroke-width="6" stroke-dasharray="176" stroke-dashoffset="110" stroke-linecap="round"/></svg>
+    <div class="dot"></div>
+  </div>
+  <div class="hint-bar"><span>👆 Point + hold 0.8 s = press</span><span>🤏 Pinch = instant press</span><span><kbd>Esc</kbd> back</span></div>
+</section>
+
+<!-- ============ 4. GAMEPLAY: CALL LAYOUT ============ -->
+<section class="screen" id="game">
+  <div class="hud">
+    <div class="fighter l"><div class="name">YOU <span class="pips"><i class="on"></i><i></i></span></div><div class="hp"><i></i></div></div>
+    <div class="round">ROUND 2<small>🌸 Sakura Dojo</small></div>
+    <div class="fighter r"><div class="name"><span class="pips"><i></i><i></i></span> MAYA</div><div class="hp"><i></i></div></div>
+  </div>
+
+  <div class="spotlight">
+    <div class="cam remote">
+      <svg class="person" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"><use href="#person2"/></svg>
+      <div class="tag-name"><span class="pill">🟠 MAYA · 42 ms</span></div>
+      <div class="powers" style="left:auto;right:14px;top:14px"><span>🛡️ Shield</span></div>
+    </div>
+  </div>
+
+  <div class="announce">SHOOT!</div>
+
+  <div class="cam pip-self">
+    <svg class="person" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"><use href="#person"/></svg>
+    <svg class="skel" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"><use href="#scissorsHand" x="590" y="500" style="color:#3fe0ff"/></svg>
+    <div class="powers" style="top:10px;left:10px"><span class="armed">👉 Power</span><span>🛡️</span></div>
+    <div class="pip-tools"><span>⤢</span><span>⇄</span></div>
+    <div class="cam-overlay-badge"><span class="pill ok">✌️ Scissors</span></div>
+  </div>
+
+  <div class="dock glass">
+    <div class="group">
+      <div class="throwbtn"><b>✊</b>Rock <kbd>R</kbd></div>
+      <div class="throwbtn"><b>✋</b>Paper <kbd>P</kbd></div>
+      <div class="throwbtn"><b>✌️</b>Scissors <kbd>S</kbd></div>
+    </div>
+    <div class="layout-switch"><span>Side by side</span><span class="on">Spotlight them</span><span>Spotlight me</span></div>
+    <div class="group">
+      <div class="icon-btn" style="width:60px;height:60px">⏸</div>
+      <div class="icon-btn" style="width:60px;height:60px">🎭</div>
+      <div class="icon-btn" style="width:60px;height:60px">🔊</div>
+      <div class="icon-btn" style="width:60px;height:60px">⚙️</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. SETTINGS ============ -->
+<section class="screen" id="settings">
+  <div class="cam" style="position:absolute;inset:0;border-radius:0;opacity:.6"><svg class="person" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"><use href="#person"/></svg></div>
+  <div class="dim"></div>
+  <div class="panel glass">
+    <div style="display:flex;justify-content:space-between;align-items:center"><h2>Settings</h2><div class="icon-btn" style="width:56px;height:56px">✕</div></div>
+    <div class="tabs"><span>🔊 Audio</span><span>🖥️ Display</span><span class="on">✋ Tracking</span></div>
+
+    <div class="sect">
+      <h4>Camera</h4>
+      <div class="set"><div class="lbl"><b>Mirror my camera</b><span>Like a mirror: raise your right hand, it moves right.</span></div><div class="toggle on"></div></div>
+      <div class="set"><div class="lbl"><b>Show hand skeleton</b><span>Lines over your hand while playing.</span></div><div class="toggle on"></div></div>
+    </div>
+    <div class="sect">
+      <h4>Hand cursor</h4>
+      <div class="set"><div class="lbl"><b>Point to press buttons</b><span>Navigate menus with your hand.</span></div><div class="toggle on"></div></div>
+      <div class="set"><div class="lbl"><b>Smoothing</b><span>Less = snappier, more = steadier.</span></div><div class="slider"><div class="track"><i style="width:40%"></i><b style="left:40%"></b></div><em>40%</em></div></div>
+      <div class="set"><div class="lbl"><b>Cursor speed</b><span>Reach the screen edges with smaller moves.</span></div><div class="slider"><div class="track"><i style="width:60%"></i><b style="left:60%"></b></div><em>1.5×</em></div></div>
+      <div class="set"><div class="lbl"><b>Hold-to-press time</b></div><div class="seg"><span>0.5 s</span><span class="on">0.8 s</span><span>1.2 s</span></div></div>
+    </div>
+    <div class="foot"><span class="muted" style="font-size:.9rem">Saved on this device automatically</span><div class="btn" style="min-height:56px">Reset to defaults</div></div>
+  </div>
+</section>
+
+<div class="mock-note">MOCKUP · not wired up</div>
+<script>
+  const s = new URLSearchParams(location.search).get("s") || "landing";
+  document.getElementById(s)?.classList.add("on");
+</script>
+</body>
+</html>

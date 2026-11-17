@@ -3,12 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f1020" />
+    <meta name="theme-color" content="#0b0c1a" />
     <title>Hand Duel</title>
+    <meta name="description" content="Rock-paper-scissors fighting game you play with your real hand, using your webcam." />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✊</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lilita+One&display=swap" />
     <link rel="stylesheet" href="style.css" />
   </head>
-  <body data-mode="cpu">
+  <body data-mode="cpu" data-screen="landing">
     <div id="arenaBg" class="arena-bg" aria-hidden="true"></div>
 
     <!-- Fighter HUD -->
@@ -28,7 +32,8 @@
     </header>
 
     <main class="ring" id="ring">
-      <!-- Your camera (in 2-player mode, both players share it: P1 left half, P2 right half) -->
+      <!-- Your camera (in 2-player mode, both players share it: P1 left half, P2 right half).
+           On the landing screen this stage is moved into the hand test card. -->
       <section class="corner" id="cornerL">
         <div class="stage" id="stage">
           <video id="video" playsinline muted autoplay></video>
@@ -38,6 +43,10 @@
           <div class="half left" id="halfL"><div class="detect-badge" id="badgeL">No hand</div></div>
           <div class="half right" id="halfR"><div class="detect-badge" id="badgeR">No hand</div></div>
           <div class="tip" id="tip" hidden></div>
+          <div class="pip-tools no-dwell" id="pipToolsL">
+            <button type="button" data-pip="size" title="Tile size" aria-label="Change tile size">⤢</button>
+            <button type="button" data-pip="swap" title="Swap big and small" aria-label="Swap big and small video">⇄</button>
+          </div>
         </div>
       </section>
 
@@ -46,6 +55,10 @@
           <video id="remoteVideo" playsinline autoplay></video>
           <div class="cpu-hand" id="cpuHand">✊</div>
           <div class="waiting" id="remoteWaiting">Waiting for opponent's camera…</div>
+          <div class="pip-tools no-dwell" id="pipToolsR">
+            <button type="button" data-pip="size" title="Tile size" aria-label="Change tile size">⤢</button>
+            <button type="button" data-pip="swap" title="Swap big and small" aria-label="Swap big and small video">⇄</button>
+          </div>
         </div>
       </section>
     </main>
@@ -53,7 +66,7 @@
     <div class="announcer" id="announcer" aria-live="assertive"></div>
     <div class="result" id="result" aria-live="polite"></div>
 
-    <footer class="controls">
+    <footer class="controls" id="dock">
       <button id="play" class="primary">Fight!</button>
       <div class="manual" id="manualL" role="group" aria-label="Throw manually">
         <button data-side="0" data-throw="rock" title="Rock">✊<span>Rock</span><kbd>R</kbd></button>
@@ -65,17 +78,17 @@
         <button data-side="1" data-throw="paper" title="P2 Paper">✋<span>Paper</span><kbd>K</kbd></button>
         <button data-side="1" data-throw="scissors" title="P2 Scissors">✌️<span>Scissors</span><kbd>L</kbd></button>
       </div>
-      <div class="settings">
-        <label title="Start the next throw automatically"><input type="checkbox" id="autoNext" checked /> <span>Auto<span class="long">-next</span></span></label>
-        <label title="Arena"><span class="long">Arena</span>
-          <select id="arenaSelect" aria-label="Arena">
-            <option value="random">🎲 Random</option>
-          </select>
-        </label>
+      <div class="dock-tools">
+        <div class="layout-switch" id="layoutSwitch" role="radiogroup" aria-label="Video layout">
+          <button type="button" role="radio" data-layout="split" title="Side by side"><b>◫</b><span>Side by side</span></button>
+          <button type="button" role="radio" data-layout="them" title="Opponent big, you small"><b>⛶</b><span>Spotlight them</span></button>
+          <button type="button" role="radio" data-layout="me" title="You big, opponent small"><b>👤</b><span>Spotlight me</span></button>
+        </div>
         <button id="pause" class="icon-btn" title="Pause auto-play (Esc)" aria-label="Pause">⏸</button>
         <button id="lookBtn" class="icon-btn" title="Your look: mask, stickers, background, filter" aria-label="Your look">🎭</button>
         <button id="switchCam" class="icon-btn" title="Switch camera" aria-label="Switch camera" hidden>⟲</button>
-        <button id="mute" class="icon-btn" title="Mute (M)" aria-label="Mute sound">🔊</button>
+        <button id="mute" class="icon-btn" data-mute title="Mute (M)" aria-label="Mute sound">🔊</button>
+        <button id="settingsBtn" class="icon-btn" data-open-settings title="Settings" aria-label="Settings">⚙️</button>
         <button id="menuBtn" class="icon-btn" title="Main menu" aria-label="Main menu">☰</button>
       </div>
     </footer>
@@ -93,62 +106,217 @@
       <div class="look-row"><h4>Filter</h4><div class="chips" id="lookFilter"></div></div>
     </div>
 
-    <!-- Main menu -->
-    <div class="modal" id="menu">
-      <div class="card wide">
+    <!-- ============ Landing: premise, camera, hand test ============ -->
+    <section class="screen" id="landing" aria-labelledby="landingTitle">
+      <div class="topbar">
         <div class="logo">HAND <span>DUEL</span></div>
-        <p class="sub">Rock-Paper-Scissors, fighting-game style. Throw your hand on <b>“Shoot!”</b></p>
-        <div class="modes">
-          <button class="mode" data-mode="cpu"><b>🤖 VS CPU</b><span>Solo practice</span></button>
-          <button class="mode" data-mode="local"><b>👥 2 Players</b><span>Same device, one camera</span></button>
-          <button class="mode" data-mode="online"><b>🌐 Online</b><span>Play a friend with a room code</span></button>
+        <div class="topbar-tools">
+          <div class="tracking-chip" data-track-chip><i></i><span>Camera off</span></div>
+          <button class="icon-btn" data-open-settings title="Settings" aria-label="Settings">⚙️</button>
         </div>
-        <label class="cam-toggle"><input type="checkbox" id="useCam" checked /> Use camera (off = buttons / keyboard)</label>
-        <details class="tips">
-          <summary>Tips for good tracking</summary>
-          <ul>
-            <li>Light in front of you, not a bright window behind you</li>
-            <li>Keep your whole hand inside the frame, 40–80 cm from the camera</li>
-            <li>2 players: stand side by side, P1 on the left, each raises one hand</li>
-            <li>Video stays on your device (online: sent only to your opponent)</li>
-          </ul>
-        </details>
+      </div>
+      <div class="landing-wrap">
+        <div class="pitch">
+          <h1 id="landingTitle">Rock. Paper.<br /><em>Scissors.</em> Fight!</h1>
+          <p class="lede">
+            A rock-paper-scissors fighting game you play with your real hand. Throw on <b>“Shoot!”</b>, land hits,
+            and K.O. the CPU, a friend beside you, or someone online.
+          </p>
+          <p class="invite" id="inviteNote" hidden></p>
+          <div class="steps">
+            <div class="step"><b>📷</b><span>Uses your webcam. Video stays on your device.</span></div>
+            <div class="step"><b>✋</b><span>Raise one hand 40–80 cm from the camera.</span></div>
+            <div class="step"><b>👆</b><span>Point and hold to press buttons. No mouse needed.</span></div>
+          </div>
+          <div class="cta-row">
+            <button id="startBtn" class="btn primary big">📷 Turn on camera</button>
+            <button id="noCamBtn" class="btn">⌨️ Play without camera</button>
+          </div>
+          <p class="status" id="landingStatus" role="status"></p>
+          <p class="privacy">🔒 Nothing is uploaded. Online matches send your video only to your opponent.</p>
+        </div>
+
+        <div class="glass calib">
+          <div class="calib-head">
+            <h2>Test your hand</h2>
+            <span class="pill" id="calibPill">Not started</span>
+          </div>
+          <div class="calib-cam" id="calibSlot">
+            <div class="calib-idle" id="calibIdle">
+              <div class="calib-idle-icon">📷</div>
+              <p><b>Your browser will ask to use the camera.</b><br />Choose <b>Allow</b> so the game can see your hand.</p>
+              <button id="calibStart" class="btn">Turn on camera</button>
+            </div>
+          </div>
+          <div class="checks">
+            <div class="check" id="chkHand"><span class="st"></span><span class="txt">Hand found</span></div>
+            <div class="check" id="chkDist"><span class="st"></span><span class="txt">Good distance</span></div>
+            <div class="check" id="chkLight"><span class="st"></span><span class="txt">Good light</span></div>
+          </div>
+          <div class="try">
+            <span class="lbl">Try each:</span>
+            <div class="shape" data-try="rock">✊<small>Rock</small></div>
+            <div class="shape" data-try="paper">✋<small>Paper</small></div>
+            <div class="shape" data-try="scissors">✌️<small>Scissors</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Main menu ============ -->
+    <section class="screen" id="menu" aria-labelledby="menuTitle" hidden>
+      <div class="topbar">
+        <div class="logo">HAND <span>DUEL</span></div>
+        <div class="topbar-tools">
+          <div class="tracking-chip" data-track-chip><i></i><span>Camera off</span></div>
+          <button class="icon-btn" data-open-look title="Your look" aria-label="Your look">🎭</button>
+          <button class="icon-btn" data-mute title="Mute (M)" aria-label="Mute sound">🔊</button>
+          <button class="icon-btn" data-open-settings title="Settings" aria-label="Settings">⚙️</button>
+        </div>
+      </div>
+      <div class="menu-center">
+        <h1 class="menu-title" id="menuTitle">CHOOSE YOUR <span>FIGHT</span></h1>
+        <p class="menu-tag" id="menuTag">Point at a mode and hold, or click.</p>
+        <div class="modes">
+          <button class="mode cpu" data-mode="cpu"><b class="em">🤖</b><span><b>VS CPU</b><span>Solo practice. Learn the power-ups.</span></span></button>
+          <button class="mode local" data-mode="local"><b class="em">👥</b><span><b>2 Players</b><span>Same screen, one camera. P1 left, P2 right.</span></span></button>
+          <button class="mode online" data-mode="online"><b class="em">🌐</b><span><b>Online</b><span>Video duel with a friend by room code.</span></span></button>
+        </div>
+        <div class="secondary-row">
+          <button class="btn" id="howtoBtn">📖 How to play</button>
+          <button class="btn" id="retestBtn">✋ Test hand</button>
+          <button class="btn" data-open-settings>⚙️ Settings</button>
+        </div>
         <p class="status" id="status" role="status"></p>
+      </div>
+      <div class="hint-bar" id="hintBar"><span>👆 Point + hold = press</span><span><kbd>Esc</kbd> closes panels</span></div>
+    </section>
+
+    <!-- ============ Camera help ============ -->
+    <div class="modal" id="camHelp" role="dialog" aria-labelledby="camHelpTitle" hidden>
+      <div class="card glass help-card">
+        <div class="big-emoji" id="camHelpIcon">🚫📷</div>
+        <h2 id="camHelpTitle">Your camera is blocked</h2>
+        <p id="camHelpText"></p>
+        <ol class="fix-list" id="camHelpSteps"></ol>
+        <div class="cta-row">
+          <button id="camRetry" class="btn primary">↻ Try again</button>
+          <button id="camSkip" class="btn">⌨️ Play with buttons</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ How to play ============ -->
+    <div class="modal" id="howto" role="dialog" aria-labelledby="howtoTitle" hidden>
+      <div class="card glass howto-card">
+        <div class="panel-head"><h2 id="howtoTitle">How to play</h2><button class="icon-btn" data-close title="Close" aria-label="Close">✕</button></div>
+        <div class="howto-steps">
+          <div><b>1</b><span class="h-ico">✋</span><p><strong>Raise your hand</strong> so the whole hand is in view.</p></div>
+          <div><b>2</b><span class="h-ico">⏱️</span><p><strong>Throw on “Shoot!”</strong> and hold the shape for a moment.</p></div>
+          <div><b>3</b><span class="h-ico">💥</span><p><strong>Win the exchange</strong> to hit. Empty their bar for a K.O.</p></div>
+        </div>
+        <div class="howto-grid">
+          <section>
+            <h3>Who wins</h3>
+            <p class="beats">✊ Rock beats ✌️ Scissors<br />✌️ Scissors beat ✋ Paper<br />✋ Paper beats ✊ Rock</p>
+            <p class="muted">Win streaks hit harder. First to 2 rounds wins the match. Too slow, or an illegal shape (one finger, three fingers), loses the throw.</p>
+          </section>
+          <section>
+            <h3>Power-ups</h3>
+            <ul class="powers-list">
+              <li><span>👍</span><div><b>Shield</b> — blocks one hit. Everyone gets one per round.</div></li>
+              <li><span>👉</span><div><b>Power</b> — ×2 damage. Earned by winning 2 in a row.</div></li>
+              <li><span>🤘</span><div><b>Reverse</b> — the loser deals the damage. Earned by losing 2 in a row.</div></li>
+            </ul>
+            <p class="muted">Hold the sign between throws to arm it; it fires on your next throw.</p>
+          </section>
+        </div>
+        <p class="keys muted"><kbd>R</kbd><kbd>P</kbd><kbd>S</kbd> throw · <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> power-ups · <kbd>Space</kbd> next · <kbd>Esc</kbd> pause · <kbd>M</kbd> mute</p>
+        <button class="btn primary" data-close>Got it</button>
+      </div>
+    </div>
+
+    <!-- ============ Settings ============ -->
+    <div class="modal side" id="settingsPanel" role="dialog" aria-labelledby="settingsTitle" hidden>
+      <div class="panel glass">
+        <div class="panel-head"><h2 id="settingsTitle">Settings</h2><button class="icon-btn" data-close title="Close" aria-label="Close">✕</button></div>
+        <div class="tabs" role="tablist">
+          <button role="tab" data-tab="audio">🔊 <span>Audio</span></button>
+          <button role="tab" data-tab="display">🖥️ <span>Display</span></button>
+          <button role="tab" data-tab="tracking">✋ <span>Tracking</span></button>
+          <button role="tab" data-tab="game">🎮 <span>Game</span></button>
+        </div>
+        <div class="tab-body">
+          <section data-pane="audio">
+            <div class="set"><div class="lbl"><b>Master volume</b></div>
+              <div class="slider"><button type="button" data-step="master:-10" aria-label="Quieter">−</button><input type="range" data-set="master" min="0" max="100" step="5" aria-label="Master volume" /><button type="button" data-step="master:10" aria-label="Louder">+</button><em data-out="master"></em></div></div>
+            <div class="set"><div class="lbl"><b>Mute everything</b><span>Shortcut: M</span></div><button type="button" class="toggle" role="switch" data-set="muted" aria-label="Mute everything"></button></div>
+            <div class="set"><div class="lbl"><b>Sound effects</b><span>Countdown, hits, K.O.</span></div><button type="button" class="toggle" role="switch" data-set="sfx" aria-label="Sound effects"></button></div>
+            <div class="set"><div class="lbl"><b>Music</b><span>Chiptune loop, quieter during the countdown</span></div><button type="button" class="toggle" role="switch" data-set="music" aria-label="Music"></button></div>
+          </section>
+          <section data-pane="display">
+            <div class="set"><div class="lbl"><b>Video quality</b><span>Lower = less lag on slow computers and phones</span></div>
+              <div class="seg" data-set="quality" role="radiogroup" aria-label="Video quality"><button type="button" data-v="low">Low<small>480p</small></button><button type="button" data-v="medium">Medium<small>720p</small></button><button type="button" data-v="high">High<small>1080p</small></button></div></div>
+            <div class="set" id="fsRow"><div class="lbl"><b>Fullscreen</b><span>Bigger video, no browser bars</span></div><button type="button" class="toggle" role="switch" id="fsToggle" aria-label="Fullscreen"></button></div>
+            <div class="set"><div class="lbl"><b>Lite effects</b><span>No blur or particles: keeps tracking smooth on slow devices</span></div><button type="button" class="toggle" role="switch" data-set="lite" aria-label="Lite effects"></button></div>
+          </section>
+          <section data-pane="tracking">
+            <h4>Camera</h4>
+            <div class="set"><div class="lbl"><b>Mirror my camera</b><span>Like a mirror: move your right hand, it moves right</span></div><button type="button" class="toggle" role="switch" data-set="mirror" aria-label="Mirror my camera"></button></div>
+            <div class="set"><div class="lbl"><b>Show hand skeleton</b><span>Lines over your hand</span></div><button type="button" class="toggle" role="switch" data-set="skeleton" aria-label="Show hand skeleton"></button></div>
+            <h4>Hand cursor</h4>
+            <div class="set"><div class="lbl"><b>Point to press buttons</b><span>Menus work with your hand</span></div><button type="button" class="toggle" role="switch" data-set="cursor" aria-label="Point to press buttons"></button></div>
+            <div class="set"><div class="lbl"><b>Smoothing</b><span>Less = snappier, more = steadier</span></div>
+              <div class="slider"><button type="button" data-step="smoothing:-10" aria-label="Less smoothing">−</button><input type="range" data-set="smoothing" min="0" max="100" step="5" aria-label="Smoothing" /><button type="button" data-step="smoothing:10" aria-label="More smoothing">+</button><em data-out="smoothing"></em></div></div>
+            <div class="set"><div class="lbl"><b>Cursor speed</b><span>Higher = smaller moves reach the edges</span></div>
+              <div class="slider"><button type="button" data-step="speed:-0.25" aria-label="Slower">−</button><input type="range" data-set="speed" min="1" max="2.5" step="0.25" aria-label="Cursor speed" /><button type="button" data-step="speed:0.25" aria-label="Faster">+</button><em data-out="speed"></em></div></div>
+            <div class="set"><div class="lbl"><b>Hold-to-press time</b></div>
+              <div class="seg" data-set="dwell" role="radiogroup" aria-label="Hold-to-press time"><button type="button" data-v="500">0.5 s</button><button type="button" data-v="800">0.8 s</button><button type="button" data-v="1200">1.2 s</button></div></div>
+          </section>
+          <section data-pane="game">
+            <div class="set"><div class="lbl"><b>Auto-next</b><span>Start the next throw by itself</span></div><button type="button" class="toggle" role="switch" data-set="autoNext" aria-label="Auto-next"></button></div>
+            <div class="set"><div class="lbl"><b>Arena</b></div>
+              <select id="arenaSelect" aria-label="Arena"><option value="random">🎲 Random</option></select></div>
+          </section>
+        </div>
+        <div class="panel-foot"><span class="muted">Saved on this device</span><button type="button" class="btn small" id="resetSettings">Reset to defaults</button></div>
       </div>
     </div>
 
     <!-- Online lobby -->
     <div class="modal" id="lobby" hidden>
-      <div class="card">
+      <div class="card glass">
         <h2>Online match</h2>
         <div id="lobbyChoose">
-          <button id="createRoom" class="primary">Create room</button>
+          <button id="createRoom" class="btn primary">Create room</button>
           <div class="or">or join a friend</div>
           <form id="joinForm" class="join">
             <input id="joinCode" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code" />
-            <button class="primary" type="submit">Join</button>
+            <button class="btn primary" type="submit">Join</button>
           </form>
         </div>
         <div id="lobbyHost" hidden>
           <p>Share this code with your opponent:</p>
           <div class="room-code" id="roomCode">----</div>
-          <button id="copyLink" class="secondary">Copy invite link</button>
+          <button id="copyLink" class="btn">Copy invite link</button>
           <p class="share-url" id="shareUrl"></p>
           <p class="status">Waiting for opponent to join…</p>
         </div>
         <p class="status" id="lobbyStatus" role="status"></p>
-        <button id="lobbyBack" class="link">Back</button>
+        <button id="lobbyBack" class="btn">← Back</button>
       </div>
     </div>
 
     <!-- Match over -->
     <div class="modal" id="matchModal" hidden>
-      <div class="card">
+      <div class="card glass">
         <div class="big-emoji" id="matchEmoji">🏆</div>
         <h2 id="matchTitle">You win!</h2>
         <p id="matchScore"></p>
-        <button id="rematch" class="primary">Rematch</button>
-        <button id="matchMenu" class="link">Main menu</button>
+        <div class="cta-row center">
+          <button id="rematch" class="btn primary">Rematch</button>
+          <button id="matchMenu" class="btn">Main menu</button>
+        </div>
       </div>
     </div>
 
@@ -157,12 +325,12 @@
     <script>
       // Module scripts don't run from file://, so nothing would work. Say why.
       if (location.protocol === "file:") {
-        var s = document.getElementById("status");
+        var s = document.getElementById("landingStatus");
         s.className = "status error";
         s.innerHTML =
           "Opened as a file, so the browser blocks the game's scripts and camera.<br>" +
           "In Terminal, run <code>python3 -m http.server 8000</code> in this folder, then open <b>http://localhost:8000</b>.";
-        document.querySelectorAll(".mode").forEach(function (b) { b.disabled = true; });
+        document.querySelectorAll("#startBtn, #noCamBtn").forEach(function (b) { b.disabled = true; });
       }
     </script>
     <script type="module" src="js/main.js"></script>

@@ -1,22 +1,28 @@
 import { GESTURES, GESTURE_KEYS, FOULS, GestureBuffer, classify } from "./gesture.js";
-import { Tracker, CameraError } from "./tracker.js";
-import { sfx, unlockAudio, setMuted, isMuted } from "./audio.js";
+import { Tracker, CameraError, QUALITY } from "./tracker.js";
+import { sfx, unlockAudio, setAudio, playMusic, duckMusic } from "./audio.js";
 import { Fight, MAX_HP, ROUNDS_TO_WIN, POWERS, POWER_KEYS } from "./fight.js";
 import { ARENAS, showArena, randomArena, arenaById } from "./arenas.js";
 import { Net, makeRoomCode, cleanCode, sha256, nonce } from "./net.js";
 import { Effects, LOOKS, DEFAULT_LOOK } from "./effects.js";
 import { maskThumb } from "./masks.js";
+import * as S from "./settings.js";
+import { HandCursor, palmPoint } from "./cursor.js";
 
 const $ = (id) => document.getElementById(id);
 const el = Object.fromEntries(
   [
     "video", "overlay", "stage", "noCam", "halfL", "halfR", "badgeL", "badgeR", "tip", "stageR", "remoteVideo",
-    "cpuHand", "ring", "announcer", "result", "play", "pause", "autoNext", "arenaSelect", "switchCam", "mute",
-    "menuBtn", "menu", "useCam", "status", "lobby", "lobbyChoose", "lobbyHost", "roomCode", "copyLink", "shareUrl",
+    "cpuHand", "ring", "announcer", "result", "play", "pause", "arenaSelect", "switchCam",
+    "menuBtn", "menu", "status", "lobby", "lobbyChoose", "lobbyHost", "roomCode", "copyLink", "shareUrl",
     "lobbyStatus", "lobbyBack", "createRoom", "joinForm", "joinCode", "matchModal", "matchEmoji", "matchTitle",
     "matchScore", "rematch", "matchMenu", "fx", "arenaBg", "nameL", "nameR", "pipsL", "pipsR", "hpL", "hpR",
     "ghostL", "ghostR", "roundLabel", "arenaName", "manualL", "manualR",
     "look", "lookBtn", "lookSheet", "lookStatus", "lookDone", "lookMask", "lookFace", "lookBackground", "lookFilter",
+    "landing", "startBtn", "noCamBtn", "landingStatus", "inviteNote", "calibSlot", "calibIdle", "calibStart",
+    "calibPill", "chkHand", "chkDist", "chkLight", "camHelp", "camHelpIcon", "camHelpTitle", "camHelpText",
+    "camHelpSteps", "camRetry", "camSkip", "howto", "howtoBtn", "retestBtn", "settingsPanel", "fsToggle", "fsRow",
+    "resetSettings", "layoutSwitch", "cornerL", "cornerR", "dock", "menuTag",
   ].map((id) => [id, $(id)]),
 );
 const ctx2d = el.overlay.getContext("2d");
@@ -65,6 +71,10 @@ let guestQueue = Promise.resolve();
 let armed = [null, null]; // power-up each side has armed for its next throw
 const signHold = [{}, {}]; // power sign currently held per side: { p, since, done }
 let armBlockUntil = 0;
+let wantCam = true; // the player chose to play with the camera (landing: "Play without camera" sets false)
+let lightOk = true;
+let layout = "them"; // in-game video layout: split | them (opponent big) | me (you big)
+let remoteHand = null; // { b: [x0, y0, x1, y1] in their camera frame, at } sent by an online opponent
 
 const names = () => MODES[mode].names;
 const isGuest = () => mode === "online" && net && !net.isHost;
@@ -84,6 +94,7 @@ function cancelFlow() {
   flowGen++;
   busy = false;
   collecting = false;
+  duckMusic(false);
   clearTimeout(autoTimer);
   clearAnnounce();
 }
@@ -95,25 +106,31 @@ function guard(promise) {
 
 // ---------- menu & camera ----------
 function setStatus(msg, isError = false) {
-  el.status.textContent = msg;
-  el.status.classList.toggle("error", isError);
+  for (const s of [el.status, el.landingStatus]) {
+    s.textContent = msg;
+    s.classList.toggle("error", isError);
+  }
 }
 
+/** Start the camera and tracker if the player wants them. Returns true when tracking is running. */
 async function ensureCamera() {
-  if (!el.useCam.checked) {
+  if (!wantCam) {
     cameraOn = false;
     tracker.stopCamera();
     effects.setLook(DEFAULT_LOOK);
-    return;
+    updateTrackChip();
+    return false;
   }
   try {
     if (!tracker.stream) {
       setStatus("Starting camera…");
+      setTrackChip("loading", "Starting camera…");
       await tracker.startCamera(tracker.facingMode);
     }
     el.stage.classList.toggle("mirrored", tracker.mirrored);
     if (!tracker.landmarker) {
       setStatus("Loading hand tracker… (first time ≈ 8 MB)");
+      setTrackChip("loading", "Loading tracker…");
       await tracker.loadModel();
     }
     await tracker.setNumHands(MODES[mode].hands);
@@ -125,13 +142,17 @@ async function ensureCamera() {
       loopStarted = true;
       requestAnimationFrame(loop);
     }
+    updateTrackChip();
+    return true;
   } catch (e) {
     console.error(e);
     cameraOn = false;
     tracker.stopCamera();
-    const msg =
-      e instanceof CameraError ? e.message : "Couldn't load the hand tracker. Check your connection and try again.";
-    el.noCam.querySelector("p").textContent = `${msg} Playing with buttons for now.`;
+    setStatus("");
+    updateTrackChip();
+    showCamHelp(e);
+    el.noCam.querySelector("p").textContent = "Camera off — use the buttons or keys";
+    return false;
   }
 }
 
@@ -143,8 +164,9 @@ async function chooseMode(m) {
   el.noCam.querySelector("p").textContent = "Camera off — use the buttons or keys";
   await ensureCamera();
   document.querySelectorAll(".mode").forEach((b) => (b.disabled = false));
+  if (!el.camHelp.hidden) return; // camera failed: the help screen decides what's next
   applyModeUI();
-  el.menu.hidden = true;
+  showScreen("game");
   if (m === "online") openLobby();
   else startMatch();
 }
@@ -166,14 +188,16 @@ function applyModeUI() {
   }
   renderHud();
   updatePlayButton();
+  applyLayout();
 }
 
 function backToMenu(message = "", isError = false) {
   cancelFlow();
   net?.close();
   net = null;
+  remoteHand = null;
   el.matchModal.hidden = el.lobby.hidden = el.lookSheet.hidden = true;
-  el.menu.hidden = false;
+  showScreen("menu");
   setStatus(message, isError);
 }
 
@@ -212,9 +236,10 @@ function loop(now) {
     if (!sides[s]) sides[s] = h;
   }
   const t = performance.now();
+  frameCount++;
   sides.forEach((h, i) => {
     const c = h ? classify(h.world || h.landmarks) : { gesture: null, foul: null, confidence: 0 };
-    live[i] = { ...c, visible: !!h, edge: h ? nearEdge(h.landmarks) : false };
+    live[i] = { ...c, visible: !!h, edge: h ? nearEdge(h.landmarks) : false, box: h ? bbox(h.landmarks) : null };
     buffers[i].push(c.gesture, t, c.foul);
     const signing = trackSign(i, c.power, t);
     live[i].signing = signing;
@@ -227,20 +252,43 @@ function loop(now) {
           : c.gesture
             ? "#3ee08f"
             : "#ffcc33";
-    if (h) drawHand(h.landmarks, color);
+    if (h && S.get("skeleton")) drawHand(h.landmarks, color);
   });
   updateBadges();
   if (t - lastLightCheck > 1200) {
     lastLightCheck = t;
     checkLight();
   }
+  // Hand cursor: the first hand seen, as the player sees it (mirrored like the video).
+  const ch = sides[0] || sides[1];
+  let pt = null;
+  if (ch) {
+    const [px, py] = palmPoint(ch.landmarks);
+    pt = [tracker.mirrored ? 1 - px : px, py];
+  }
+  cursor.update(pt, t);
+  if (!el.landing.hidden) updateCalibration(t);
+  updateTrackChip(t);
+  if (mode === "online") sendHand(t);
+}
+
+/** Normalised bounding box [x0, y0, x1, y1] of a hand, in the raw (unmirrored) camera frame. */
+function bbox(lm) {
+  let x0 = 1, y0 = 1, x1 = 0, y1 = 0;
+  for (const p of lm) {
+    if (p.x < x0) x0 = p.x;
+    if (p.y < y0) y0 = p.y;
+    if (p.x > x1) x1 = p.x;
+    if (p.y > y1) y1 = p.y;
+  }
+  return [x0, y0, x1, y1];
 }
 
 // ---------- power-ups ----------
 /** Side `i` may arm power `p` now: between throws, in a live round, and not used yet this round. */
 function canArm(i, p) {
   if (i === 1 && mode !== "local") return false;
-  if (!el.menu.hidden || !el.lobby.hidden || !el.matchModal.hidden) return false;
+  if (overlayOpen() || !el.matchModal.hidden) return false;
   if (collecting || fight.matchWinner !== null || fight.roundWinner !== null) return false;
   return fight.canUse(i, p);
 }
@@ -398,6 +446,7 @@ function checkLight() {
   if (avg < 55) tip = "💡 Too dark — turn on a light in front of you";
   else if (brightest > 200 && c < brightest * 0.5) tip = "💡 Bright light behind you — face the window or lamp instead";
   lightStrikes = tip ? lightStrikes + 1 : 0;
+  lightOk = lightStrikes < 3;
   el.tip.hidden = lightStrikes < 3;
   if (tip) el.tip.textContent = tip;
 }
@@ -437,7 +486,7 @@ function setResult(text, cls = "") {
 }
 
 function updatePlayButton() {
-  const auto = el.autoNext.checked && !paused;
+  const auto = S.get("autoNext") && !paused;
   el.play.disabled = busy || !el.matchModal.hidden;
   el.play.textContent = busy ? (auto ? "Auto ▶" : "…") : needIntro && fight.round === 1 ? "Fight!" : "Next throw";
   el.pause.classList.toggle("on", paused);
@@ -480,6 +529,7 @@ function startMatch() {
   paused = false;
   exCount = 0;
   el.matchModal.hidden = true;
+  playMusic("fight");
   resetThrowVisuals();
   renderHud();
   setResult(isGuest() ? "Waiting for the host to start…" : "");
@@ -509,6 +559,7 @@ async function countdown() {
   manual = [...pendingManual];
   pendingManual = [null, null];
   collecting = true;
+  duckMusic(true);
   if (mode === "cpu") el.cpuHand.classList.add("pump");
   const words = ["Rock", "Paper", "Scissors"];
   for (let i = 0; i < words.length; i++) {
@@ -529,6 +580,7 @@ async function countdown() {
   while (unsettled() && performance.now() - shootAt < CAPTURE_AFTER + CAPTURE_GRACE) await sleep(60);
   const endAt = performance.now();
   collecting = false;
+  duckMusic(false);
   armBlockUntil = endAt + ARM_BLOCK_MS;
   el.cpuHand.classList.remove("pump");
   const read = (i) => {
@@ -617,7 +669,7 @@ async function turn(intro, ex) {
  * Pausing (Esc) mid-countdown stops it straight away.
  */
 async function holdBeforeNext() {
-  const autoOn = () => isGuest() || (el.autoNext.checked && !paused);
+  const autoOn = () => isGuest() || (S.get("autoNext") && !paused);
   if (!autoOn()) return sleep(600);
   for (let s = NEXT_DELAY_S; s > 0; s--) {
     if (!autoOn()) return;
@@ -776,13 +828,13 @@ async function hostTurn() {
     busy = false;
     if (out === "match") return updatePlayButton();
     if (out === "round") needIntro = true;
-    if (voidStreak >= MAX_VOIDS && el.autoNext.checked) {
+    if (voidStreak >= MAX_VOIDS && S.get("autoNext")) {
       paused = true;
       setResult("Paused — no hands seen. Press Next throw when you're ready.");
       voidStreak = 0;
     }
     updatePlayButton();
-    if (el.autoNext.checked && !paused) autoTimer = setTimeout(hostTurn, 0);
+    if (S.get("autoNext") && !paused) autoTimer = setTimeout(hostTurn, 0);
   } catch (e) {
     busy = false;
     updatePlayButton();
@@ -831,7 +883,7 @@ function confetti() {
 function throwManually(side, g) {
   unlockAudio();
   if (side === 1 && mode !== "local") return;
-  if (!el.menu.hidden || !el.lobby.hidden || !el.matchModal.hidden) return;
+  if (overlayOpen() || !el.matchModal.hidden) return;
   if (collecting) manual[side] = g;
   else pendingManual[side] = g;
   // Show it's locked in. In 2-player mode don't reveal which one to the other player.
@@ -927,6 +979,9 @@ function onNetMessage(m) {
     case "arena":
       applyArena(m.id);
       break;
+    case "hand": // where their hand is, so your tile can move out of its way (display only)
+      remoteHand = Array.isArray(m.b) && m.b.length === 4 && m.b.every(Number.isFinite) ? { b: m.b, at: performance.now() } : null;
+      break;
     case "full":
       backToMenu("That room already has two players.", true);
       break;
@@ -961,6 +1016,7 @@ function newNet() {
       el.remoteVideo.muted = true;
       el.remoteVideo.play().catch(() => {});
       el.remoteVideo.classList.add("live");
+      playMusic("fight");
     },
     onClose(reason) {
       backToMenu(reason, true);
@@ -1076,19 +1132,11 @@ el.copyLink.addEventListener("click", async () => {
 document.querySelectorAll("[data-throw]").forEach((b) =>
   b.addEventListener("click", () => throwManually(Number(b.dataset.side), b.dataset.throw)),
 );
-el.autoNext.addEventListener("change", () => {
-  paused = false;
-  updatePlayButton();
-  if (el.autoNext.checked && !busy && el.menu.hidden && fight.matchWinner === null && !needIntro) hostTurn();
-});
 el.arenaSelect.addEventListener("change", () => {
+  S.set("arena", el.arenaSelect.value);
   const id = el.arenaSelect.value === "random" ? randomArena(arenaId) : el.arenaSelect.value;
   applyArena(id);
   if (mode === "online" && net?.isHost) net.send({ t: "arena", id });
-});
-el.mute.addEventListener("click", () => {
-  setMuted(!isMuted());
-  el.mute.textContent = isMuted() ? "🔇" : "🔊";
 });
 el.switchCam.addEventListener("click", async () => {
   try {
@@ -1162,7 +1210,7 @@ function chooseLook(cat, id) {
 }
 function toggleLookSheet(open = el.lookSheet.hidden) {
   el.lookSheet.hidden = !open;
-  if (open && !cameraOn) effects.onStatus("Turn on the camera (main menu) to see your look.");
+  if (open && !cameraOn) effects.onStatus("Turn on the camera (Test hand, on the main menu) to see your look.");
   else if (open) effects.onStatus("");
 }
 buildLookPicker();
@@ -1177,7 +1225,7 @@ function togglePause() {
   if (isGuest()) return;
   paused = !paused;
   clearTimeout(autoTimer);
-  if (!paused && !busy && el.autoNext.checked) hostTurn();
+  if (!paused && !busy && S.get("autoNext")) hostTurn();
   updatePlayButton();
 }
 
@@ -1196,8 +1244,11 @@ const keyPower = (k) => {
 };
 document.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
-  if (e.metaKey || e.ctrlKey || e.altKey || !el.menu.hidden || !el.lobby.hidden) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
+  if (k === "escape" && closeTopPanel()) return;
+  if (k === "m" && el.lobby.hidden) return toggleMute();
+  if (overlayOpen()) return;
   if (!el.matchModal.hidden) {
     if ((k === "enter" || k === " ") && !isGuest()) {
       e.preventDefault();
@@ -1213,7 +1264,6 @@ document.addEventListener("keydown", (e) => {
     if (!el.lookSheet.hidden) toggleLookSheet(false);
     else togglePause();
   }
-  else if (k === "m") el.mute.click();
   else if (keyThrow(k)) throwManually(...keyThrow(k));
   else if (keyPower(k)) toggleArm(...keyPower(k));
 });
@@ -1232,24 +1282,576 @@ document.addEventListener("visibilitychange", async () => {
   }
 });
 
+// ---------- screens: landing, menu, game ----------
+let frameCount = 0;
+
+/** A full screen or panel that takes over input (game keys and power signs are ignored). */
+function overlayOpen() {
+  return [el.landing, el.menu, el.lobby, el.camHelp, el.howto, el.settingsPanel].some((p) => !p.hidden);
+}
+
+/** Esc: close the topmost closable panel. Returns true if it closed one. */
+function closeTopPanel() {
+  if (!el.settingsPanel.hidden) return closeSettings(), true;
+  if (!el.howto.hidden) return (el.howto.hidden = true), true;
+  if (!el.lookSheet.hidden && overlayOpen()) return toggleLookSheet(false), true;
+  return false;
+}
+
+function showScreen(name) {
+  el.landing.hidden = name !== "landing";
+  el.menu.hidden = name !== "menu";
+  document.body.dataset.screen = name;
+  placeStage(name === "landing" ? "calib" : "game");
+  if (name !== "game") playMusic("menu");
+  if (name === "landing") {
+    resetCalibration();
+    updateStartBtn();
+  }
+  if (name === "menu") {
+    el.menuTag.textContent = cameraOn
+      ? "Point at a mode and hold, or click."
+      : "Camera is off, so you'll play with the buttons or keys.";
+  }
+  applyLayout();
+}
+
+/** The one camera stage lives in the hand test card on the landing screen, and in the arena otherwise. */
+function placeStage(where) {
+  const host = where === "calib" ? el.calibSlot : el.cornerL;
+  if (el.stage.parentElement !== host) host.appendChild(el.stage);
+  el.stage.hidden = where === "calib" && !cameraOn;
+  el.calibIdle.hidden = cameraOn;
+}
+
+// ---------- tracking status chip ----------
+let chipKey = "";
+let fps = 0;
+let fpsAt = 0;
+function setTrackChip(state, text) {
+  if (state + text === chipKey) return;
+  chipKey = state + text;
+  document.querySelectorAll("[data-track-chip]").forEach((c) => {
+    c.className = `tracking-chip ${state}`;
+    c.querySelector("span").textContent = text;
+    c.title = text;
+  });
+}
+function updateTrackChip(t = performance.now()) {
+  if (!cameraOn) return setTrackChip("off", "Camera off");
+  if (t - fpsAt > 1000) {
+    fps = Math.round((frameCount * 1000) / (t - fpsAt || 1));
+    frameCount = 0;
+    fpsAt = t;
+  }
+  const any = live[0].visible || live[1].visible;
+  setTrackChip(any ? "hand" : "nohand", any ? `Hand tracked · ${fps} fps` : "Show your hand");
+}
+
+// ---------- landing: camera + hand test ----------
+const tried = new Set();
+let tryHold = { g: null, since: 0 };
+
+function resetCalibration() {
+  tried.clear();
+  tryHold = { g: null, since: 0 };
+  renderCalib();
+}
+
+function updateCalibration(t) {
+  const l = live[0].visible ? live[0] : live[1];
+  const box = l.box;
+  const size = box ? Math.max(box[2] - box[0], box[3] - box[1]) : 0;
+  const dist = !box ? null : size < 0.16 ? "far" : size > 0.62 ? "near" : l.edge ? "edge" : "ok";
+  const g = l.gesture || null;
+  if (g !== tryHold.g) tryHold = { g, since: t };
+  else if (g && t - tryHold.since > 300 && !tried.has(g)) {
+    tried.add(g);
+    sfx.arm();
+  }
+  renderCalib(l, dist, g);
+}
+
+function setNode(node, cls, text) {
+  const key = cls + "|" + text;
+  if (node.dataset.k === key) return;
+  node.dataset.k = key;
+  node.className = node.className.split(" ")[0] + (cls ? ` ${cls}` : "");
+  const t = node.querySelector(".txt");
+  (t || node).textContent = text;
+}
+
+function renderCalib(l = {}, dist = null, g = null) {
+  setNode(el.chkHand, l.visible ? "ok" : "", l.visible ? "Hand found" : "Raise a hand");
+  const distText = { far: "Come closer", near: "Move back", edge: "Move hand in", ok: "Good distance" };
+  setNode(el.chkDist, dist === "ok" ? "ok" : dist ? "warn" : "", distText[dist] || "Good distance");
+  setNode(el.chkLight, !cameraOn ? "" : lightOk ? "ok" : "warn", !cameraOn || lightOk ? "Good light" : "More light");
+  el.landing.querySelectorAll("[data-try]").forEach((n) => {
+    n.classList.toggle("done", tried.has(n.dataset.try));
+    n.classList.toggle("live", g === n.dataset.try);
+  });
+  const pill = !cameraOn
+    ? ["", "Not started"]
+    : tried.size === 3
+      ? ["ok", "✓ Ready to play"]
+      : l.visible
+        ? ["warn", `Shapes ${tried.size}/3`]
+        : ["", "Show your hand"];
+  setNode(el.calibPill, pill[0], pill[1]);
+}
+
+function updateStartBtn() {
+  el.startBtn.textContent = cameraOn ? "▶ PLAY" : "📷 Turn on camera";
+  el.startBtn.disabled = false;
+}
+
+async function startCameraFromLanding() {
+  wantCam = true;
+  unlockAudio();
+  el.startBtn.disabled = el.calibStart.disabled = true;
+  await ensureCamera();
+  el.calibStart.disabled = false;
+  if (!el.landing.hidden) placeStage("calib");
+  updateStartBtn();
+  renderCalib();
+}
+
+/** Leave the landing screen: an invite link goes straight to the online lobby. */
+function leaveLanding() {
+  unlockAudio();
+  const code = cleanCode(new URLSearchParams(location.search).get("room"));
+  if (code.length === 4) chooseMode("online");
+  else showScreen("menu");
+}
+
+el.startBtn.addEventListener("click", () => (cameraOn ? leaveLanding() : startCameraFromLanding()));
+el.calibStart.addEventListener("click", startCameraFromLanding);
+el.noCamBtn.addEventListener("click", () => {
+  wantCam = false;
+  cameraOn = false;
+  tracker.stopCamera();
+  updateTrackChip();
+  leaveLanding();
+});
+el.retestBtn.addEventListener("click", async () => {
+  mode = "cpu";
+  document.body.dataset.mode = "cpu";
+  await tracker.setNumHands(1);
+  showScreen("landing");
+});
+el.howtoBtn.addEventListener("click", () => (el.howto.hidden = false));
+el.howto.addEventListener("click", (e) => {
+  if (e.target === el.howto || e.target.closest("[data-close]")) el.howto.hidden = true;
+});
+document.querySelectorAll("[data-open-look]").forEach((b) => b.addEventListener("click", () => toggleLookSheet(true)));
+document.querySelectorAll("[data-mute]").forEach((b) => b.addEventListener("click", toggleMute));
+
+// ---------- camera help ----------
+function showCamHelp(e) {
+  const code = e instanceof CameraError ? e.code : "model";
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
+  const mac = /Mac/.test(ua) && !ios;
+  const win = /Windows/.test(ua);
+  const browser = /Edg\//.test(ua) ? "edge" : /Firefox\//.test(ua) ? "firefox" : /Safari\//.test(ua) && !/Chrom/.test(ua) ? "safari" : "chrome";
+  const sitePerm = {
+    chrome: ["Click the camera or settings icon in the address bar", "Set <b>Camera</b> to <b>Allow</b>, then press Try again."],
+    edge: ["Click the lock icon in the address bar", "Under Permissions set <b>Camera</b> to <b>Allow</b>, then press Try again."],
+    firefox: ["Click the crossed-out camera icon in the address bar", "Clear the <b>Blocked</b> camera permission, then press Try again."],
+    safari: ios
+      ? ["Tap <b>aA</b> in the address bar", "Website Settings → Camera → <b>Allow</b>, then reload the page."]
+      : ["Safari menu → Settings for this website…", "Set <b>Camera</b> to <b>Allow</b>, then press Try again."],
+  }[browser];
+  const os = mac
+    ? ["On a Mac, check System Settings", "Privacy &amp; Security → Camera → turn your browser on, then restart the browser."]
+    : win
+      ? ["On Windows, check Settings", "Privacy &amp; security → Camera → allow apps (and desktop apps) to use the camera."]
+      : null;
+  const busy = ["Close other apps using the camera", "Zoom, Teams, FaceTime, Meet or OBS can hold onto it."];
+  const content = {
+    denied: ["🚫📷", "Your camera is blocked", "The browser said no to the camera for this site. Here's how to turn it back on:", [sitePerm, os, busy]],
+    notfound: ["🔌", "No camera found", "The browser can't see a camera on this device.", [["Plug in a webcam, or open the laptop lid", "Then press Try again."], os, ["Try another browser", "Chrome, Edge, Firefox or Safari all work."]]],
+    busy: ["⏳", "Your camera is busy", "Another app or tab is using it right now.", [busy, ["Close other tabs with this game open", "Only one tab can use the camera at a time."], ["Unplug and replug a USB webcam", "Then press Try again."]]],
+    insecure: ["🔒", "Camera needs a secure page", "Browsers only allow the camera on https:// pages or localhost.", [["Open the https:// address", "For example the GitHub Pages link, or the https:// link that serve.py prints for phones."]]],
+    unsupported: ["🧭", "This browser can't use the camera", "It doesn't support camera access for web pages.", [["Use a recent browser", "Chrome, Edge, Firefox, or Safari 15.4 and later."]]],
+    model: ["📡", "Couldn't load the hand tracker", "The camera works, but the tracking model didn't download.", [["Check your internet connection", "The model is about 8 MB the first time, then cached."], ["Pause ad or script blockers for this site", "They can block cdn.jsdelivr.net or storage.googleapis.com."]]],
+  };
+  const [icon, title, text, steps] = content[code] || content.model;
+  el.camHelpIcon.textContent = icon;
+  el.camHelpTitle.textContent = title;
+  el.camHelpText.textContent = code === "unknown" ? e.message : text;
+  el.camHelpSteps.innerHTML = steps
+    .filter(Boolean)
+    .map(([b, d]) => `<li><div><b class="t">${b}</b>${d}</div></li>`)
+    .join("");
+  el.camHelp.hidden = false;
+}
+el.camRetry.addEventListener("click", async () => {
+  el.camHelp.hidden = true;
+  if (!el.landing.hidden) await startCameraFromLanding();
+  else {
+    wantCam = true;
+    await ensureCamera();
+    showScreen(document.body.dataset.screen);
+  }
+});
+el.camSkip.addEventListener("click", () => {
+  el.camHelp.hidden = true;
+  wantCam = false;
+  if (!el.landing.hidden) leaveLanding();
+  else showScreen("menu");
+});
+
+// ---------- hand cursor ----------
+function cursorScope() {
+  for (const p of [el.camHelp, el.settingsPanel, el.howto, el.lobby, el.matchModal]) if (!p.hidden) return p;
+  if (!el.lookSheet.hidden && !collecting) return el.lookSheet;
+  if (!el.landing.hidden) return el.landing;
+  if (!el.menu.hidden) return el.menu;
+  if (!busy && !collecting) return el.dock; // idle between throws: Next throw, layout, settings
+  return null;
+}
+const cursor = new HandCursor({
+  scope: cursorScope,
+  config: () => ({ enabled: S.get("cursor"), smoothing: S.get("smoothing"), speed: S.get("speed"), dwell: S.get("dwell") }),
+  onHover: () => sfx.hover(),
+  onPress: () => sfx.press(),
+});
+
+// ---------- settings ----------
+function toggleMute() {
+  unlockAudio();
+  S.set("muted", !S.get("muted"));
+}
+
+async function restartCamera() {
+  try {
+    await tracker.startCamera(tracker.facingMode);
+    el.stage.classList.toggle("mirrored", tracker.mirrored);
+    net?.replaceVideoTrack(outgoingStream());
+  } catch (e) {
+    showCamHelp(e);
+  }
+}
+
+function applySettings(k = null) {
+  const s = S.all();
+  setAudio({ volume: s.master / 100, muted: s.muted, sfx: s.sfx, music: s.music });
+  document.querySelectorAll("[data-mute]").forEach((b) => {
+    b.textContent = s.muted ? "🔇" : "🔊";
+    b.setAttribute("aria-pressed", String(s.muted));
+  });
+  document.body.classList.toggle("lite", s.lite);
+  tracker.mirrorPref = s.mirror;
+  el.stage.classList.toggle("mirrored", tracker.mirrored);
+  tracker.quality = s.quality;
+  if (k === "quality" && tracker.stream) restartCamera();
+  if (k === "autoNext") {
+    paused = false;
+    updatePlayButton();
+    if (s.autoNext && !busy && !overlayOpen() && fight.matchWinner === null && !needIntro && !isGuest()) hostTurn();
+  }
+  if (k === null || k === "arena") el.arenaSelect.value = s.arena;
+  if (k === null || k === "pipSize" || k === "pipAnchor") {
+    pipAt = s.pipAnchor;
+    placePip();
+  }
+  syncSettingsPanel();
+}
+S.onChange(applySettings);
+
+let settingsTab = "audio";
+function selectTab(tab) {
+  settingsTab = tab;
+  el.settingsPanel.querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+  el.settingsPanel.querySelectorAll("[data-pane]").forEach((p) => (p.hidden = p.dataset.pane !== tab));
+}
+
+function openSettings() {
+  // Don't let a throw run under the panel.
+  if (document.body.dataset.screen === "game" && mode !== "online" && !paused && busy) togglePause();
+  el.settingsPanel.hidden = false;
+  selectTab(settingsTab);
+  syncSettingsPanel();
+}
+function closeSettings() {
+  el.settingsPanel.hidden = true;
+}
+
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+function toggleFullscreen() {
+  const d = document.documentElement;
+  if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+  else (d.requestFullscreen || d.webkitRequestFullscreen)?.call(d)?.catch?.(() => {});
+}
+
+function syncSettingsPanel() {
+  const s = S.all();
+  const P = el.settingsPanel;
+  P.querySelectorAll(".toggle[data-set]").forEach((b) => b.setAttribute("aria-checked", String(!!s[b.dataset.set])));
+  P.querySelectorAll("input[type=range][data-set]").forEach((i) => (i.value = s[i.dataset.set]));
+  P.querySelectorAll(".seg[data-set]").forEach((g) =>
+    g.querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(String(s[g.dataset.set]) === b.dataset.v))),
+  );
+  const out = { master: `${s.master}%`, smoothing: `${s.smoothing}%`, speed: `${s.speed}×` };
+  P.querySelectorAll("[data-out]").forEach((o) => (o.textContent = out[o.dataset.out]));
+  el.fsToggle.setAttribute("aria-checked", String(!!fsEl()));
+}
+
+function bindSettingsPanel() {
+  const P = el.settingsPanel;
+  P.addEventListener("click", (e) => {
+    if (e.target === P) return closeSettings();
+    const b = e.target.closest("button");
+    if (!b) return;
+    unlockAudio();
+    if (b.matches("[data-close]")) return closeSettings();
+    if (b.dataset.tab) return selectTab(b.dataset.tab);
+    if (b === el.fsToggle) return toggleFullscreen();
+    if (b === el.resetSettings) return S.reset();
+    if (b.classList.contains("toggle") && b.dataset.set) return S.set(b.dataset.set, !S.get(b.dataset.set));
+    if (b.dataset.step) {
+      const [k, d] = b.dataset.step.split(":");
+      return S.set(k, Math.round((S.get(k) + Number(d)) * 100) / 100);
+    }
+    const seg = b.closest(".seg[data-set]");
+    if (seg && b.dataset.v) {
+      const k = seg.dataset.set;
+      S.set(k, typeof S.DEFAULTS[k] === "number" ? Number(b.dataset.v) : b.dataset.v);
+    }
+  });
+  P.addEventListener("input", (e) => {
+    const i = e.target;
+    if (i.matches("input[type=range][data-set]")) S.set(i.dataset.set, Number(i.value));
+  });
+  el.fsRow.hidden = !(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  document.addEventListener("fullscreenchange", syncSettingsPanel);
+  document.addEventListener("webkitfullscreenchange", syncSettingsPanel);
+  document.querySelectorAll("[data-open-settings]").forEach((b) => b.addEventListener("click", openSettings));
+}
+
+// ---------- in-game layout: side by side, or one big video and a movable tile ----------
+const ANCHORS = ["tl", "tc", "tr", "ml", "mr", "bl", "bc", "br"];
+const PIP_W = [0.2, 0.28, 0.36];
+let pipAt = S.get("pipAnchor"); // where the tile is now; differs from the saved spot while dodging a hand
+let homeFreeSince = 0;
+let dragging = false;
+
+const isSpot = () => document.body.dataset.screen === "game" && mode !== "local" && layout !== "split";
+const pipCorner = () => (layout === "me" ? el.cornerR : el.cornerL);
+
+function setLayout(l) {
+  layout = l;
+  pipAt = S.get("pipAnchor");
+  applyLayout();
+}
+
+function applyLayout() {
+  const spot = isSpot();
+  const meBig = layout === "me";
+  document.body.classList.toggle("spot", spot);
+  el.ring.classList.toggle("spot", spot);
+  el.cornerL.classList.toggle("big", spot && meBig);
+  el.cornerL.classList.toggle("pip", spot && !meBig);
+  el.cornerR.classList.toggle("big", spot && !meBig);
+  el.cornerR.classList.toggle("pip", spot && meBig);
+  el.layoutSwitch
+    .querySelectorAll("button")
+    .forEach((b) => b.setAttribute("aria-checked", String(b.dataset.layout === layout)));
+  if (spot) requestAnimationFrame(placePip);
+}
+
+/** Tile size and position for an anchor, relative to the arena box. */
+function pipGeom(anchor) {
+  const R = el.ring.getBoundingClientRect();
+  const stage = pipCorner().querySelector(".stage");
+  const ar = Number(stage.style.getPropertyValue("--arw") || 4) / Number(stage.style.getPropertyValue("--arh") || 3);
+  let w = Math.min(460, Math.max(130, R.width * PIP_W[S.get("pipSize")]));
+  let h = w / ar;
+  if (h > R.height * 0.5) {
+    h = R.height * 0.5;
+    w = h * ar;
+  }
+  const m = 10;
+  const xs = { l: m, c: (R.width - w) / 2, r: R.width - w - m };
+  const ys = { t: m, m: (R.height - h) / 2, b: R.height - h - m };
+  return { x: xs[anchor[1]], y: ys[anchor[0]], w, h, R };
+}
+
+function placePip() {
+  if (!isSpot() || dragging) return;
+  const g = pipGeom(pipAt);
+  const c = pipCorner();
+  c.style.setProperty("--pip-w", `${g.w}px`);
+  c.style.setProperty("--pip-x", `${g.x}px`);
+  c.style.setProperty("--pip-y", `${g.y}px`);
+}
+
+/** Where the hand in the big video is on screen, so the tile can keep out of its way. */
+function bigHandRect() {
+  if (layout === "them") {
+    if (mode === "cpu") return el.cpuHand.getBoundingClientRect();
+    if (mode === "online" && remoteHand && performance.now() - remoteHand.at < 1500 && el.remoteVideo.videoWidth)
+      return videoBoxToRect(el.remoteVideo, remoteHand.b, false);
+  } else if (layout === "me" && cameraOn && live[0].box) return videoBoxToRect(el.video, live[0].box, tracker.mirrored);
+  return null;
+}
+
+/** A box in a video's own 0-1 frame to screen pixels, for a video shown with object-fit: cover. */
+function videoBoxToRect(v, [x0, y0, x1, y1], mirrored) {
+  const r = v.getBoundingClientRect();
+  const vw = v.videoWidth;
+  const vh = v.videoHeight;
+  const s = Math.max(r.width / vw, r.height / vh);
+  const ox = r.left + (r.width - vw * s) / 2;
+  const oy = r.top + (r.height - vh * s) / 2;
+  if (mirrored) [x0, x1] = [1 - x1, 1 - x0];
+  return { left: ox + x0 * vw * s, right: ox + x1 * vw * s, top: oy + y0 * vh * s, bottom: oy + y1 * vh * s };
+}
+
+function dodgeHand() {
+  if (!isSpot() || dragging) return;
+  const home = S.get("pipAnchor");
+  const hand = bigHandRect();
+  const pad = 16;
+  const blocks = (a) => {
+    if (!hand) return false;
+    const g = pipGeom(a);
+    const x = g.R.left + g.x;
+    const y = g.R.top + g.y;
+    return !(x + g.w < hand.left - pad || x > hand.right + pad || y + g.h < hand.top - pad || y > hand.bottom + pad);
+  };
+  const t = performance.now();
+  let next = pipAt;
+  if (blocks(pipAt)) {
+    // Nearest free spot to home, so the tile moves as little as it can.
+    const pos = (a) => pipGeom(a);
+    const h = pos(home);
+    const free = ANCHORS.filter((a) => !blocks(a)).sort(
+      (a, b) => Math.hypot(pos(a).x - h.x, pos(a).y - h.y) - Math.hypot(pos(b).x - h.x, pos(b).y - h.y),
+    );
+    if (free.length) next = free[0];
+    homeFreeSince = 0;
+  } else if (pipAt !== home) {
+    // Go back home once it has been clear for a moment (no ping-ponging while a hand moves around).
+    if (blocks(home)) homeFreeSince = 0;
+    else if (!homeFreeSince) homeFreeSince = t;
+    else if (t - homeFreeSince > 1200) next = home;
+  }
+  if (next !== pipAt) {
+    pipAt = next;
+    placePip();
+  }
+}
+setInterval(dodgeHand, 250);
+
+function bindPipDrag(corner) {
+  corner.addEventListener("pointerdown", (e) => {
+    if (!corner.classList.contains("pip") || e.target.closest("button") || e.button > 0) return;
+    e.preventDefault();
+    const g = pipGeom(pipAt);
+    const off = [e.clientX - (g.R.left + g.x), e.clientY - (g.R.top + g.y)];
+    dragging = true;
+    corner.classList.add("dragging");
+    try {
+      corner.setPointerCapture(e.pointerId);
+    } catch {
+      /* synthetic or already-released pointer: moves still arrive while over the tile */
+    }
+    const at = (ev) => [ev.clientX - g.R.left - off[0], ev.clientY - g.R.top - off[1]];
+    const move = (ev) => {
+      const [x, y] = at(ev);
+      corner.style.setProperty("--pip-x", `${x}px`);
+      corner.style.setProperty("--pip-y", `${y}px`);
+    };
+    const up = (ev) => {
+      corner.removeEventListener("pointermove", move);
+      corner.removeEventListener("pointerup", up);
+      corner.removeEventListener("pointercancel", up);
+      dragging = false;
+      corner.classList.remove("dragging");
+      // Snap to the nearest edge spot.
+      const [x, y] = at(ev);
+      const cx = x + g.w / 2;
+      const cy = y + g.h / 2;
+      let best = pipAt;
+      let bestD = Infinity;
+      for (const a of ANCHORS) {
+        const p = pipGeom(a);
+        const d = Math.hypot(p.x + p.w / 2 - cx, p.y + p.h / 2 - cy);
+        if (d < bestD) [best, bestD] = [a, d];
+      }
+      pipAt = best;
+      homeFreeSince = 0;
+      if (best === S.get("pipAnchor")) placePip();
+      else S.set("pipAnchor", best);
+    };
+    corner.addEventListener("pointermove", move);
+    corner.addEventListener("pointerup", up);
+    corner.addEventListener("pointercancel", up);
+  });
+  corner.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-pip]");
+    if (!b) return;
+    if (b.dataset.pip === "size") S.set("pipSize", (S.get("pipSize") + 1) % 3);
+    else setLayout(layout === "me" ? "them" : "me");
+  });
+}
+bindPipDrag(el.cornerL);
+bindPipDrag(el.cornerR);
+el.layoutSwitch.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-layout]");
+  if (b) setLayout(b.dataset.layout);
+});
+window.addEventListener("resize", () => isSpot() && placePip());
+
+/** Each stage takes its video's shape in spotlight, so nothing is cropped off the big video. */
+function trackAspect(video, stage) {
+  const set = () => {
+    if (!video.videoWidth) return;
+    stage.style.setProperty("--arw", String(video.videoWidth));
+    stage.style.setProperty("--arh", String(video.videoHeight));
+    if (isSpot()) placePip();
+  };
+  video.addEventListener("loadedmetadata", set);
+  video.addEventListener("resize", set);
+}
+trackAspect(el.video, el.stage);
+trackAspect(el.remoteVideo, el.stageR);
+
+/** Online: tell the opponent roughly where my hand is (display only: their tile keeps clear of it). */
+let handSentAt = 0;
+let handSent = null;
+function sendHand(t) {
+  if (!net || t - handSentAt < 150) return;
+  const b = live[0].box;
+  const same = (!b && !handSent) || (b && handSent && b.every((v, i) => Math.abs(v - handSent[i]) < 0.03));
+  if (same && t - handSentAt < 1000) return;
+  handSentAt = t;
+  handSent = b;
+  net.send({ t: "hand", b: b ? b.map((v) => Math.round(v * 1000) / 1000) : null });
+}
+
 // ---------- boot ----------
 for (const a of ARENAS) el.arenaSelect.add(new Option(a.name, a.id));
+el.arenaSelect.value = S.get("arena");
+if (el.arenaSelect.value !== S.get("arena")) el.arenaSelect.value = "random";
 applyArena(randomArena());
 renderHud();
 updatePlayButton();
+applySettings();
+bindSettingsPanel();
+showScreen("landing");
 
 const invite = cleanCode(new URLSearchParams(location.search).get("room"));
-if (invite.length === 4) setStatus(`You're invited to room ${invite} — tap Online to join.`);
-if (!window.isSecureContext) {
-  setStatus("This page isn't on HTTPS, so the camera is blocked. Use buttons, or open it via https:// or localhost.", true);
+if (invite.length === 4) {
+  el.inviteNote.hidden = false;
+  el.inviteNote.textContent = `🎟️ You're invited to online room ${invite}. Turn on your camera, then press Play to join.`;
 }
 navigator.permissions
   ?.query({ name: "camera" })
   .then((p) => {
-    const warn = () =>
-      p.state === "denied" &&
-      setStatus("Your browser is blocking the camera for this site, so it won't ask. Click the camera / lock icon in the address bar, set Camera to Allow, and reload.", true);
-    warn();
-    p.onchange = () => (p.state === "denied" ? warn() : setStatus(""));
+    // Already allowed on an earlier visit: start the camera now, no prompt will appear.
+    if (p.state === "granted" && window.isSecureContext) startCameraFromLanding();
   })
   .catch(() => {});

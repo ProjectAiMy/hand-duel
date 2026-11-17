@@ -3,6 +3,9 @@
 
 const MP_VERSION = "0.10.14";
 const MP_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}`;
+/** Camera capture sizes. Smaller frames upload to the GPU faster: less lag on slow machines. */
+export const QUALITY = { low: [640, 480], medium: [1280, 720], high: [1920, 1080] };
+
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
 
@@ -22,6 +25,8 @@ export class Tracker {
     this.connections = [];
     this.lastVideoTime = -1;
     this.numHands = 1;
+    this.quality = "medium"; // capture size, see QUALITY
+    this.mirrorPref = true; // show the front camera like a mirror
   }
 
   async loadModel() {
@@ -52,10 +57,11 @@ export class Tracker {
       throw new CameraError("unsupported", "This browser can't access the camera.");
     }
     this.stopCamera();
+    const [w, h] = QUALITY[this.quality] || QUALITY.medium;
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode, width: { ideal: w }, height: { ideal: h } },
       });
     } catch (e) {
       const map = {
@@ -92,7 +98,7 @@ export class Tracker {
   }
 
   get mirrored() {
-    return this.facingMode === "user";
+    return this.facingMode === "user" && this.mirrorPref;
   }
 
   /** 1 hand for solo/online, 2 for two players sharing one camera. */

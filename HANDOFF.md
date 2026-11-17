@@ -8,7 +8,15 @@ the feature/architecture detail. You shouldn't need the old chat.
 - None of the work in this list has been tried with a real camera or phone yet. The user is testing it themself.
   Expect feedback on: mask placement, phone frame rate, gesture reads, power-up arming.
 
-## What was built in the last session
+## Latest: UI v2 (2026-11-18, committed locally, NOT pushed yet)
+- Mockups approved by the user are in `mockups/` (`ui-v2.html?s=landing|denied|menu|game|settings`, plus JPGs).
+- New: `js/settings.js`, `js/cursor.js`, `tests/ui.test.mjs`; music in `js/audio.js`; landing, menu, settings, help and
+  layout code in `js/main.js` (sections "screens", "camera help", "hand cursor", "settings", "in-game layout").
+- User decisions: hold-to-press only (no pinch); spotlight-opponent default; synth music loop; colours and fonts are
+  revisited at the very end. Next big phase (later): a pixel-art RPG map where players walk around and challenge each
+  other to this duel, with webcam or pixel-avatar fights while hand tracking runs in the background.
+
+## What was built in the session before
 1. **Gesture reliability + fouls** (`js/gesture.js`, `js/main.js`): run-based `GestureBuffer` that forgives
    one dropped frame; a 500 ms capture grace while a visible hand hasn't settled. Fouls (`FOULS`): one finger,
    finger gun, three fingers, bad scissors. VS CPU replays the throw with a hint; 2P/online it loses like "too slow".

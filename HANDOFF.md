@@ -13,7 +13,8 @@ the feature/architecture detail. You shouldn't need the old chat.
 - New: `js/settings.js`, `js/cursor.js`, `tests/ui.test.mjs`; music in `js/audio.js`; landing, menu, settings, help and
   layout code in `js/main.js` (sections "screens", "camera help", "hand cursor", "settings", "in-game layout").
 - User decisions: hold-to-press only (no pinch); spotlight-opponent default; synth music loop; colours and fonts are
-  revisited at the very end. Next big phase (later): a pixel-art RPG map where players walk around and challenge each
+  revisited at the very end. The RPG phase design plan is in `docs/rpg-phase-plan.md` (7 open questions for the
+  user at the end). Next big phase (later): a pixel-art RPG map where players walk around and challenge each
   other to this duel, with webcam or pixel-avatar fights while hand tracking runs in the background.
 
 ## What was built in the session before

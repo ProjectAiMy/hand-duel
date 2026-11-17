@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hand Duel World mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lilita+One&display=swap" rel="stylesheet" />
+<style>
+/* Mockup only: the pixel town (RPG phase). All art is drawn in code here as placeholders.
+   Pick a screen with ?s=world|challenge|duel|mobile */
+:root {
+  --glass: rgba(18, 20, 40, .78);
+  --edge: rgba(255,255,255,.22);
+  --text: #fff; --muted: #c9cdf0; --accent: #ffd23f;
+  --p1: #3fe0ff; --p2: #ff8f45; --ok: #3ef08f; --bad: #ff5d73; --power: #b98bff;
+  --font-display: "Lilita One", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #1b2a1b; overflow: hidden; }
+body { color: var(--text); font-family: var(--font-body); font-size: 17px; }
+canvas#world { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+.hud { position: fixed; inset: 0; pointer-events: none; }
+.glass { background: var(--glass); border: 1.5px solid var(--edge); border-radius: 18px;
+  backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+.display { font-family: var(--font-display); letter-spacing: .02em; }
+.card { position: absolute; top: 16px; left: 16px; display: flex; gap: 12px; align-items: center; padding: 10px 16px 10px 10px; }
+.card canvas { width: 56px; height: 56px; image-rendering: pixelated; background: #2c3a63; border-radius: 12px; }
+.card .n { font-family: var(--font-display); font-size: 22px; }
+.card .s { color: var(--muted); font-size: 14px; }
+.card .s b { color: var(--ok); }
+.zone { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); padding: 8px 20px; font-size: 20px; }
+.zone small { font-family: var(--font-body); color: var(--muted); font-size: 14px; margin-left: 8px; }
+.mapbox { position: absolute; top: 16px; right: 16px; padding: 10px; width: 210px; }
+.mapbox canvas { width: 100%; image-rendering: pixelated; border-radius: 10px; display: block; }
+.mapbox .row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; color: var(--muted); }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); margin-right: 6px; }
+.emotes { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; padding: 8px; }
+.emotes button { all: unset; width: 56px; height: 56px; border-radius: 14px; background: rgba(255,255,255,.08);
+  display: grid; place-items: center; font-size: 26px; position: relative; }
+.emotes button i { position: absolute; bottom: 3px; right: 6px; font-style: normal; font-size: 11px; color: var(--muted); }
+.emotes .gg { font-family: var(--font-display); font-size: 20px; }
+.tips { position: absolute; bottom: 18px; left: 16px; padding: 10px 14px; font-size: 14px; color: var(--muted); line-height: 1.6; }
+kbd { font-family: var(--font-body); background: rgba(255,255,255,.14); border: 1px solid var(--edge); border-bottom-width: 3px;
+  border-radius: 6px; padding: 0 6px; color: #fff; font-size: 13px; }
+.camchip { position: absolute; bottom: 18px; right: 16px; padding: 10px 14px; font-size: 14px; display: flex; gap: 10px; align-items: center; }
+.camchip .led { width: 10px; height: 10px; border-radius: 50%; background: #8a8fb0; }
+.camchip span { color: var(--muted); }
+/* Old-handheld style dialog for the challenge */
+.dialog { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); width: min(980px, 92vw);
+  background: #fff8e7; color: #1d1b2e; border: 6px solid #1d1b2e; border-radius: 14px; box-shadow: 0 0 0 6px #fff8e7, 0 0 0 10px #1d1b2e, 0 18px 40px rgba(0,0,0,.5);
+  display: grid; grid-template-columns: 150px 1fr; gap: 22px; padding: 20px 24px; pointer-events: auto; }
+.dialog canvas { width: 150px; height: 150px; image-rendering: pixelated; background: #cfe3ff; border-radius: 10px; border: 4px solid #1d1b2e; }
+.dialog h2 { margin: 0 0 4px; font-family: var(--font-display); font-weight: 400; font-size: 30px; }
+.dialog p { margin: 0 0 14px; font-size: 18px; }
+.dialog .meta { font-size: 14px; color: #5a5677; margin-bottom: 14px; }
+.choices { display: flex; gap: 12px; flex-wrap: wrap; }
+.choice { border: 4px solid #1d1b2e; border-radius: 12px; padding: 12px 18px; min-height: 72px; background: #fff; display: flex; gap: 12px; align-items: center; position: relative; }
+.choice b { font-family: var(--font-display); font-weight: 400; font-size: 20px; display: block; }
+.choice small { font-size: 13px; color: #5a5677; }
+.choice .ic { font-size: 28px; }
+.choice.hot { background: #ffd23f; box-shadow: 0 6px 0 #1d1b2e; transform: translateY(-3px); }
+.choice.no { background: #f1eadb; }
+.hcursor { position: absolute; width: 64px; height: 64px; margin: -32px 0 0 -32px; }
+.hcursor svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.hcursor .tr { fill: none; stroke: rgba(29,27,46,.25); stroke-width: 6; }
+.hcursor .pr { fill: none; stroke: #1d1b2e; stroke-width: 6; stroke-dasharray: 100; stroke-dashoffset: 35; stroke-linecap: round; }
+.hcursor i { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px; border-radius: 50%; background: #1d1b2e; border: 3px solid #fff; }
+/* Duel */
+.bars { position: absolute; top: 16px; left: 16px; right: 16px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
+.fighter { padding: 10px 14px; }
+.fighter .top { display: flex; justify-content: space-between; align-items: baseline; }
+.fighter .top b { font-family: var(--font-display); font-weight: 400; font-size: 24px; }
+.fighter .top span { color: var(--muted); font-size: 14px; }
+.hp { height: 18px; border-radius: 9px; background: rgba(255,255,255,.12); margin-top: 8px; overflow: hidden; border: 2px solid rgba(0,0,0,.4); }
+.hp i { display: block; height: 100%; border-radius: 7px; }
+.chips { display: flex; gap: 6px; margin-top: 8px; }
+.chips span { font-size: 13px; padding: 2px 10px; border-radius: 99px; background: rgba(255,255,255,.12); }
+.chips .on { background: var(--power); color: #170a33; font-weight: 700; }
+.round { text-align: center; padding: 8px 18px; }
+.round b { font-family: var(--font-display); font-weight: 400; font-size: 26px; display: block; }
+.round span { color: var(--muted); font-size: 14px; }
+.right .top { flex-direction: row-reverse; }
+.right .hp { direction: rtl; }
+.shout { position: absolute; left: 50%; top: 58%; transform: translate(-50%,-50%) rotate(-4deg); font-family: var(--font-display);
+  font-size: 96px; color: var(--accent); -webkit-text-stroke: 8px #1d1b2e; paint-order: stroke fill; text-shadow: 0 10px 0 #1d1b2e; }
+.selfcam { position: absolute; right: 16px; bottom: 16px; width: 260px; padding: 8px; }
+.selfcam .v { height: 160px; border-radius: 12px; background: linear-gradient(160deg,#3a3550,#1c1a2a); position: relative; overflow: hidden; }
+.selfcam svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.selfcam .cap { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 6px 4px 0; }
+.selfcam .cap b { color: var(--ok); }
+.oppnote { position: absolute; left: 16px; bottom: 16px; padding: 10px 14px; font-size: 14px; color: var(--muted); max-width: 320px; }
+.oppnote b { color: #fff; }
+/* Mobile */
+.joy { position: absolute; left: 22px; bottom: 30px; width: 130px; height: 130px; border-radius: 50%; background: rgba(18,20,40,.45); border: 2px solid var(--edge); }
+.joy i { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -9px; border-radius: 50%; background: rgba(255,255,255,.85); }
+.act { position: absolute; right: 22px; bottom: 44px; width: 96px; height: 96px; border-radius: 50%; background: var(--accent); color: #1d1b2e;
+  display: grid; place-items: center; text-align: center; font-family: var(--font-display); font-size: 18px; line-height: 1.05; box-shadow: 0 6px 0 #1d1b2e; border: 4px solid #1d1b2e; }
+.emo1 { position: absolute; right: 26px; bottom: 160px; width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; }
+body.m .card { padding: 6px 12px 6px 6px; } body.m .card canvas { width: 40px; height: 40px; }
+body.m .card .n { font-size: 18px; } body.m .zone { top: 76px; font-size: 16px; padding: 6px 14px; }
+body.m .mapbox { width: 110px; padding: 6px; } body.m .mapbox .row { display: none; }
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<div class="hud" id="hud"></div>
+<script>
+// ---------- tiny pixel engine ----------
+const T = 16;                       // tile size in art pixels
+const W = 44, H = 28;               // world size in tiles
+const scene = new URLSearchParams(location.search).get("s") || "world";
+const mobile = scene === "mobile";
+if (mobile) document.body.classList.add("m");
+let seed = 7;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+const art = document.createElement("canvas");
+art.width = W * T; art.height = H * T;
+const g = art.getContext("2d");
+const px = (x, y, c, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+
+// Sprite from rows of chars + palette, with an automatic dark outline.
+function sprite(ctx, rows, pal, x, y, flip = false, outline = "#1d1b2e") {
+  const h = rows.length, w = rows[0].length;
+  const at = (cx, cy) => cy >= 0 && cy < h && cx >= 0 && cx < w && rows[cy][cx] !== ".";
+  for (let cy = -1; cy <= h; cy++) for (let cx = -1; cx <= w; cx++) {
+    const ox = flip ? w - 1 - cx : cx;
+    if (at(cx, cy)) { ctx.fillStyle = pal[rows[cy][cx]]; ctx.fillRect(x + ox, y + cy, 1, 1); }
+    else if (at(cx - 1, cy) || at(cx + 1, cy) || at(cx, cy - 1) || at(cx, cy + 1)) { ctx.fillStyle = outline; ctx.fillRect(x + ox, y + cy, 1, 1); }
+  }
+}
+
+const KID = [
+  "...HHHHHH...",
+  "..HHHHHHHH..",
+  ".HHHHHHHHHH.",
+  ".HHSSSSSSHH.",
+  ".HSSESSESSH.",
+  "..SSSSSSSS..",
+  "..SSSMMSSS..",
+  "...SSSSSS...",
+  "..CCCCCCCC..",
+  ".SCCCLLCCCS.",
+  ".SCCCCCCCCS.",
+  "..CCCCCCCC..",
+  "..PPP..PPP..",
+  "..PPP..PPP..",
+  "..BBB..BBB..",
+];
+const FIGHTER = [
+  "....HHHHH.......",
+  "...HHHHHHH......",
+  "..HHHHHHHHH.....",
+  "..HHHSSSSSS.....",
+  "..HHSSSSESS.....",
+  "..HHSSSSSSS.....",
+  "...HSSSSMM......",
+  "....SSSSS.......",
+  "...CCCCCCC......",
+  "..CCCCCCCCSSS...",
+  "..CCCCCCC.SSSS..",
+  "..CCCCCCC.SSSS..",
+  "..CCCCCCC.......",
+  "..CCCCCCC.......",
+  "...KKKKKK.......",
+  "...PPPPPP.......",
+  "..PPP..PPP......",
+  "..PPP...PPP.....",
+  ".PPP.....PPP....",
+  ".BBB.....BBB....",
+];
+const look = (hair, skin, shirt, pants = "#3b3f6b") => ({ H: hair, S: skin, E: "#1d1b2e", M: "#b5524a", C: shirt, L: "#ffffff", P: pants, B: "#2a2236", K: "#1d1b2e" });
+
+// ---------- the town ----------
+const grassA = "#5fb54d", grassB = "#55a845", grassC = "#77c95a";
+for (let y = 0; y < H * T; y++) for (let x = 0; x < W * T; x++) {
+  const r = rnd();
+  px(x, y, r < .06 ? grassB : r < .085 ? grassC : grassA);
+}
+function path(tx, ty, tw, th, c = "#e3c58a", d = "#cfae70") {
+  for (let y = ty * T; y < (ty + th) * T; y++) for (let x = tx * T; x < (tx + tw) * T; x++) px(x, y, rnd() < .08 ? d : c);
+  g.fillStyle = "rgba(0,0,0,.08)"; g.fillRect(tx * T, (ty + th) * T, tw * T, 2);
+}
+path(0, 13, W, 2);            // east-west road
+path(21, 0, 2, H);            // north-south road
+// plaza (stone)
+for (let y = 9 * T; y < 19 * T; y++) for (let x = 15 * T; x < 29 * T; x++) {
+  const sx = (x >> 3) + ((y >> 3) % 2 ? 0 : .5);
+  px(x, y, (x % 8 === 0 || y % 8 === 0) ? "#b9b2a4" : ((Math.floor(sx) + (y >> 3)) % 3 ? "#d8d1c0" : "#cec6b3"));
+}
+// duel ring in the plaza
+{
+  const cx = 22 * T, cy = 14 * T, R = 44;
+  for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
+    const d = Math.hypot(x, y * 1.15);
+    if (d < R - 6) px(cx + x, cy + y, d < 10 ? "#ffd23f" : (Math.floor(d / 8) % 2 ? "#e2574c" : "#f07a60"));
+    else if (d < R) px(cx + x, cy + y, "#7a3b3b");
+  }
+  for (let a = 0; a < 8; a++) { const t = a / 8 * Math.PI * 2; post(cx + Math.cos(t) * (R + 4) - 2, cy + Math.sin(t) * (R + 4) / 1.15 - 6); }
+}
+function post(x, y) { px(x, y, "#1d1b2e", 6, 10); px(x + 1, y + 1, "#ffd23f", 4, 3); px(x + 1, y + 4, "#8a5a3c", 4, 5); }
+
+// pond
+for (let y = 0; y < 8 * T; y++) for (let x = 0; x < 12 * T; x++) {
+  const dx = (x - 6 * T) / (6 * T), dy = (y - 4 * T) / (4 * T), d = dx * dx + dy * dy;
+  const X = 29 * T + x, Y = 18 * T + y;
+  if (d < .82) px(X, Y, (y % 9 === 0 && (x + y * 3) % 23 < 6) ? "#9fd6ff" : "#3f8fd6");
+  else if (d < 1) px(X, Y, "#e9d9a6");
+}
+// lily pads
+[[33, 20], [36, 22], [31, 23]].forEach(([x, y]) => { px(x * T, y * T, "#3e8f3a", 8, 6); px(x * T + 2, y * T + 1, "#5fb54d", 4, 3); });
+
+// buildings
+function building(tx, ty, tw, th, roof, wall, sign) {
+  const X = tx * T, Y = ty * T, w = tw * T, h = th * T, rh = Math.floor(h * .5);
+  g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(X + 4, Y + 6, w, h);
+  for (let y = 0; y < rh; y++) for (let x = 0; x < w; x++) px(X + x, Y + y, y % 6 === 5 ? shade(roof, -30) : (x + (y >> 1)) % 10 === 0 ? shade(roof, 18) : roof);
+  px(X - 2, Y + rh - 2, "#1d1b2e", w + 4, 3);
+  for (let y = rh; y < h; y++) for (let x = 0; x < w; x++) px(X + x, Y + y, x % 16 === 0 ? shade(wall, -18) : wall);
+  g.strokeStyle = "#1d1b2e"; g.lineWidth = 2; g.strokeRect(X - 1, Y - 1, w + 2, h + 2);
+  // door + windows
+  const dx = X + Math.floor(w / 2) - 8;
+  px(dx - 2, Y + h - 22, "#1d1b2e", 20, 22); px(dx, Y + h - 20, "#7a4a2c", 16, 20); px(dx + 12, Y + h - 11, "#ffd23f", 2, 2);
+  for (const wx of [X + 10, X + w - 30]) { px(wx - 2, Y + rh + 8, "#1d1b2e", 24, 16); px(wx, Y + rh + 10, "#a9e2ff", 20, 12); px(wx + 9, Y + rh + 10, "#1d1b2e", 2, 12); }
+  return { x: X + w / 2, y: Y + rh - 10, sign };
+}
+function shade(hex, a) { const n = parseInt(hex.slice(1), 16); const c = (v) => Math.max(0, Math.min(255, v + a)); return `rgb(${c(n >> 16)},${c((n >> 8) & 255)},${c(n & 255)})`; }
+const signs = [
+  building(3, 3, 9, 7, "#c0392b", "#f2e2c4", "Training Dojo"),
+  building(27, 2, 11, 7, "#3c5aa8", "#e7e9f5", "Arena"),
+  building(3, 18, 8, 6, "#3f8f5a", "#f7ead2", "Café"),
+  building(14, 2, 5, 5, "#8a4fb3", "#efe6f7", "Looks"),
+];
+// trees
+function tree(x, y) {
+  const X = x * T, Y = y * T;
+  g.fillStyle = "rgba(0,0,0,.2)"; g.beginPath(); g.ellipse(X + 16, Y + 30, 14, 5, 0, 0, 7); g.fill();
+  px(X + 13, Y + 18, "#6b4226", 6, 12);
+  for (let yy = 0; yy < 24; yy++) for (let xx = 0; xx < 32; xx++) {
+    const d = Math.hypot((xx - 16) / 16, (yy - 11) / 12);
+    if (d < .92) px(X + xx, Y + yy, d < .45 && yy < 10 ? "#5cb84a" : (xx + yy * 2) % 7 === 0 ? "#2f7a33" : "#3e9440");
+    else if (d < 1.02) px(X + xx, Y + yy, "#1d1b2e");
+  }
+}
+[[0,0],[2,0],[0,2],[12,0],[19,0],[24,0],[39,0],[41,1],[42,4],[0,10],[1,16],[0,22],[2,25],[12,22],[14,25],[17,23],[25,24],[41,10],[42,14],[40,17],[9,11],[13,16],[39,25],[42,24]].forEach(([x,y]) => tree(x,y));
+// flowers + fences + board
+for (let i = 0; i < 60; i++) {
+  const x = Math.floor(rnd() * W * T), y = Math.floor(rnd() * H * T);
+  const tx = x / T, ty = y / T;
+  if ((ty > 12.5 && ty < 15.5) || (tx > 20.5 && tx < 23.5) || (tx > 14 && tx < 29 && ty > 8 && ty < 19)) continue;
+  const c = ["#ff6b8b", "#ffd23f", "#ffffff", "#b98bff"][i % 4];
+  px(x, y, c, 2, 2); px(x + 3, y + 1, c, 2, 2); px(x + 1, y + 3, "#2f7a33", 2, 2);
+}
+for (let x = 13 * T; x < 20 * T; x += 8) { px(x, 21 * T, "#8a5a3c", 3, 10); }
+px(13 * T, 21 * T + 3, "#8a5a3c", 7 * T, 2); px(13 * T, 21 * T + 7, "#8a5a3c", 7 * T, 2);
+// notice board
+px(17 * T, 9 * T - 22, "#1d1b2e", 28, 20); px(17 * T + 2, 9 * T - 20, "#a8754b", 24, 16);
+px(17 * T + 5, 9 * T - 17, "#fff8e7", 7, 6); px(17 * T + 14, 9 * T - 16, "#fff8e7", 8, 5); px(17 * T + 5, 9 * T - 9, "#fff8e7", 9, 4);
+px(17 * T + 6, 9 * T - 2, "#1d1b2e", 3, 8); px(17 * T + 19, 9 * T - 2, "#1d1b2e", 3, 8);
+// arena queue pad (glowing)
+for (let y = 0; y < 12; y++) for (let x = 0; x < 24; x++) px(31 * T + 4 + x, 9 * T + 4 + y, (x + y) % 4 < 2 ? "#3fe0ff" : "#2bb3d1");
+
+// ---------- people ----------
+const people = [
+  { n: "You", x: 19.5, y: 16, look: look("#2a2236", "#f2c8a0", "#3fe0ff"), me: true },
+  { n: "Mika", x: 23.6, y: 16.3, look: look("#ff8f45", "#ffd8b8", "#ff5d73", "#2a2236"), challenge: true },
+  { n: "Rin", x: 20.4, y: 13.9, look: look("#f4f0e6", "#8d5a3b", "#ffd23f"), duel: "✊" },
+  { n: "Ottobot", x: 23.6, y: 13.9, look: look("#b98bff", "#c99872", "#3ef08f"), duel: "✌️" },
+  { n: "Jun", x: 12.5, y: 14.6, look: look("#1d1b2e", "#e0ac80", "#ffffff"), bubble: "👋" },
+  { n: "Sasha", x: 32.3, y: 10.6, look: look("#c0392b", "#f5d1b5", "#8a4fb3"), bubble: "queue…" },
+  { n: "Leo", x: 27, y: 21.5, look: look("#6b4226", "#6e4630", "#ffa53f"), bubble: "GG" },
+  { n: "Ama", x: 6.5, y: 15.5, look: look("#ffd23f", "#9c6644", "#3c5aa8") },
+  { n: "Dojo Master", x: 7.5, y: 10.6, look: look("#e7e9f5", "#f0c8a0", "#c0392b", "#1d1b2e"), npc: true },
+];
+const sorted = [...people].sort((a, b) => a.y - b.y);
+for (const p of sorted) {
+  const X = Math.round(p.x * T - 6), Y = Math.round(p.y * T - 15);
+  g.fillStyle = "rgba(0,0,0,.25)"; g.beginPath(); g.ellipse(X + 6, Y + 15, 7, 3, 0, 0, 7); g.fill();
+  if (p.me) { g.strokeStyle = "#3fe0ff"; g.lineWidth = 1.5; g.beginPath(); g.ellipse(X + 6, Y + 15, 10, 4.5, 0, 0, 7); g.stroke(); }
+  if (p.challenge) { g.strokeStyle = "rgba(255,210,63,.9)"; g.setLineDash([3, 2]); g.lineWidth = 1; g.beginPath(); g.ellipse(X + 6, Y + 15, 26, 11, 0, 0, 7); g.stroke(); g.setLineDash([]); }
+  sprite(g, KID, p.look, X, Y);
+}
+
+// ---------- draw to screen ----------
+const cv = document.getElementById("world");
+const ctx = cv.getContext("2d");
+const dpr = 1;
+const VW = innerWidth, VH = innerHeight;
+cv.width = VW * dpr; cv.height = VH * dpr;
+const S = mobile ? 2 : Math.max(3, Math.floor(Math.min(VW / 400, VH / 260)));
+const me = people[0];
+let camX = Math.round((mobile ? 21.6 : 21) * T * S - VW / 2), camY = Math.round((mobile ? 14.5 : 11.2) * T * S - VH / 2);
+camX = Math.max(0, Math.min(W * T * S - VW, camX)); camY = Math.max(0, Math.min(H * T * S - VH, camY));
+const toScreen = (wx, wy) => [wx * S - camX, wy * S - camY];
+
+function drawWorld() {
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(art, -camX, -camY, W * T * S, H * T * S);
+  ctx.textAlign = "center";
+  // building signs
+  for (const s of signs) {
+    const [x, y] = toScreen(s.x, s.y);
+    ctx.font = `${mobile ? 15 : 18}px "Lilita One"`;
+    const w = ctx.measureText(s.sign).width + 22;
+    roundRect(x - w / 2, y - 16, w, 28, 8, "#1d1b2e"); ctx.fillStyle = "#fff8e7"; ctx.fillText(s.sign, x, y + 5);
+  }
+  // name tags + bubbles
+  for (const p of people) {
+    const [x, y] = toScreen(p.x * T, p.y * T - 17);
+    ctx.font = `700 ${mobile ? 13 : 15}px "Atkinson Hyperlegible"`;
+    const label = p.npc ? "🥋 " + p.n : p.n;
+    const w = ctx.measureText(label).width + 14;
+    roundRect(x - w / 2, y - 12 - 10, w, 22, 11, p.me ? "#3fe0ff" : p.npc ? "#ffd23f" : "rgba(18,20,40,.82)");
+    ctx.fillStyle = p.me || p.npc ? "#1d1b2e" : "#fff"; ctx.fillText(label, x, y - 6);
+    if (p.challenge) bubble(x, y - 30, "!", "#ffd23f", 30);
+    if (p.bubble) bubble(x, y - 30, p.bubble, "#fff8e7", p.bubble.length > 2 ? 18 : 22);
+    if (p.duel) bubble(x, y - 30, p.duel, "#fff8e7", 22);
+  }
+  // "VS" over the ring fight
+  const [vx, vy] = toScreen(22 * T, 13 * T - 2);
+  ctx.font = `${mobile ? 22 : 30}px "Lilita One"`; ctx.lineWidth = 6; ctx.strokeStyle = "#1d1b2e"; ctx.strokeText("VS", vx, vy); ctx.fillStyle = "#ffd23f"; ctx.fillText("VS", vx, vy);
+  // challenge prompt next to Mika
+  if (scene === "world" || scene === "mobile") {
+    const [mx, my] = toScreen(people[1].x * T + 18, people[1].y * T - 6);
+    ctx.textAlign = "left"; ctx.font = `700 ${mobile ? 14 : 16}px "Atkinson Hyperlegible"`;
+    const t = mobile ? "Tap DUEL" : "Challenge Mika";
+    const w = ctx.measureText(t).width + (mobile ? 18 : 48);
+    roundRect(mx, my - 18, w, 34, 10, "#fff8e7", "#1d1b2e");
+    if (!mobile) { roundRect(mx + 8, my - 12, 24, 22, 5, "#1d1b2e"); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.fillText("E", mx + 20, my + 5); ctx.textAlign = "left"; }
+    ctx.fillStyle = "#1d1b2e"; ctx.fillText(t, mx + (mobile ? 9 : 38), my + 5);
+    ctx.textAlign = "center";
+  }
+}
+function roundRect(x, y, w, h, r, fill, stroke) {
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fillStyle = fill; ctx.fill();
+  if (stroke) { ctx.lineWidth = 3; ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+function bubble(x, y, text, fill, size) {
+  ctx.font = text === "!" ? `${size}px "Lilita One"` : `700 ${size}px "Atkinson Hyperlegible"`;
+  const w = Math.max(34, ctx.measureText(text).width + 18), h = size + 14;
+  roundRect(x - w / 2, y - h, w, h, 10, fill, "#1d1b2e");
+  ctx.beginPath(); ctx.moveTo(x - 6, y - 1); ctx.lineTo(x + 6, y - 1); ctx.lineTo(x, y + 7); ctx.closePath(); ctx.fillStyle = "#1d1b2e"; ctx.fill();
+  ctx.fillStyle = "#1d1b2e"; ctx.fillText(text, x, y - h / 2 + size * .36);
+}
+function portrait(c, lk, scale = 1) {
+  const x = c.getContext("2d"); c.width = 16; c.height = 18; sprite(x, KID, lk, 2, 2);
+}
+function minimap(c) {
+  c.width = W * 4; c.height = H * 4; const m = c.getContext("2d"); m.imageSmoothingEnabled = true;
+  m.drawImage(art, 0, 0, c.width, c.height);
+  for (const p of people) { m.fillStyle = p.me ? "#3fe0ff" : p.npc ? "#ffd23f" : "#fff"; m.fillRect(p.x * 4 - 3, p.y * 4 - 3, 6, 6); }
+  m.strokeStyle = "#fff"; m.lineWidth = 2; m.strokeRect(camX / S / 4, camY / S / 4, VW / S / 4, VH / S / 4);
+}
+
+// ---------- duel screen ----------
+function drawDuel() {
+  const d = document.createElement("canvas"); d.width = 400; d.height = 225; const q = d.getContext("2d");
+  seed = 3;
+  // dojo wall
+  for (let y = 0; y < 130; y++) for (let x = 0; x < 400; x++) { q.fillStyle = x % 40 < 2 ? "#6b4226" : y > 118 ? "#4a2e1c" : (y % 22 === 0 ? "#d9c7a0" : "#efe2c2"); q.fillRect(x, y, 1, 1); }
+  // banners
+  [[60, "#c0392b"], [330, "#3c5aa8"]].forEach(([bx, c]) => { q.fillStyle = "#1d1b2e"; q.fillRect(bx - 1, 9, 22, 52); q.fillStyle = c; q.fillRect(bx, 10, 20, 46); q.fillStyle = "#ffd23f"; q.fillRect(bx + 6, 22, 8, 8); q.fillRect(bx + 4, 56, 4, 4); q.fillRect(bx + 12, 56, 4, 4); });
+  // window with sky
+  q.fillStyle = "#1d1b2e"; q.fillRect(158, 14, 84, 50); q.fillStyle = "#9fd6ff"; q.fillRect(160, 16, 80, 46);
+  q.fillStyle = "#fff"; q.fillRect(170, 26, 18, 5); q.fillRect(176, 22, 12, 4); q.fillStyle = "#5fb54d"; q.fillRect(160, 50, 80, 12);
+  q.fillStyle = "#1d1b2e"; q.fillRect(199, 16, 2, 46); q.fillRect(160, 38, 80, 2);
+  // wood floor
+  for (let y = 130; y < 225; y++) for (let x = 0; x < 400; x++) { const plank = Math.floor((x + (Math.floor((y - 130) / 12) % 2) * 25) / 50); q.fillStyle = (y - 130) % 12 === 0 || (x + (Math.floor((y - 130) / 12) % 2) * 25) % 50 === 0 ? "#8a5a3c" : plank % 2 ? "#c9925f" : "#bf8756"; q.fillRect(x, y, 1, 1); }
+  // mat
+  q.fillStyle = "#1d1b2e"; q.fillRect(58, 150, 284, 48); q.fillStyle = "#3fa86b"; q.fillRect(60, 152, 280, 44); q.fillStyle = "#ffd23f"; q.fillRect(198, 152, 4, 44);
+  // fighters (scaled)
+  const big = document.createElement("canvas"); big.width = 400; big.height = 225; const b = big.getContext("2d");
+  const shadow = (x) => { b.fillStyle = "rgba(0,0,0,.25)"; b.beginPath(); b.ellipse(x, 186, 26, 6, 0, 0, 7); b.fill(); };
+  shadow(130); shadow(270);
+  const f1 = document.createElement("canvas"); f1.width = 18; f1.height = 22; sprite(f1.getContext("2d"), FIGHTER, look("#2a2236", "#f2c8a0", "#3fe0ff"), 1, 1);
+  const f2 = document.createElement("canvas"); f2.width = 18; f2.height = 22; sprite(f2.getContext("2d"), FIGHTER, look("#ff8f45", "#ffd8b8", "#ff5d73", "#2a2236"), 1, 1, true);
+  b.imageSmoothingEnabled = false; b.drawImage(f1, 100, 99, 72, 88); b.drawImage(f2, 228, 99, 72, 88);
+  // power glow on you
+  q.drawImage(big, 0, 0);
+  const sx = innerWidth / 400, sy = innerHeight / 225, s = Math.max(sx, sy);
+  ctx.imageSmoothingEnabled = false;
+  const ox = (innerWidth - 400 * s) / 2, oy = (innerHeight - 225 * s) / 2;
+  ctx.drawImage(d, ox, oy, 400 * s, 225 * s);
+  // aura + speed lines
+  ctx.save(); ctx.globalAlpha = .35; ctx.strokeStyle = "#b98bff"; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.ellipse(ox + 136 * s, oy + 145 * s, 46 * s, 50 * s, 0, 0, 7); ctx.stroke(); ctx.restore();
+  // throw bubbles
+  ctx.textAlign = "center";
+  const tb = (x, y, t, c) => { ctx.font = `${64}px "Atkinson Hyperlegible"`; roundRect(x - 52, y - 92, 104, 96, 18, c, "#1d1b2e"); ctx.beginPath(); ctx.moveTo(x - 10, y + 4); ctx.lineTo(x + 10, y + 4); ctx.lineTo(x, y + 18); ctx.fillStyle = "#1d1b2e"; ctx.fill(); ctx.fillStyle = "#1d1b2e"; ctx.fillText(t, x, y - 22); };
+  tb(ox + 150 * s, oy + 92 * s, "✊", "#fff8e7");
+  tb(ox + 250 * s, oy + 92 * s, "?", "#fff8e7");
+  ctx.font = `bold 15px "Atkinson Hyperlegible"`; ctx.fillStyle = "#fff"; ctx.fillText("locked in", ox + 250 * s, oy + 92 * s + 34);
+}
+
+// ---------- HUD per scene ----------
+const hud = document.getElementById("hud");
+const cardHTML = `<div class="card glass"><canvas id="pf"></canvas><div><div class="n">You</div><div class="s">Lv 4 · <b>12W</b> 7L · 🔥2</div></div></div>`;
+const mapHTML = `<div class="mapbox glass"><canvas id="mm"></canvas><div class="row"><span><i class="dot"></i>23 online</span><span>Palm Town</span></div></div>`;
+
+document.fonts.ready.then(() => {
+  if (scene === "duel") {
+    drawDuel();
+    hud.innerHTML = `
+      <div class="bars">
+        <div class="fighter glass"><div class="top"><b>You</b><span>avatar · ✋ tracked</span></div><div class="hp"><i style="width:72%;background:linear-gradient(90deg,#3fe0ff,#7cf0ff)"></i></div>
+          <div class="chips"><span>🛡 shield</span><span class="on">💥 power armed</span></div></div>
+        <div class="round glass"><b>ROUND 2</b><span>best of 3 · Mika leads 1–0</span></div>
+        <div class="fighter glass right"><div class="top"><b>Mika</b><span>avatar · no video</span></div><div class="hp"><i style="width:45%;background:linear-gradient(270deg,#ff8f45,#ff5d73)"></i></div>
+          <div class="chips" style="justify-content:flex-end"><span>🛡 shield</span></div></div>
+      </div>
+      <div class="shout">SHOOT!</div>
+      <div class="oppnote glass">🧍 <b>Avatar duel</b>: your hand moves your fighter. Only your throw is sent, never your video.</div>
+      <div class="selfcam glass"><div class="v"><svg viewBox="0 0 260 160"><g stroke="#3fe0ff" stroke-width="4" fill="none" stroke-linecap="round">
+        <path d="M130 140 L105 112 L95 88 M130 140 L120 100 L118 78 M130 140 L135 98 L136 76 M130 140 L150 102 L152 82 M130 140 L163 114 L172 98"/>
+        <path d="M105 112 L120 100 L135 98 L150 102 L163 114"/></g>
+        <g fill="#fff">${[[130,140],[105,112],[95,88],[120,100],[118,78],[135,98],[136,76],[150,102],[152,82],[163,114],[172,98]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="4.5"/>`).join("")}</g>
+        <rect x="80" y="64" width="108" height="86" rx="10" fill="none" stroke="#3ef08f" stroke-dasharray="6 5" stroke-width="2"/></svg></div>
+        <div class="cap"><span>Your camera · only you see this</span><b>✊ rock</b></div></div>`;
+    return;
+  }
+  drawWorld();
+  if (scene === "challenge") {
+    ctx.fillStyle = "rgba(10,12,30,.45)"; ctx.fillRect(0, 0, VW, VH);
+    hud.innerHTML = cardHTML + mapHTML + `
+      <div class="dialog"><canvas id="mika"></canvas><div>
+        <h2>Mika wants to duel!</h2>
+        <div class="meta">Lv 6 · 21W 14L · best of 3 · friend since today</div>
+        <div class="choices">
+          <div class="choice hot"><span class="ic">🧍</span><div><b>Avatar duel</b><small>pixel fighters · no video</small></div>
+            <div class="hcursor" style="left:90%;top:50%"><svg viewBox="0 0 64 64"><circle class="tr" cx="32" cy="32" r="27"/><circle class="pr" cx="32" cy="32" r="27" pathLength="100"/></svg><i></i></div></div>
+          <div class="choice"><span class="ic">📷</span><div><b>Camera duel</b><small>both cameras on</small></div></div>
+          <div class="choice no"><span class="ic">✋</span><div><b>Not now</b><small>Mika won't be told why</small></div></div>
+        </div></div></div>`;
+    portrait(document.getElementById("mika"), people[1].look);
+  } else {
+    hud.innerHTML = cardHTML + mapHTML +
+      (mobile
+        ? `<div class="joy"><i></i></div><div class="emo1 glass">✌️</div><div class="act">DUEL<br><small style="font-size:13px">Mika</small></div>`
+        : `<div class="zone glass display">Palm Town<small>Plaza · Duel Ring</small></div>
+           <div class="emotes glass"><button>✊<i>1</i></button><button>✋<i>2</i></button><button>✌️<i>3</i></button><button>👋<i>4</i></button><button>😂<i>5</i></button><button class="gg">GG<i>6</i></button></div>
+           <div class="tips glass"><kbd>WASD</kbd> walk · <kbd>E</kbd> challenge · <kbd>1–6</kbd> emote<br>Click a spot to walk there</div>
+           <div class="camchip glass"><i class="led"></i><div>Camera off in town<br><span>hand tracker ready for duels</span></div></div>`);
+  }
+  portrait(document.getElementById("pf"), me.look);
+  minimap(document.getElementById("mm"));
+});
+</script>
+</body>
+</html>

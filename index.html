@@ -35,6 +35,7 @@
       <!-- Your camera (in 2-player mode, both players share it: P1 left half, P2 right half).
            On the landing screen this stage is moved into the hand test card. -->
       <section class="corner" id="cornerL">
+        <span class="read-dot" id="readDot" aria-hidden="true"></span>
         <div class="stage" id="stage">
           <video id="video" playsinline muted autoplay></video>
           <canvas id="look" hidden></canvas>
@@ -67,6 +68,9 @@
     <div class="result" id="result" aria-live="polite"></div>
 
     <footer class="controls" id="dock">
+      <!-- Phones: the dock is a bottom sheet. The handle opens it; powers and Fight stay in reach when it's closed. -->
+      <button type="button" class="dock-grab" id="dockGrab" aria-expanded="false" aria-controls="dock" aria-label="Game menu"><i></i><span>Swipe up for menu</span></button>
+      <div class="sheet-powers" id="sheetPowers"></div>
       <button id="play" class="primary">Fight!</button>
       <div class="manual" id="manualL" role="group" aria-label="Throw manually">
         <button data-side="0" data-throw="rock" title="Rock">✊<span>Rock</span><kbd>R</kbd></button>

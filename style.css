@@ -718,3 +718,100 @@ body.lite .hp-fill.low, body.lite .tracking-chip i { animation: none; }
 /* the landing covers everything: don't paint the arena under it (no flash while it fades in, less GPU work) */
 body[data-screen="landing"] :is(.hud, .ring, .controls, .result, .announcer) { visibility: hidden; }
 @media (max-width: 760px) { .calib-cam { aspect-ratio: 1; } }
+
+/* ---------- phones: focus layout (approved mockup D, mockups/mobile-v3.html) ----------
+   The big video fills the screen, your camera is a round badge beside a compact score card,
+   and the dock is a sheet you pull up. Only powers and Fight stay out when it's closed. */
+.dock-grab, .sheet-powers, .read-dot { display: none; }
+
+body.compact.spot .ring.spot { position: fixed; inset: 0; margin: 0; z-index: 0; min-height: 0; }
+body.compact.spot .ring.spot .corner.big .stage { border-radius: 0; border: 0; }
+body.compact.spot .ring.spot #cornerR.big { place-items: stretch; }
+body.compact.spot .ring.spot #cornerR.big .stage { width: 100%; height: 100%; aspect-ratio: auto; background: transparent; box-shadow: none; }
+body.compact.spot .ring.spot #cornerR.big .cpu-hand { font-size: clamp(7rem, 34vw, 11rem); transform-origin: 50% 50%; }
+body.compact.spot .ring.spot .corner.big .powers { top: auto; bottom: 34%; left: 12px; }
+body.compact.spot .ring.spot .corner.big .throw-badge { top: auto; bottom: 30%; right: 16px; }
+body.compact.spot .result { margin-top: auto; position: relative; z-index: 2; }
+body.compact.spot .announcer { top: 24dvh; }
+body.compact.spot .announcer.big { top: 40dvh; }
+
+/* score card: two stacked bars, round on the right, room on the left for your badge */
+body.compact.spot .hud {
+  position: relative; z-index: 3; width: auto; margin: 10px 12px 0 96px; padding: 8px 12px;
+  grid-template-columns: 1fr auto; grid-template-areas: "l c" "r c"; gap: 4px 12px;
+  background: var(--glass); border: 1.5px solid var(--edge); border-radius: 16px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+body.compact.spot .fighter.left { grid-area: l; }
+body.compact.spot .fighter.right { grid-area: r; }
+body.compact.spot .hud .center { grid-area: c; align-self: center; }
+body.compact.spot .fighter { flex-direction: row; align-items: center; gap: 8px; }
+body.compact.spot .name-row { width: 4.6em; flex: none; justify-content: space-between; gap: 4px; }
+body.compact.spot .fighter.right .name-row { flex-direction: row-reverse; justify-content: space-between; }
+body.compact.spot .name { font-size: .88rem; max-width: 3.4em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.compact.spot .pips i { width: 8px; height: 8px; border-width: 1.5px; }
+body.compact.spot .hp { flex: 1; height: 10px; border-width: 1.5px; border-radius: 6px; transform: none; }
+body.compact.spot .fighter.left .hp-fill, body.compact.spot .fighter.left .hp-ghost { right: auto; left: 0; }
+body.compact.spot .round-label { font-size: .8rem; }
+body.compact.spot .arena-name { font-size: .62rem; max-width: 5.5em; }
+
+/* the small tile becomes a round live badge in the top-left corner; tap to peek */
+body.compact .ring.spot .corner.pip {
+  position: fixed; left: 12px; top: calc(10px + env(safe-area-inset-top)); width: 72px; height: 72px; transform: none;
+  border-radius: 50%; cursor: pointer; touch-action: manipulation; z-index: 6; transition: width .25s ease, height .25s ease, border-radius .25s ease;
+}
+body.compact .ring.spot .corner.pip .stage {
+  position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; border-radius: inherit;
+  border-width: 3px; box-shadow: 0 0 0 3px #07081a99, 0 8px 22px #000a;
+}
+body.compact .ring.spot .corner.pip :is(.detect-badge, .pip-tools, .powers, .tip, .no-cam p, .waiting, .throw-badge) { display: none; }
+body.compact .ring.spot .corner.pip .no-cam span { font-size: 1.6rem; }
+body.compact .ring.spot .corner.pip .cpu-hand { font-size: 2.2rem; }
+body.compact .ring.spot .corner.pip.peek { top: calc(92px + env(safe-area-inset-top)); width: min(46vw, 220px); height: min(61vw, 290px); border-radius: 18px; }
+body.compact .ring.spot .corner.pip.peek :is(.detect-badge, .throw-badge) { display: block; }
+body.compact .ring.spot #cornerL.pip .read-dot {
+  display: grid; place-items: center; position: absolute; right: -6px; bottom: -6px; z-index: 2;
+  min-width: 30px; height: 30px; padding: 0 4px; border-radius: 15px; font-size: 1rem; line-height: 1;
+  background: #3b3f6b; border: 2px solid #07081a; color: #fff; font-weight: 700;
+}
+body.compact .ring.spot #cornerL.pip .read-dot:empty { display: none; }
+body.compact .read-dot.found { background: var(--win, #3ef08f); }
+body.compact .read-dot.warn { background: var(--accent); color: #221800; }
+body.compact .read-dot.foul { background: var(--lose, #ff5d73); }
+body.compact .read-dot.power { background: var(--power, #b98bff); }
+body.compact .ring.spot #cornerL.pip.peek .read-dot { display: none; }
+
+/* dock as a bottom sheet */
+body.compact .controls {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  position: relative; z-index: 7; max-width: none; margin: 0; gap: 10px 8px;
+  padding: 4px 14px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(16, 18, 38, .9); border: 1.5px solid var(--edge); border-bottom: 0; border-radius: 24px 24px 0 0;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 -10px 30px #0008;
+}
+body.compact .dock-grab {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; order: 0; flex: 1 0 100%;
+  min-height: 44px; padding: 8px 0 2px; background: none; border: 0; color: var(--muted); font-size: .8rem; touch-action: none;
+}
+body.compact .dock-grab i { width: 44px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.4); }
+body.compact .dock-tools { display: none; order: 1; flex: 1 0 100%; }
+body.compact .controls.open .dock-tools { display: flex; justify-content: space-around; row-gap: 26px; padding: 4px 0 26px; }
+body.compact .controls.open .dock-tools .icon-btn { width: 56px; height: 56px; border-radius: 18px; position: relative; }
+body.compact .controls.open .dock-tools .icon-btn::after {
+  content: attr(aria-label); position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+  font-size: .7rem; color: var(--muted); white-space: nowrap;
+}
+body.compact .controls.open .layout-switch { order: -1; flex: 1 0 100%; }
+body.compact .controls.open .layout-switch button { flex: 1; justify-content: center; }
+body.compact .controls.open .layout-switch button span { display: inline; font-size: .78rem; white-space: nowrap; }
+body.compact .controls.open .layout-switch button { padding: 0 6px; gap: 4px; }
+body.compact .sheet-powers { display: flex; order: 2; }
+body.compact .sheet-powers:empty { display: none; }
+body.compact .sheet-powers .powers { position: static; flex-direction: row; gap: 6px; }
+body.compact .sheet-powers .powers button { width: 48px; height: 48px; padding: 0; border-radius: 50%; justify-content: center; }
+body.compact .sheet-powers .powers button span { display: none; }
+body.compact .controls.open .sheet-powers .powers button { width: auto; border-radius: 24px; padding: 0 12px; flex-direction: row; gap: 4px; }
+body.compact .controls.open .sheet-powers .powers button span { display: inline; }
+body.compact #play { order: 3; flex: 1 1 140px; min-height: 52px; }
+body.compact .manual { order: 4; }
+body.compact .controls.open { box-shadow: 0 0 0 100vmax rgba(0,0,0,.45), 0 -10px 30px #0008; }

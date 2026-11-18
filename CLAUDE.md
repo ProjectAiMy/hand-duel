@@ -50,6 +50,10 @@ README.md explains the features, controls, rules and architecture, so read it fi
   Online sends `{t:"hand", b:[x0,y0,x1,y1]}` (raw camera frame, ~6/s) so the opponent's tile can dodge your hand;
   older clients ignore it. Fonts: Lilita One (display) + Atkinson Hyperlegible (body), from Google Fonts.
   **The user wants colour and font changes left to the final stage.**
+- Phone focus layout (Nov 18 2026, the user picked mockup D in `mockups/mobile-v3.html`): `body.compact` (same breakpoint
+  as the phone CSS, `compactMQ` in `main.js`). The tile is a fixed round badge (no drag, no dodging, tap to peek), the HUD
+  is a stacked score card, and `#dock` is a pull-up sheet (`#dockGrab`); your power chips move to `#sheetPowers`.
+  This replaced the draggable tile on phones, which got pushed off its spot by dodging and overlapped the dock.
 
 ## Not yet verified
 - Masks on a real face (only checked on the canonical mesh in the browser pane), and their phone frame rate.
@@ -57,6 +61,7 @@ README.md explains the features, controls, rules and architecture, so read it fi
 - Foul detection, the capture grace period, and the compact mobile layout (Nov 2026) haven't been tried on a real
   camera/phone yet; the user said they'd test these themselves. Same for power-ups (Nov 2026).
 - Two-hand tracking with a real camera in 2-player mode.
+- Phone focus layout on a real phone (swipe on the sheet handle, badge peek, safe areas).
 - UI v2 with a real camera: hand cursor feel (smoothing/speed defaults), the hand test checks, tile dodging online.
   Checked in the browser pane with the camera off, a simulated denied camera, and simulated cursor input.
 - The self-signed HTTPS LAN path (`:8443`) on a phone.

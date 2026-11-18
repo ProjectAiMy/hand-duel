@@ -22,10 +22,15 @@ const el = Object.fromEntries(
     "landing", "startBtn", "noCamBtn", "landingStatus", "inviteNote", "calibSlot", "calibIdle", "calibStart",
     "calibPill", "chkHand", "chkDist", "chkLight", "camHelp", "camHelpIcon", "camHelpTitle", "camHelpText",
     "camHelpSteps", "camRetry", "camSkip", "howto", "howtoBtn", "retestBtn", "settingsPanel", "fsToggle", "fsRow",
-    "resetSettings", "layoutSwitch", "cornerL", "cornerR", "dock", "menuTag",
+    "resetSettings", "layoutSwitch", "cornerL", "cornerR", "dock", "menuTag", "dockGrab", "sheetPowers", "readDot",
   ].map((id) => [id, $(id)]),
 );
 const ctx2d = el.overlay.getContext("2d");
+// Phones and portrait tablets get the focus layout (same breakpoint as the phone CSS).
+const compactMQ = matchMedia("(max-width: 760px), (orientation: portrait) and (max-width: 1000px)");
+const compact = () => compactMQ.matches;
+document.body.classList.toggle("compact", compact());
+
 
 // ---------- timing (ms) ----------
 const BEAT = 480; // per countdown word
@@ -353,7 +358,7 @@ powerBars.forEach((bar, i) => {
 function renderPowers() {
   const mine = (i) => i === 0 || mode === "local";
   powerBars.forEach((bar, i) => {
-    const home = i === 0 ? el.halfL : mode === "local" ? el.halfR : el.stageR;
+    const home = i === 0 ? (compact() && mode !== "local" ? el.sheetPowers : el.halfL) : mode === "local" ? el.halfR : el.stageR;
     if (bar.parentElement !== home) home.appendChild(bar);
     bar.classList.toggle("theirs", !mine(i));
     if (armed[i] && !fight.canUse(i, armed[i])) armed[i] = null;
@@ -416,6 +421,12 @@ function updateBadges() {
     } else if (l.visible) text = "Hand found — make a shape";
     badge.textContent = text;
     badge.className = `detect-badge ${cls}`;
+    if (i === 0) {
+      // Phones: the small camera badge shows the same reading as one symbol.
+      const l0 = live[0];
+      el.readDot.textContent = !cameraOn ? "" : l0.signing ? POWERS[l0.signing].emoji : l0.gesture ? GESTURES[l0.gesture].emoji : l0.foul ? "🚫" : l0.visible ? "…" : "?";
+      el.readDot.className = `read-dot ${cls}`;
+    }
   });
 }
 
@@ -1679,7 +1690,7 @@ function pipGeom(anchor) {
 }
 
 function placePip() {
-  if (!isSpot() || dragging) return;
+  if (!isSpot() || dragging || compact()) return; // phones: the tile is a fixed badge in the HUD (CSS)
   const g = pipGeom(pipAt);
   const c = pipCorner();
   c.style.setProperty("--pip-w", `${g.w}px`);
@@ -1710,7 +1721,7 @@ function videoBoxToRect(v, [x0, y0, x1, y1], mirrored) {
 }
 
 function dodgeHand() {
-  if (!isSpot() || dragging) return;
+  if (!isSpot() || dragging || compact()) return;
   const home = S.get("pipAnchor");
   const hand = bigHandRect();
   const pad = 16;
@@ -1748,6 +1759,7 @@ setInterval(dodgeHand, 250);
 function bindPipDrag(corner) {
   corner.addEventListener("pointerdown", (e) => {
     if (!corner.classList.contains("pip") || e.target.closest("button") || e.button > 0) return;
+    if (compact()) return; // phones: tap the badge to peek instead (see the click handler)
     e.preventDefault();
     const g = pipGeom(pipAt);
     const off = [e.clientX - (g.R.left + g.x), e.clientY - (g.R.top + g.y)];
@@ -1792,6 +1804,10 @@ function bindPipDrag(corner) {
   });
   corner.addEventListener("click", (e) => {
     const b = e.target.closest("[data-pip]");
+    if (!b && compact() && corner.classList.contains("pip") && !e.target.closest(".powers")) {
+      corner.classList.toggle("peek"); // phones: tap the badge to see it bigger, tap again to shrink
+      return;
+    }
     if (!b) return;
     if (b.dataset.pip === "size") S.set("pipSize", (S.get("pipSize") + 1) % 3);
     else setLayout(layout === "me" ? "them" : "me");
@@ -1804,6 +1820,50 @@ el.layoutSwitch.addEventListener("click", (e) => {
   if (b) setLayout(b.dataset.layout);
 });
 window.addEventListener("resize", () => isSpot() && placePip());
+
+// ---------- phones: focus layout (camera badge in the HUD, dock as a pull-up sheet) ----------
+function onCompactChange() {
+  document.body.classList.toggle("compact", compact());
+  el.cornerL.classList.remove("peek");
+  el.cornerR.classList.remove("peek");
+  setDockOpen(false);
+  renderPowers();
+  applyLayout();
+}
+compactMQ.addEventListener("change", onCompactChange);
+
+function setDockOpen(open) {
+  el.dock.classList.toggle("open", open);
+  el.dockGrab.setAttribute("aria-expanded", String(open));
+  el.dockGrab.querySelector("span").textContent = open ? "Close" : "Swipe up for menu";
+}
+{
+  let y0 = null;
+  let moved = false;
+  el.dockGrab.addEventListener("pointerdown", (e) => {
+    y0 = e.clientY;
+    moved = false;
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (y0 === null || moved) return;
+    const dy = e.clientY - y0;
+    if (Math.abs(dy) > 24) {
+      moved = true;
+      setDockOpen(dy < 0);
+    }
+  });
+  window.addEventListener("pointerup", () => (y0 = null));
+  el.dockGrab.addEventListener("click", () => {
+    if (!moved) setDockOpen(!el.dock.classList.contains("open"));
+    moved = false;
+  });
+  // Tap outside the open sheet, or pick something in it, to close it.
+  document.addEventListener("click", (e) => {
+    if (!el.dock.classList.contains("open")) return;
+    if (!el.dock.contains(e.target)) setDockOpen(false);
+    else if (e.target.closest(".dock-tools button, #play")) setTimeout(() => setDockOpen(false), 120);
+  });
+}
 
 /** Each stage takes its video's shape in spotlight, so nothing is cropped off the big video. */
 function trackAspect(video, stage) {

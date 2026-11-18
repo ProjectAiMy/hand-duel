@@ -63,6 +63,9 @@ it never clashes with a throw.
   *Spotlight me*. Drag the small tile to any edge or corner and it snaps there; ⤢ resizes it, ⇄ swaps. It moves itself
   out of the way when the opponent's hand would be behind it (online, each side sends a rough hand box for this).
   Hand tracking always reads the full camera, whatever the tile size.
+- **On phones** (and portrait tablets) a match uses a focus layout: the big video fills the screen, the small video is a
+  round badge next to a compact score card (the dot on it shows what your hand reads as; tap it to see it bigger), and
+  the dock becomes a sheet you swipe up. Power-ups and Fight / Next throw stay in reach when the sheet is closed.
 - **Settings** (⚙️, saved on this device): master volume, mute, sound effects, music; video quality (480p/720p/1080p),
   fullscreen, lite effects; mirror camera, hand skeleton, hand cursor on/off, smoothing, cursor speed, hold time;
   auto-next and arena.

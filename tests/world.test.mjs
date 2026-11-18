@@ -90,7 +90,8 @@ test("every school map loads, its doors lead to real tiles, and its NPCs are in 
     const ids = new Set(ROSTER.map((n) => n.id));
     for (const n of m.npcs) {
       assert.ok(!isSolid(m, n.x, n.y), `${n.id} stands on a free tile`);
-      if (!n.talk) assert.ok(ids.has(n.id), `${n.id} is in the roster`);
+      if (n.as) assert.ok(ids.has(n.as), `${n.id} borrows a roster look`);
+      else if (!n.talk && !n.name) assert.ok(ids.has(n.id), `${n.id} is in the roster`);
       // Everyone the player must be able to reach can be walked up to from the spawn.
       const others = m.npcs.filter((o) => o !== n);
       const p = findPath(m, m.spawn, n, (x, y) => isBlocked(m, x, y, others), { adjacent: true });
@@ -159,6 +160,32 @@ test("the goal counter lists exactly the challengers placed on the school maps",
   const dir = new URL("../data/maps/", import.meta.url);
   const placed = readdirSync(dir)
     .filter((f) => f.endsWith(".json"))
-    .flatMap((f) => JSON.parse(readFileSync(new URL(f, dir), "utf8")).npcs.filter((n) => !n.talk).map((n) => n.id));
+    .flatMap((f) => JSON.parse(readFileSync(new URL(f, dir), "utf8")).npcs.filter((n) => !n.talk && !n.script && !n.as && !n.name && n.sight !== 0).map((n) => n.id));
   assert.deepEqual([...SCHOOL_CHALLENGERS].sort(), placed.sort());
+});
+
+test("story conditions and the extended save fields", async () => {
+  const { check, STAMPS } = await import("../js/save.js");
+  const s = freshSave();
+  s.flags.metRio = true;
+  recordDuel(s, "granite", true);
+  s.stamps.push("stone");
+  s.chapter = 2;
+  assert.ok(check(s, "metRio") && !check(s, "!metRio"));
+  assert.ok(check(s, ["beat:granite", "!beat:fold", "stamp:stone", "chapter>=2"]));
+  assert.ok(!check(s, "chapter>=3") && !check(s, "stamp:paper"));
+  assert.ok(check(s, undefined) && check(s, []));
+  const back = migrate({ ...s, coins: 50, items: ["extra:glasses", "bad item", "extra:glasses"], stamps: ["final", "nope", "stone"], name: "Ash<script>", avatar: { hair: "spiky" } });
+  assert.deepEqual(back.stamps, ["stone", "final"]);
+  assert.deepEqual(back.items, ["extra:glasses"]);
+  assert.equal(back.coins, 50);
+  assert.equal(back.name, "Ashscript");
+  assert.equal(back.avatar.hair, "spiky");
+  assert.equal(STAMPS.length, 5);
+});
+
+test("save codes keep non-English names", () => {
+  const s = freshSave();
+  s.name = "Zoë 明";
+  assert.equal(importCode(exportCode(s)).name, "Zoë 明");
 });

@@ -1,0 +1,80 @@
+{
+  "lib_intro": [
+    { "say": "fold", "lines": ["Welcome to the library. Quiet, please.", "Crane and Inkwell will duel you first. Then, if you like, me."] },
+    { "flag": "lib_intro" }
+  ],
+
+  "fold": [
+    { "if": "stamp:paper",
+      "then": [{ "choose": "fold", "line": "Another fold, perhaps?", "options": ["Rematch!", "Not now"], "then": [[{ "duel": "fold", "with": "fold" }], []] }],
+      "else": [
+        { "if": ["beat:crane", "beat:inkwell"],
+          "then": [
+            { "say": "fold", "lines": ["Patience folds every crane.", "In my club, I begin every round holding Reverse. Be careful what you win."] },
+            { "choose": "fold", "line": "Shall we?", "options": ["Duel!", "Later"], "then": [[
+              { "duel": "fold", "with": "fold",
+                "win": [
+                  { "say": "fold", "lines": ["A fine fold. I bow to you.", "The Paper stamp is yours. Oh… something slipped out of my sleeve. Never mind it."] },
+                  { "give": { "stamp": "paper", "coins": 100 } },
+                  { "chapter": 2, "goal": "A folded note fell by the shelves in the library. Read it." }
+                ],
+                "lose": [{ "say": "fold", "lines": ["Patience wins again. Watch what I never do."] }] }
+            ], []] }
+          ],
+          "else": [{ "say": "fold", "lines": ["Crane and Inkwell first, please. Patience."] }] }
+      ] }
+  ],
+
+  "memo": [
+    { "say": "narrator", "lines": ["A folded note, stamped STUDENT COUNCIL.", "\"Proposal: replace Hand Duels with a fair lottery, starting at the school festival. Clubs to be closed. — R.\""] },
+    { "say": "you", "lines": ["(The Council wants to ban duels?! The Fencing Club will want to hear about this.)"] },
+    { "flag": "memo" },
+    { "chapter": 3, "goal": "Show the memo to the Fencing Club in the sports hall." }
+  ],
+
+  "hall_intro": [
+    { "say": "snip", "lines": ["A memo? From the Council?! A BAN?", "Then we duel twice as hard. Parry! Riposte! Test this one!"] },
+    { "flag": "hall_intro" }
+  ],
+
+  "snip": [
+    { "if": "stamp:blade",
+      "then": [{ "choose": "snip", "line": "En garde again?", "options": ["Rematch!", "Not now"], "then": [[{ "duel": "snip", "with": "snip" }], []] }],
+      "else": [
+        { "if": ["beat:parry", "beat:riposte"],
+          "then": [
+            { "say": "snip", "lines": ["You got past my two best. Good.", "In my hall we fight speed rounds: the countdown is faster. Keep up!"] },
+            { "choose": "snip", "line": "En garde!", "options": ["Duel!", "Later"], "then": [[
+              { "duel": "snip", "with": "snip",
+                "win": [
+                  { "say": "snip", "lines": ["Touché! I'll remember that one.", "The Blade stamp is yours. The whole school's splitting over this ban. Watch your back."] },
+                  { "give": { "stamp": "blade", "coins": 100 } },
+                  { "chapter": 3, "goal": "Head back to the corridor." }
+                ],
+                "lose": [{ "say": "snip", "lines": ["En garde next time! And watch what I do after I lose."] }] }
+            ], []] }
+          ],
+          "else": [{ "say": "snip", "lines": ["Parry and Riposte first! Then me!"] }] }
+      ] }
+  ],
+
+  "rio_ch3": [
+    { "spawn": "rio", "as": "rio", "x": 25, "y": 6, "face": "left", "avatar": { "skin": 3, "hair": "spiky", "hairColor": "#ea580c", "top": "uniform", "topColor": "#1e293b", "bottom": "trousers", "bottomColor": "#0f172a", "extra": "scarf", "extraColor": "#ffcc33" } },
+    { "alert": "rio" },
+    { "walk": "rio", "to": "player" },
+    { "face": "rio", "toward": "player" },
+    { "face": "player", "toward": "rio" },
+    { "say": "rio", "lines": ["Like the new look? I've joined the Student Council.", "A lottery means nobody ever has to lose again. Isn't that better?"] },
+    { "choose": "rio", "line": "Well?", "options": ["Duels are better!", "…Maybe?"], "then": [
+      [{ "say": "rio", "lines": ["Then prove it."] }],
+      [{ "say": "rio", "lines": ["\"Maybe\" isn't good enough. Duel me and decide."] }] ] },
+    { "duel": "rio", "with": "rio",
+      "win": [{ "say": "rio", "lines": ["…That's exactly why I hate losing."] }],
+      "lose": [{ "say": "rio", "lines": ["See? Wouldn't you rather this was a lottery?"] }] },
+    { "say": "rio", "lines": ["At the festival, the lottery wins. You'll see."] },
+    { "walk": "rio", "to": [25, 6] },
+    { "despawn": "rio" },
+    { "flag": "rio_ch3" },
+    { "chapter": 4, "goal": "The Drama Club is rehearsing in the auditorium (corridor, fourth door)." }
+  ]
+}

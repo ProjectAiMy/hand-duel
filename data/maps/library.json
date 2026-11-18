@@ -1,0 +1,87 @@
+{
+  "id": "library",
+  "name": "Library · Origami Club",
+  "ground": ".",
+  "arena": "zen",
+  "spawn": {
+    "x": 8,
+    "y": 10,
+    "face": "up"
+  },
+  "tiles": [
+    "##################",
+    "#SSSSSSSSSSSSSSSS#",
+    "#................#",
+    "#.SSS.SSS..SSS.S.#",
+    "#................#",
+    "#.dd..dd....dd...#",
+    "#................#",
+    "#.SSS.SSS..SSS.S.#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "########D#########"
+  ],
+  "doors": [
+    {
+      "x": 8,
+      "y": 11,
+      "to": "corridor",
+      "tx": 16,
+      "ty": 2,
+      "face": "down"
+    }
+  ],
+  "things": [
+    {
+      "x": 16,
+      "y": 9,
+      "kind": "memo",
+      "name": "Folded note",
+      "emoji": "📝",
+      "if": "stamp:paper",
+      "script": "memo"
+    },
+    {
+      "x": 2,
+      "y": 9,
+      "kind": "text",
+      "name": "Shelf",
+      "emoji": "📚",
+      "lines": [
+        "A whole shelf of books on paper folding. One is called 'Fold, Don't Fold: A Memoir'."
+      ]
+    }
+  ],
+  "events": [
+    {
+      "on": "enter",
+      "if": "!lib_intro",
+      "script": "lib_intro"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "crane",
+      "x": 1,
+      "y": 4,
+      "face": "right",
+      "sight": 6
+    },
+    {
+      "id": "inkwell",
+      "x": 16,
+      "y": 8,
+      "face": "left",
+      "sight": 7
+    },
+    {
+      "id": "fold",
+      "x": 9,
+      "y": 2,
+      "face": "down",
+      "sight": 0,
+      "script": "fold"
+    }
+  ]
+}

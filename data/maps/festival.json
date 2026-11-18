@@ -1,0 +1,181 @@
+{
+  "id": "festival",
+  "name": "School festival",
+  "ground": ",",
+  "arena": "neon",
+  "music": "school",
+  "spawn": {
+    "x": 9,
+    "y": 12,
+    "face": "up"
+  },
+  "tiles": [
+    "####################",
+    "#ww#ww#ww##ww#ww#ww#",
+    "#########D##########",
+    "h,V,,,PPPPPPPP,,V,,h",
+    "h,,,,,PPPPPPPP,,,,,h",
+    "h,ff,,PPPPPPPP,,ff,h",
+    "h,,,~~~,,=,,,BB,,,,h",
+    "h,,,~~~,,=,,,,,,,,,h",
+    "h,,,,,,,,=,,,,,,,T,h",
+    "h========.=========h",
+    "h,,,,,,,,=,,,,,,,,,h",
+    "h,T,,VBB,=,,,V,ff,,h",
+    "h,,,,,,,,=,,,,,,,,,h",
+    "h,,,,,,,,=,,,,,,,,,h",
+    "hhhhhhhGGGGGGhhhhhhh"
+  ],
+  "doors": [
+    {
+      "x": 9,
+      "y": 2,
+      "to": "corridor",
+      "tx": 17,
+      "ty": 7,
+      "face": "up"
+    }
+  ],
+  "things": [
+    {
+      "x": 2,
+      "y": 3,
+      "kind": "text",
+      "name": "Takoyaki stall",
+      "emoji": "🐙",
+      "lines": [
+        "Six takoyaki for the price of a rock-paper-scissors win. You'll come back later."
+      ]
+    },
+    {
+      "x": 16,
+      "y": 3,
+      "kind": "text",
+      "name": "Mask stall",
+      "emoji": "🎭",
+      "lines": [
+        "Masks of every captain. The Granite one is sold out."
+      ]
+    },
+    {
+      "x": 13,
+      "y": 11,
+      "kind": "text",
+      "name": "Lottery drum",
+      "emoji": "🎰",
+      "lines": [
+        "The Council's lottery drum. Nobody is queuing for it."
+      ]
+    },
+    {
+      "x": 5,
+      "y": 11,
+      "kind": "text",
+      "name": "Snack stall",
+      "emoji": "🍡",
+      "lines": [
+        "Bea's bake sale has moved here. Everything is cupcakes."
+      ]
+    }
+  ],
+  "events": [
+    {
+      "on": "enter",
+      "if": "!fest_intro",
+      "script": "fest_intro"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "ren_fest",
+      "as": "ren",
+      "x": 9,
+      "y": 4,
+      "face": "down",
+      "sight": 0,
+      "script": "ren_final"
+    },
+    {
+      "id": "hale",
+      "x": 7,
+      "y": 12,
+      "face": "right",
+      "name": "Mx. Hale",
+      "title": "Caretaker",
+      "emoji": "🧹",
+      "avatar": {
+        "skin": 3,
+        "hair": "buzz",
+        "hairColor": "#d9d9d9",
+        "top": "jacket",
+        "topColor": "#5b6b3f",
+        "bottom": "trousers",
+        "bottomColor": "#3f3f2f",
+        "extra": "none"
+      },
+      "talk": [
+        {
+          "if": "storyDone",
+          "lines": [
+            "You did it. Duels stay, and so does the reading of people. I'm proud of you."
+          ]
+        },
+        {
+          "lines": [
+            "The whole school's watching. Breathe, and read Ren the way you read everyone else."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rio_fest",
+      "as": "rio",
+      "x": 12,
+      "y": 9,
+      "face": "left",
+      "talk": [
+        {
+          "if": "storyDone",
+          "lines": [
+            "Rematch? Any time. I'm keeping score, you know."
+          ]
+        },
+        {
+          "lines": [
+            "Go get Ren. And if you lose… I get to be the one who beats you next!"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pip_fest",
+      "as": "pip",
+      "x": 3,
+      "y": 9,
+      "face": "right",
+      "talk": [
+        "Festival! Rock is STILL the strongest!"
+      ]
+    },
+    {
+      "id": "bea_fest",
+      "as": "bea",
+      "x": 15,
+      "y": 7,
+      "face": "left",
+      "talk": [
+        "Cupcake? They're shaped like fists. Oh no, is that weird?"
+      ]
+    },
+    {
+      "id": "luna_fest",
+      "as": "luna",
+      "x": 16,
+      "y": 12,
+      "face": "up",
+      "talk": [
+        "The stars said tonight would be interesting. They were right."
+      ]
+    }
+  ]
+}

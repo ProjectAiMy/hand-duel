@@ -1,0 +1,339 @@
+{
+  "hale": [
+    {
+      "if": "!ch0_intro",
+      "then": [
+        {
+          "run": "ch0_intro"
+        }
+      ],
+      "else": [
+        {
+          "if": "storyDone",
+          "then": [
+            {
+              "say": "hale",
+              "lines": [
+                "The festival was something, wasn't it? Rematch anyone you like. They're all a little better now, thanks to you."
+              ]
+            }
+          ],
+          "else": [
+            {
+              "say": "hale",
+              "lines": [
+                "Walk in front of someone who wants a duel and they'll spot you. Watch for the \"!\".",
+                "Listen to what they say before you throw. Everyone has a habit.",
+                "Not sure where to go? Your stamp card (🎴) always says what's next."
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "ch0_intro": [
+    {
+      "wait": 300
+    },
+    {
+      "face": "player",
+      "toward": "hale"
+    },
+    {
+      "face": "hale",
+      "toward": "player"
+    },
+    {
+      "say": "hale",
+      "lines": [
+        "Ah, you must be the new transfer student! Welcome to Knuckle Academy. I'm Mx. Hale, the caretaker.",
+        "It's photo day for new students. Let's sort out your name and look first."
+      ]
+    },
+    {
+      "creator": true
+    },
+    {
+      "say": "hale",
+      "lines": [
+        "Lovely. Now, the one thing you need to know about this school…",
+        "Every argument here, from the last lunch roll to the music-room booking, is settled with a Hand Duel."
+      ]
+    },
+    {
+      "spawn": "rio",
+      "as": "rio",
+      "x": 11,
+      "y": 13,
+      "face": "up"
+    },
+    {
+      "alert": "rio"
+    },
+    {
+      "walk": "rio",
+      "to": "player"
+    },
+    {
+      "face": "rio",
+      "toward": "player"
+    },
+    {
+      "face": "player",
+      "toward": "rio"
+    },
+    {
+      "say": "rio",
+      "lines": [
+        "Hey! You're new too? I'm Rio. First day, and I'm going to be the best duellist this school has ever seen.",
+        "First day, first duel. You and me. Right now!"
+      ]
+    },
+    {
+      "say": "hale",
+      "lines": [
+        "Go on. Throw with your hand on the camera, or use the on-screen buttons.",
+        "And listen to what people say before a duel. Everyone has a habit."
+      ]
+    },
+    {
+      "duel": "rio0",
+      "with": "rio",
+      "win": [
+        {
+          "say": "rio",
+          "lines": [
+            "Beginner's luck! Next time's mine!"
+          ]
+        }
+      ],
+      "lose": [
+        {
+          "say": "rio",
+          "lines": [
+            "Ha! Told you. Rock beats everything!"
+          ]
+        },
+        {
+          "say": "hale",
+          "lines": [
+            "Everyone loses their first. Rio told you rock was coming… so what beats rock?"
+          ]
+        }
+      ]
+    },
+    {
+      "say": "rio",
+      "lines": [
+        "This isn't over. I'm going to get stronger. See you around!"
+      ]
+    },
+    {
+      "walk": "rio",
+      "to": [
+        11,
+        13
+      ]
+    },
+    {
+      "despawn": "rio"
+    },
+    {
+      "say": "hale",
+      "lines": [
+        "Five clubs run duelling here. Each captain gives a stamp to whoever beats them.",
+        "The Stone Club practises in the gym: through the school door, along the corridor. Classmates will challenge you on the way.",
+        "Your stamp card (🎴, top right) shows your stamps and where to go next. Good luck!"
+      ]
+    },
+    {
+      "flag": "ch0_intro"
+    },
+    {
+      "chapter": 1,
+      "goal": "Find the Stone Club in the gym (through the school door, along the corridor)."
+    }
+  ],
+  "gym_intro": [
+    {
+      "say": "granite",
+      "lines": [
+        "A new face. Stone Club rules: beat my two members, then you may face me.",
+        "Cobble and Flint are on the mats. Walk past them."
+      ]
+    },
+    {
+      "flag": "gym_intro"
+    }
+  ],
+  "granite": [
+    {
+      "if": "stamp:stone",
+      "then": [
+        {
+          "choose": "granite",
+          "line": "Back for more? Stone is patient.",
+          "options": [
+            "Rematch!",
+            "Not now"
+          ],
+          "then": [
+            [
+              {
+                "duel": "granite",
+                "with": "granite"
+              }
+            ],
+            []
+          ]
+        }
+      ],
+      "else": [
+        {
+          "if": [
+            "beat:cobble",
+            "beat:flint"
+          ],
+          "then": [
+            {
+              "say": "granite",
+              "lines": [
+                "You beat Cobble and Flint. Good.",
+                "Stone does not move. Neither do I. And in my club, my shield holds for two hits."
+              ]
+            },
+            {
+              "choose": "granite",
+              "line": "Ready?",
+              "options": [
+                "Duel!",
+                "Later"
+              ],
+              "then": [
+                [
+                  {
+                    "duel": "granite",
+                    "with": "granite",
+                    "win": [
+                      {
+                        "say": "granite",
+                        "lines": [
+                          "…A crack. Well done.",
+                          "Take the Stone stamp. And our headband: you'll find it in your locker."
+                        ]
+                      },
+                      {
+                        "give": {
+                          "stamp": "stone",
+                          "coins": 100
+                        }
+                      },
+                      {
+                        "chapter": 2,
+                        "goal": "Head back to the corridor. Someone's waiting for you."
+                      }
+                    ],
+                    "lose": [
+                      {
+                        "say": "granite",
+                        "lines": [
+                          "Solid. Come back when you've seen my habit."
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                []
+              ]
+            }
+          ],
+          "else": [
+            {
+              "say": "granite",
+              "lines": [
+                "Beat Cobble and Flint first. Then we talk."
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "rio_ch1": [
+    {
+      "spawn": "rio",
+      "as": "rio",
+      "x": 14,
+      "y": 5,
+      "face": "left"
+    },
+    {
+      "alert": "rio"
+    },
+    {
+      "walk": "rio",
+      "to": "player"
+    },
+    {
+      "face": "rio",
+      "toward": "player"
+    },
+    {
+      "face": "player",
+      "toward": "rio"
+    },
+    {
+      "say": "rio",
+      "lines": [
+        "A Stone stamp already?! I've been practising. I remember every throw you made at the gate.",
+        "Rematch. Now!"
+      ]
+    },
+    {
+      "duel": "rio",
+      "with": "rio",
+      "win": [
+        {
+          "say": "rio",
+          "lines": [
+            "How?! I studied you!",
+            "…Fine. I'll study harder."
+          ]
+        }
+      ],
+      "lose": [
+        {
+          "say": "rio",
+          "lines": [
+            "Ha! I knew you'd do that!",
+            "Studying people works. Remember that."
+          ]
+        }
+      ]
+    },
+    {
+      "say": "rio",
+      "lines": [
+        "The Origami Club's in the library. Bet you can't fold under pressure."
+      ]
+    },
+    {
+      "walk": "rio",
+      "to": [
+        14,
+        5
+      ]
+    },
+    {
+      "despawn": "rio"
+    },
+    {
+      "flag": "rio_ch1"
+    },
+    {
+      "chapter": 2,
+      "goal": "Find the Origami Club in the library (corridor, middle door)."
+    }
+  ]
+}

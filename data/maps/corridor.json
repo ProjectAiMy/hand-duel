@@ -2,32 +2,180 @@
   "id": "corridor",
   "name": "Main corridor",
   "ground": ".",
-  "spawn": { "x": 11, "y": 7, "face": "up" },
+  "spawn": {
+    "x": 17,
+    "y": 7,
+    "face": "up"
+  },
   "tiles": [
-    "########################",
-    "#LLLLLLD#LLLLLLLD#LLLLL#",
-    "#......................#",
-    "#......................#",
-    "#..mmmm..........mmmm..#",
-    "#......................#",
-    "#.B..............B.....#",
-    "#......................#",
-    "###########D############"
+    "##################################",
+    "#LLLDLLLLLDLLLLLDLLLLLDLLLLLDLLLL#",
+    "#................................#",
+    "#................................#",
+    "#..mmmm....................mmmm..D",
+    "#................................#",
+    "#.B.........B........B.........B.#",
+    "#................................#",
+    "#################D################"
   ],
   "doors": [
-    { "x": 11, "y": 8, "to": "courtyard", "tx": 9, "ty": 3, "face": "down" },
-    { "x": 7, "y": 1, "name": "Music room", "lines": ["The music room. Someone's practising scales inside.", "It's booked all day."] },
-    { "x": 16, "y": 1, "name": "Gym", "lines": ["The gym doors are locked.", "A sign says: STONE CLUB PRACTICE. MEMBERS ONLY."] }
+    {
+      "x": 17,
+      "y": 8,
+      "to": "courtyard",
+      "tx": 9,
+      "ty": 3,
+      "face": "down"
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "name": "Music room",
+      "lines": [
+        "The music room. Someone's practising scales inside.",
+        "It's booked all day."
+      ]
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "name": "Gym",
+      "to": "gym",
+      "tx": 7,
+      "ty": 10,
+      "face": "up",
+      "needs": "ch0_intro",
+      "lines": [
+        "The gym doors are locked."
+      ]
+    },
+    {
+      "x": 16,
+      "y": 1,
+      "name": "Library",
+      "to": "library",
+      "tx": 8,
+      "ty": 10,
+      "face": "up",
+      "needs": "stamp:stone",
+      "lines": [
+        "The library. A sign says: ORIGAMI CLUB. Stone stamp holders only."
+      ]
+    },
+    {
+      "x": 22,
+      "y": 1,
+      "name": "Sports hall",
+      "to": "sportshall",
+      "tx": 8,
+      "ty": 10,
+      "face": "up",
+      "needs": "memo",
+      "lines": [
+        "The sports hall. The Fencing Club is training behind the doors.",
+        "They won't talk to just anyone. Maybe there's news they'd care about…"
+      ]
+    },
+    {
+      "x": 28,
+      "y": 1,
+      "name": "Auditorium",
+      "to": "auditorium",
+      "tx": 8,
+      "ty": 10,
+      "face": "up",
+      "needs": "rio_ch3",
+      "lines": [
+        "The auditorium. Rehearsal in progress: DO NOT DISTURB."
+      ]
+    },
+    {
+      "x": 33,
+      "y": 4,
+      "name": "Council room",
+      "to": "council",
+      "tx": 1,
+      "ty": 5,
+      "face": "right",
+      "needs": "rio_ch4",
+      "lines": [
+        "STUDENT COUNCIL. By appointment only."
+      ]
+    }
   ],
-  "things": [],
+  "things": [
+    {
+      "x": 13,
+      "y": 1,
+      "kind": "locker",
+      "name": "Your locker",
+      "emoji": "🔐"
+    },
+    {
+      "x": 19,
+      "y": 1,
+      "kind": "text",
+      "name": "Lockers",
+      "emoji": "🗄️",
+      "lines": [
+        "Somebody's locker. It smells of old gym socks."
+      ]
+    }
+  ],
+  "events": [
+    {
+      "on": "enter",
+      "if": [
+        "stamp:stone",
+        "!rio_ch1"
+      ],
+      "script": "rio_ch1"
+    },
+    {
+      "on": "enter",
+      "if": [
+        "stamp:blade",
+        "!rio_ch3"
+      ],
+      "script": "rio_ch3"
+    }
+  ],
   "npcs": [
-    { "id": "bea", "x": 3, "y": 3, "face": "right", "sight": 5,
-      "look": { "skin": "#f5d0b5", "hair": "#c2410c", "top": "#f472b6" } },
-    { "id": "ruth", "x": 6, "y": 2, "face": "down", "sight": 3,
-      "look": { "skin": "#e0ac85", "hair": "#6b7280", "top": "#0f766e" } },
-    { "id": "tank", "x": 15, "y": 2, "face": "down", "sight": 4, "turns": ["down", "right"],
-      "look": { "skin": "#a86b4a", "hair": "#111827", "top": "#dc2626" } },
-    { "id": "dex", "x": 21, "y": 5, "face": "left", "sight": 6, "turns": ["left", "up"],
-      "look": { "skin": "#f1c27d", "hair": "#14532d", "top": "#16a34a" } }
+    {
+      "id": "bea",
+      "x": 3,
+      "y": 3,
+      "face": "right",
+      "sight": 5
+    },
+    {
+      "id": "ruth",
+      "x": 5,
+      "y": 2,
+      "face": "down",
+      "sight": 3
+    },
+    {
+      "id": "tank",
+      "x": 8,
+      "y": 5,
+      "face": "right",
+      "sight": 4,
+      "turns": [
+        "right",
+        "down"
+      ]
+    },
+    {
+      "id": "dex",
+      "x": 25,
+      "y": 5,
+      "face": "left",
+      "sight": 6,
+      "turns": [
+        "left",
+        "up"
+      ]
+    }
   ]
 }

@@ -1,0 +1,78 @@
+{
+  "id": "gym",
+  "name": "Gym · Stone Club",
+  "ground": ".",
+  "arena": "dojo",
+  "spawn": {
+    "x": 7,
+    "y": 10,
+    "face": "up"
+  },
+  "tiles": [
+    "################",
+    "#wwww######wwww#",
+    "#..............#",
+    "#.mmmmmmmmmmmm.#",
+    "#.m..........m.#",
+    "#.m..........m.#",
+    "#.m..........m.#",
+    "#.mmmmmmmmmmmm.#",
+    "#..............#",
+    "#B............B#",
+    "#..............#",
+    "#######D########"
+  ],
+  "doors": [
+    {
+      "x": 7,
+      "y": 11,
+      "to": "corridor",
+      "tx": 10,
+      "ty": 2,
+      "face": "down"
+    }
+  ],
+  "things": [
+    {
+      "x": 14,
+      "y": 9,
+      "kind": "text",
+      "name": "Club board",
+      "emoji": "📋",
+      "lines": [
+        "STONE CLUB. Rule 1: Do not move. Rule 2: See rule 1."
+      ]
+    }
+  ],
+  "events": [
+    {
+      "on": "enter",
+      "if": "!gym_intro",
+      "script": "gym_intro"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "cobble",
+      "x": 3,
+      "y": 5,
+      "face": "right",
+      "sight": 5
+    },
+    {
+      "id": "flint",
+      "x": 12,
+      "y": 4,
+      "face": "left",
+      "sight": 5
+    },
+    {
+      "id": "granite",
+      "x": 7,
+      "y": 2,
+      "face": "down",
+      "sight": 0,
+      "script": "granite"
+    }
+  ]
+}

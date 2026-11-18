@@ -6,9 +6,13 @@ export const SAVE_KEY = "handduel-school";
 export const SAVE_V = 1;
 const CODE_PREFIX = "HD1.";
 const FACES = ["up", "down", "left", "right"];
+export const STAMPS = ["stone", "paper", "blade", "mirror", "final"];
 
 export function freshSave() {
-  return { v: SAVE_V, map: null, x: null, y: null, face: "down", record: {}, flags: {}, started: Date.now() };
+  return {
+    v: SAVE_V, map: null, x: null, y: null, face: "down", record: {}, flags: {}, started: Date.now(),
+    name: "", avatar: null, stamps: [], coins: 0, items: [], chapter: 0, goal: "",
+  };
 }
 
 const isObj = (o) => o && typeof o === "object" && !Array.isArray(o);
@@ -28,6 +32,13 @@ export function migrate(raw) {
       if (/^[a-z0-9-]{1,32}$/.test(id) && isObj(r)) s.record[id] = { w: int(r.w) ?? 0, l: int(r.l) ?? 0 };
   if (isObj(raw.flags)) for (const [k, v] of Object.entries(raw.flags)) if (/^[A-Za-z0-9_]{1,40}$/.test(k) && typeof v === "boolean") s.flags[k] = v;
   if (typeof raw.started === "number") s.started = raw.started;
+  if (typeof raw.name === "string") s.name = raw.name.replace(/[^\p{L}\p{N} ._'-]/gu, "").slice(0, 16);
+  if (isObj(raw.avatar)) s.avatar = raw.avatar; // checked item by item by js/art/avatar.js normalizeAvatar
+  if (Array.isArray(raw.stamps)) s.stamps = STAMPS.filter((k) => raw.stamps.includes(k));
+  s.coins = Math.min(int(raw.coins) ?? 0, 99999);
+  if (Array.isArray(raw.items)) s.items = [...new Set(raw.items.filter((i) => typeof i === "string" && /^[a-z]+:[a-z0-9-]{1,24}$/.test(i)))];
+  if (int(raw.chapter) !== null) s.chapter = Math.min(raw.chapter, 9);
+  if (typeof raw.goal === "string") s.goal = raw.goal.slice(0, 120);
   return s;
 }
 
@@ -57,9 +68,29 @@ export function recordDuel(s, id, won) {
 
 export const beaten = (s, id) => (s.record[id]?.w ?? 0) > 0;
 
+/**
+ * Story conditions used by maps and scripts. A string or a list (all must hold):
+ * "flag" set, "!flag" not set, "beat:id" / "!beat:id" (won a duel against id), "stamp:stone", "chapter>=2".
+ */
+export function check(s, cond) {
+  if (cond === undefined || cond === null || cond === "") return true;
+  if (Array.isArray(cond)) return cond.every((c) => check(s, c));
+  const neg = cond.startsWith("!");
+  const c = neg ? cond.slice(1) : cond;
+  let v;
+  if (c.startsWith("beat:")) v = beaten(s, c.slice(5));
+  else if (c.startsWith("stamp:")) v = s.stamps.includes(c.slice(6));
+  else if (c.startsWith("chapter>=")) v = s.chapter >= Number(c.slice(9));
+  else v = !!s.flags[c];
+  return neg ? !v : v;
+}
+
 // Save codes: the save as base64url JSON with a short prefix. Not secret, not tamper-proof: it's a single-player game.
-const b64 = (str) => btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-const unb64 = (str) => atob(str.replace(/-/g, "+").replace(/_/g, "/"));
+// UTF-8 safe (names can have accents or other scripts).
+const b64 = (str) =>
+  btoa(String.fromCharCode(...new TextEncoder().encode(str))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const unb64 = (str) =>
+  new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(atob(str.replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0)));
 
 export function exportCode(s) {
   return CODE_PREFIX + b64(JSON.stringify(migrate(s)));

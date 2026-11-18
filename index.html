@@ -54,7 +54,10 @@
       <section class="corner" id="cornerR">
         <div class="stage opponent" id="stageR">
           <video id="remoteVideo" playsinline autoplay></video>
+          <canvas class="opp-avatar" id="oppAvatar" aria-hidden="true"></canvas>
           <div class="cpu-hand" id="cpuHand">✊</div>
+          <div class="twist-chip" id="twistChip" hidden></div>
+          <div class="last-throw" id="lastThrow" hidden></div>
           <div class="opp-tag" id="oppTag"><b class="em" id="oppEmoji">🤖</b><span><b id="oppName">CPU</b><small id="oppTrait">Random</small></span></div>
           <div class="opp-say" id="oppSay" hidden></div>
           <div class="read-panel" id="readPanel" hidden>
@@ -205,7 +208,7 @@
           <button id="camBtn" class="btn primary">📷 Turn on camera</button>
         </div>
         <div class="modes">
-          <button class="mode school" data-mode="school"><b class="em">🏫</b><span><b>School <i class="new-tag">Preview</i></b><span>Walk around Knuckle Academy. Classmates spot you and challenge you.</span></span></button>
+          <button class="mode school" data-mode="school"><b class="em">🏫</b><span><b>Story: Knuckle Academy <i class="new-tag">New</i></b><span>Make your character, duel your way through five school clubs, and save Hand Duels at the festival.</span></span></button>
           <button class="mode cpu" data-mode="cpu"><b class="em">🤖</b><span><b>VS CPU</b><span>12 opponents, each with a habit to spot.</span></span></button>
           <button class="mode local" data-mode="local"><b class="em">👥</b><span><b>2 Players</b><span>Same screen, one camera. P1 left, P2 right.</span></span></button>
           <button class="mode online" data-mode="online"><b class="em">🌐</b><span><b>Online</b><span>Video duel with a friend by room code.</span></span></button>
@@ -226,9 +229,11 @@
       <div class="school-top">
         <div class="school-chips">
           <div class="school-chip glass" id="schoolPlace">Front courtyard</div>
-          <div class="school-chip glass gold" id="schoolGoal"></div>
+          <div class="school-chip glass" id="schoolStats"></div>
+          <div class="school-chip glass gold goal" id="schoolGoal"></div>
         </div>
         <div class="topbar-tools">
+          <button class="icon-btn" id="schoolCardBtn" title="Stamp card and story" aria-label="Stamp card and story">🎴</button>
           <button class="icon-btn" id="schoolSaveBtn" title="Save code" aria-label="Save code">💾</button>
           <button class="icon-btn" data-mute title="Mute (M)" aria-label="Mute sound">🔊</button>
           <button class="icon-btn" data-open-settings title="Settings" aria-label="Settings">⚙️</button>
@@ -252,7 +257,26 @@
         </div>
         <button type="button" class="talk-next" id="talkNext" aria-label="Next" hidden>▼</button>
       </div>
+      <button type="button" class="btn small school-skip" id="schoolSkip" hidden>Skip scene ⏭</button>
+      <div class="school-toast" id="schoolToast" role="status" hidden></div>
+      <div class="stamp-show" id="stampShow" role="status" hidden></div>
       <div class="school-fade" id="schoolFade"></div>
+      <div class="modal" id="stampCard" role="dialog" aria-labelledby="stampCardTitle" hidden>
+        <div class="card glass stamp-card">
+          <h2 id="stampCardTitle">🎴 Stamp card</h2>
+          <div id="stampCardBody"></div>
+          <div class="cta-row center">
+            <button type="button" class="btn" data-look>👕 Change your look</button>
+            <button type="button" class="btn primary" data-close>Close</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal credits" id="credits" role="dialog" aria-label="Credits" hidden>
+        <div class="card glass credits-card">
+          <div id="creditsText"></div>
+          <button type="button" class="btn primary">Back to school</button>
+        </div>
+      </div>
       <div class="modal" id="savePanel" role="dialog" aria-labelledby="savePanelTitle" hidden>
         <div class="card glass save-card">
           <h2 id="savePanelTitle">💾 Save code</h2>

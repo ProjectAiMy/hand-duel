@@ -255,15 +255,15 @@ Still a static site on GitHub Pages: no server, no cost.
 
 | # | Milestone | What you can try at the end |
 |---|---|---|
-| M0 | Refactor: duel controller and opponent interface out of `main.js` (opponent interface done Nov 18; controller split still to do) | The current game works exactly as before |
+| M0 | Refactor: duel controller and opponent interface out of `main.js` (opponent interface done Nov 18; the controller split is still to do, best done together with the battle-screen redesign) | The current game works exactly as before |
 | M1 | NPC strategies + tests; VS CPU gets a "pick an opponent" list, with Easy hints (done Nov 18; twists come with M5) | Play Pip, Bea, Granite… in the existing camera game |
 | M2 | Map engine: the school's first areas, movement, collisions, line of sight, dialogue, save (done Nov 18: courtyard + corridor, maps as JSON rows instead of Tiled for now) | Walk the school; classmates spot you and start duels |
-| M3 | Layered avatars + placeholder pack + avatar creator | Make your character; see it on the map and in duels |
-| M4 | Story engine (event scripts, flags, cutscenes) + Chapters 0–1 | Play the first day and the Stone Club |
-| M5 | Battle screen v1 from your design examples, tells, hint panel, results | Proper avatar duels with personality |
-| M6 | Chapters 2–5: the other four clubs, Rio's arc, the festival finale | The full story |
-| M7 | Art pass with your designs as a new pack; colours and fonts | The look you want |
-| M8+ | Online (section 10) | Meet friends at school |
+| M3 | Layered avatars + placeholder pack + avatar creator (done Nov 18, art drawn in code) | Make your character; see it on the map and in duels |
+| M4 | Story engine (event scripts, flags, cutscenes) + Chapters 0–1 (done Nov 18) | Play the first day and the Stone Club |
+| M5 | Battle screen v1 from your design examples, tells, hint panel, results (v1 done Nov 18 with placeholder avatars on the existing duel screen, captain twists, stamp ceremony; the redesign waits for your examples) | Proper avatar duels with personality |
+| M6 | Chapters 2–5: the other four clubs, Rio's arc, the festival finale (done Nov 18; club members and the Council are story-only roster entries) | The full story |
+| M7 | Art pass with your designs as a new pack; colours and fonts (waiting for your designs) | The look you want |
+| M8+ | Online (section 10) (not started: needs a paid server and a safety decision, see section 10) | Meet friends at school |
 
 M1 improves the current game straight away and tests the trait AI before the map exists.
 

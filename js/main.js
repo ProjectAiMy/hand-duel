@@ -11,6 +11,7 @@ import { HandCursor, palmPoint } from "./cursor.js";
 import { createOpponent } from "./duel/opponents.js";
 import { ROSTER, GROUPS } from "./npc/roster.js";
 import { School } from "./world/school.js";
+import { avatarCanvas } from "./art/avatar.js";
 
 const $ = (id) => document.getElementById(id);
 const el = Object.fromEntries(
@@ -27,7 +28,7 @@ const el = Object.fromEntries(
     "camHelpSteps", "camRetry", "camSkip", "howto", "howtoBtn", "retestBtn", "settingsPanel", "fsToggle", "fsRow",
     "resetSettings", "layoutSwitch", "cornerL", "cornerR", "dock", "menuTag", "dockGrab", "sheetPowers", "readDot",
     "oppTag", "oppEmoji", "oppName", "oppTrait", "oppSay", "readPanel", "rpName", "rpHist", "rpBars", "rpHint",
-    "oppPicker", "oppList", "oppDifficulty", "matchOpp", "school",
+    "oppPicker", "oppList", "oppDifficulty", "matchOpp", "school", "oppAvatar", "twistChip", "lastThrow",
   ].map((id) => [id, $(id)]),
 );
 const ctx2d = el.overlay.getContext("2d");
@@ -88,6 +89,9 @@ let remoteHand = null; // { b: [x0, y0, x1, y1] in their camera frame, at } sent
 let opponent = createOpponent(S.get("opponent"), { easy: S.get("difficulty") === "easy" }); // VS CPU opponent
 let planned = null; // the opponent's throw for the current countdown, decided before yours is read
 let schoolDuel = null; // id of the classmate you're duelling from the school map (VS CPU otherwise)
+let schoolOpts = null; // that duel's { twist, avatar, playerName, arena }
+let resumeMode = null; // the game picked when the camera failed; starts once the help screen is closed
+const twist = () => (mode === "cpu" && schoolDuel ? schoolOpts?.twist : null) || null;
 const names = () => (mode === "cpu" ? ["YOU", (opponent.npc.short || opponent.npc.name).toUpperCase()] : MODES[mode].names);
 const isGuest = () => mode === "online" && net && !net.isHost;
 
@@ -182,7 +186,8 @@ async function chooseMode(m) {
   el.noCam.querySelector("p").textContent = "Camera off — use the buttons or keys";
   await ensureCamera();
   document.querySelectorAll(".mode").forEach((b) => (b.disabled = false));
-  if (!el.camHelp.hidden) return; // camera failed: the help screen decides what's next
+  if (!el.camHelp.hidden) return void (resumeMode = m); // camera failed: carry on with this mode after the help screen
+  resumeMode = null;
   applyModeUI();
   showScreen("game");
   if (m === "online") openLobby();
@@ -212,6 +217,7 @@ function applyModeUI() {
 
 function backToMenu(message = "", isError = false) {
   cancelFlow();
+  resumeMode = null;
   net?.close();
   net = null;
   remoteHand = null;
@@ -479,11 +485,11 @@ function renderHud() {
     fill.style.width = ghost.style.width = `${pct}%`;
     fill.classList.toggle("low", pct > 0 && pct <= 30);
     pips.innerHTML = Array.from(
-      { length: ROUNDS_TO_WIN },
+      { length: fight.roundsToWin },
       (_, k) => `<i class="${k < fight.roundWins[i] ? "on" : ""}"></i>`,
     ).join("");
   });
-  const last = fight.roundWins[0] === ROUNDS_TO_WIN - 1 && fight.roundWins[1] === ROUNDS_TO_WIN - 1;
+  const last = fight.roundWins[0] === fight.roundsToWin - 1 && fight.roundWins[1] === fight.roundsToWin - 1;
   el.roundLabel.textContent = last ? "FINAL ROUND" : `ROUND ${fight.round}`;
   renderPowers();
 }
@@ -540,7 +546,9 @@ function resetThrowVisuals() {
 
 function startMatch() {
   cancelFlow();
-  fight.newMatch();
+  fight.setRules(twist()?.rules || {}); // club twists change the rules; everyone else plays the defaults
+  el.oppAvatar.classList.remove("ko", "hit");
+  el.lastThrow.hidden = true;
   armed = [null, null];
   needIntro = true;
   voidStreak = 0;
@@ -564,6 +572,7 @@ function startMatch() {
 
 async function roundIntro(arena) {
   applyArena(arena);
+  el.oppAvatar.classList.remove("ko");
   resetThrowVisuals();
   renderHud();
   setResult("");
@@ -579,6 +588,7 @@ async function roundIntro(arena) {
 
 /** Countdown, then read each player's throw. */
 async function countdown() {
+  const beat = twist()?.beat || BEAT; // Snip's speed rounds count down faster
   manual = [...pendingManual];
   pendingManual = [null, null];
   collecting = true;
@@ -586,13 +596,13 @@ async function countdown() {
   if (mode === "cpu") {
     el.cpuHand.classList.add("pump");
     planned = opponent.plan(fight); // before your throw is read, from earlier throws only
-    if (planned.tell) oppSay(planned.tell, BEAT * 3, "tell");
+    if (planned.tell) oppSay(planned.tell, beat * 3, "tell");
   }
   const words = ["Rock", "Paper", "Scissors"];
   for (let i = 0; i < words.length; i++) {
     announce(words[i], "small");
     sfx.tick(i);
-    await sleep(BEAT);
+    await sleep(beat);
   }
   announce("Shoot!", "small gold");
   sfx.shoot();
@@ -689,6 +699,7 @@ async function turn(intro, ex) {
   }
 
   await present(a, b, ev, note, fouls);
+  if (mode === "cpu") reactAvatar(ev, a);
   if (ev.ko) return koSequence(ev);
   await holdBeforeNext();
   return "next";
@@ -1548,8 +1559,27 @@ el.oppPicker.addEventListener("click", (e) => {
   if (d) S.set("difficulty", d.dataset.v);
 });
 
+/** Battle view v1: the opponent's avatar flinches when hit and falls on a K.O.; Echo's twist shows your last throw. */
+function reactAvatar(ev, mine) {
+  const av = el.oppAvatar;
+  if (ev.hurt === 1) {
+    av.classList.remove("hit");
+    void av.offsetWidth;
+    av.classList.add("hit");
+  }
+  if (ev.ko && ev.victor === 0) av.classList.add("ko");
+  if (twist()?.showLast && mine) {
+    el.lastThrow.innerHTML = `Your last throw: <b>${GESTURES[mine].emoji}</b>`;
+    el.lastThrow.hidden = false;
+  }
+}
+
 function renderOpponent() {
   const n = opponent.npc;
+  avatarCanvas((schoolDuel && schoolOpts?.avatar) || n.avatar, { scale: 8, canvas: el.oppAvatar });
+  const t = twist();
+  el.twistChip.textContent = t?.label || "";
+  el.twistChip.hidden = !t;
   el.oppEmoji.textContent = n.emoji;
   el.oppName.textContent = n.name;
   el.oppTrait.textContent = n.trait;
@@ -1606,8 +1636,9 @@ function openSchool() {
 }
 
 /** A classmate on the map challenged you: play the duel in the normal VS CPU screen. */
-function startSchoolDuel(id) {
+function startSchoolDuel(id, opts = {}) {
   schoolDuel = id;
+  schoolOpts = opts;
   opponent = createOpponent(id, { easy: S.get("difficulty") === "easy" });
   chooseMode("cpu");
 }
@@ -1616,6 +1647,7 @@ function backToSchool() {
   cancelFlow();
   el.matchModal.hidden = el.lookSheet.hidden = true;
   schoolDuel = null;
+  schoolOpts = null;
   opponent = createOpponent(S.get("opponent"), { easy: S.get("difficulty") === "easy" }); // VS CPU keeps your own pick
   showScreen("school");
   school.resume();
@@ -1663,7 +1695,7 @@ function showCamHelp(e) {
 }
 el.camRetry.addEventListener("click", async () => {
   el.camHelp.hidden = true;
-  if (schoolDuel && document.body.dataset.screen === "school") return chooseMode("cpu");
+  if (resumeMode) return chooseMode(resumeMode);
   if (!el.handTest.hidden) await startCameraForTest();
   else {
     wantCam = true;
@@ -1674,7 +1706,7 @@ el.camRetry.addEventListener("click", async () => {
 el.camSkip.addEventListener("click", () => {
   el.camHelp.hidden = true;
   wantCam = false;
-  if (schoolDuel && document.body.dataset.screen === "school") return chooseMode("cpu");
+  if (resumeMode) return chooseMode(resumeMode);
   showScreen(el.handTest.hidden && document.body.dataset.screen === "game" ? "game" : "menu");
 });
 

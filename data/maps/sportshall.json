@@ -1,0 +1,71 @@
+{
+  "id": "sportshall",
+  "name": "Sports hall · Fencing Club",
+  "ground": "y",
+  "arena": "neon",
+  "spawn": {
+    "x": 8,
+    "y": 10,
+    "face": "up"
+  },
+  "tiles": [
+    "##################",
+    "#wwyyyyywwyyyyyww#",
+    "#yyyyyyyyyyyyyyyy#",
+    "#yyyyyyyyyyyyyyyy#",
+    "#yyyyyyyyyyyyyyyy#",
+    "#yyyyyyyyyyyyyyyy#",
+    "#yyyyyyyyyyyyyyyy#",
+    "#yyyyyyyyyyyyyyyy#",
+    "#yyyyyyyyyyyyyyyy#",
+    "#ByyyyyyyyyyyyyyB#",
+    "#yyyyyyyyyyyyyyyy#",
+    "########D#########"
+  ],
+  "doors": [
+    {
+      "x": 8,
+      "y": 11,
+      "to": "corridor",
+      "tx": 22,
+      "ty": 2,
+      "face": "down"
+    }
+  ],
+  "things": [],
+  "events": [
+    {
+      "on": "enter",
+      "if": "!hall_intro",
+      "script": "hall_intro"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "parry",
+      "x": 2,
+      "y": 6,
+      "face": "right",
+      "sight": 6
+    },
+    {
+      "id": "riposte",
+      "x": 15,
+      "y": 4,
+      "face": "left",
+      "sight": 6,
+      "turns": [
+        "left",
+        "down"
+      ]
+    },
+    {
+      "id": "snip",
+      "x": 8,
+      "y": 2,
+      "face": "down",
+      "sight": 0,
+      "script": "snip"
+    }
+  ]
+}

@@ -67,10 +67,43 @@ function drawTile(g, map, tx, ty, base) {
   const x = tx * TILE;
   const y = ty * TILE;
   const below = tileAt(map, tx, ty + 1);
-  const wallish = (c) => c === "#" || c === "w" || c === "L" || c === "D";
+  const wallish = (c) => c === "#" || c === "w" || c === "L" || c === "D" || c === "S" || c === "C";
   switch (ch) {
     case ",": case "=": case "f": case ".":
       return ground(g, ch, tx, ty, x, y);
+    case "y":
+      px(g, "#7fae6a", x, y, TILE, TILE);
+      px(g, "#8dbb77", x, y, TILE, 1);
+      if (tx % 8 === 0) px(g, "#f5f5f4", x + 7, y, 2, TILE);
+      if (ty % 6 === 0) px(g, "#f5f5f4", x, y + 7, TILE, 2);
+      return;
+    case "P":
+      px(g, "#b07a45", x, y, TILE, TILE);
+      px(g, "#8d5f33", x, y + 7, TILE, 1);
+      px(g, "#8d5f33", x, y + 15, TILE, 1);
+      px(g, "#c99060", x + (ty % 2 ? 3 : 11), y + 1, 1, 6);
+      return;
+    case "S": {
+      px(g, C.woodDark, x, y, TILE, TILE);
+      const books = ["#b91c1c", "#1d4ed8", "#ca8a04", "#15803d", "#7c3aed", "#e5e7eb"];
+      for (const sy of [1, 8])
+        for (let i = 0; i < 7; i++) px(g, books[Math.floor(hash(tx, ty, sy * 10 + i) * books.length)], x + 1 + i * 2, y + sy + (i % 3 === 0 ? 1 : 0), 2, 6 - (i % 3 === 0 ? 1 : 0));
+      px(g, C.wood, x, y + 7, TILE, 1);
+      px(g, C.wood, x, y + 15, TILE, 1);
+      return;
+    }
+    case "C":
+      px(g, "#8b1e2d", x, y, TILE, TILE);
+      for (let i = 0; i < 4; i++) px(g, "#6d1622", x + i * 4 + 1, y, 1, TILE);
+      px(g, "#ffcc33", x, y + TILE - 2, TILE, 1);
+      return;
+    case "k":
+      ground(g, ".", tx, ty, x, y);
+      px(g, "#7f1d1d", x + 1, y + 2, 14, 10);
+      px(g, "#b91c1c", x + 2, y + 3, 5, 6);
+      px(g, "#b91c1c", x + 9, y + 3, 5, 6);
+      px(g, "#00000040", x + 1, y + 12, 14, 2);
+      return;
     case "m":
       ground(g, ".", tx, ty, x, y);
       px(g, "#7b3f5c", x, y + 2, TILE, 12);
@@ -97,7 +130,8 @@ function drawTile(g, map, tx, ty, base) {
       }
       return;
     case "D": {
-      const open = !!doorAt(map, tx, ty)?.to;
+      const d = doorAt(map, tx, ty);
+      const open = !!d?.to && !d.locked;
       wall(g, x, y, false);
       px(g, C.woodDark, x + 1, y, 14, TILE);
       px(g, open ? "#3a2614" : C.wood, x + 2, y + 1, 12, TILE - 1);

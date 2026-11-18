@@ -27,7 +27,9 @@ export class Dialogue {
    */
   async say(speaker, lines, choices = null) {
     const e = this.e;
-    e.face.textContent = speaker.emoji || "💬";
+    if (speaker.portrait) e.face.replaceChildren(speaker.portrait);
+    else e.face.textContent = speaker.emoji || "💬";
+    this.skipNow = false;
     e.name.textContent = speaker.name || "";
     e.trait.textContent = speaker.trait || "";
     e.trait.hidden = !speaker.trait;
@@ -35,6 +37,7 @@ export class Dialogue {
     let picked = null;
     for (let i = 0; i < lines.length; i++) {
       const last = i === lines.length - 1;
+      if (this.skipNow && !(last && choices)) continue;
       await this.type(lines[i]);
       if (last && choices) picked = await this.choose(choices);
       else await this.waitNext();
@@ -46,6 +49,10 @@ export class Dialogue {
 
   type(text) {
     const e = this.e;
+    if (this.skipNow) {
+      e.text.textContent = text;
+      return Promise.resolve();
+    }
     e.choices.innerHTML = "";
     e.choices.hidden = true;
     e.next.hidden = true;
@@ -73,6 +80,7 @@ export class Dialogue {
   }
 
   waitNext() {
+    if (this.skipNow) return Promise.resolve();
     this.e.next.hidden = false;
     return new Promise((r) => (this.resolveLine = r));
   }
@@ -103,6 +111,13 @@ export class Dialogue {
       this.e.next.hidden = true;
       r();
     }
+  }
+
+  /** Skip button: drop the rest of these lines (a choice at the end still shows). */
+  skipLines() {
+    this.skipNow = true;
+    this.advance();
+    this.advance();
   }
 
   /** Arrow keys move between choices. */

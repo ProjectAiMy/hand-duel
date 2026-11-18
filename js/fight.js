@@ -23,9 +23,26 @@ export const POWER_KEYS = Object.keys(POWERS);
 export const EARN_AFTER = 2; // wins (power) or losses (reverse) in a row
 const freshPowers = () => ({ power: false, reverse: false, shield: true });
 
+/**
+ * Match rules. Club captains change them (their "twist"); everyone else plays the defaults.
+ * extraShields: shield uses beyond the first, per round (Granite's shield blocks two hits).
+ * startPowers: powers a side holds at the start of every round (Fold starts with reverse).
+ */
+export const DEFAULT_RULES = Object.freeze({ roundsToWin: ROUNDS_TO_WIN, extraShields: [0, 0], startPowers: [[], []] });
+
 export class Fight {
-  constructor() {
+  constructor(rules = {}) {
+    this.setRules(rules);
+  }
+
+  /** Change the rules and start a new match with them. */
+  setRules(rules = {}) {
+    this.rules = { ...DEFAULT_RULES, ...rules };
     this.newMatch();
+  }
+
+  get roundsToWin() {
+    return this.rules.roundsToWin;
   }
 
   newMatch() {
@@ -39,7 +56,12 @@ export class Fight {
     this.hp = [MAX_HP, MAX_HP];
     this.streak = [0, 0]; // throws won in a row
     this.losses = [0, 0]; // throws lost in a row
-    this.powers = [freshPowers(), freshPowers()]; // true = held and ready to arm
+    this.powers = [0, 1].map((i) => {
+      const p = freshPowers();
+      for (const k of this.rules.startPowers[i] || []) if (k in p) p[k] = true;
+      return p;
+    }); // true = held and ready to arm
+    this.extraShields = [...this.rules.extraShields];
     this.roundWinner = null;
   }
 
@@ -88,7 +110,14 @@ export class Fight {
     if (!a && !b) return { result: "void", winner: -1, damage: 0, used: [null, null], earned: [[], []] };
 
     const used = [0, 1].map((i) => (this.canUse(i, powers[i]) ? powers[i] : null));
-    used.forEach((p, i) => p && (this.powers[i][p] = false));
+    used.forEach((p, i) => {
+      if (!p) return;
+      this.powers[i][p] = false;
+      if (p === "shield" && this.extraShields[i] > 0) {
+        this.extraShields[i]--;
+        this.powers[i].shield = true; // another use left this round
+      }
+    });
 
     let winner;
     if (a && !b) winner = 0;
@@ -146,7 +175,7 @@ export class Fight {
       ev.perfect = this.hp[victor] === MAX_HP;
       this.roundWinner = victor;
       this.roundWins[victor]++;
-      if (this.roundWins[victor] >= ROUNDS_TO_WIN) {
+      if (this.roundWins[victor] >= this.rules.roundsToWin) {
         this.matchWinner = victor;
         ev.matchOver = true;
       }

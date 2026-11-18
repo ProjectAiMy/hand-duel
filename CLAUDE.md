@@ -66,10 +66,15 @@ README.md explains the features, controls, rules and architecture, so read it fi
   (`#readPanel`) and halves the noise. Last opponent is saved (`opponent`). Club twists are not in yet (planned for M5).
   M0 so far is only the opponent interface (`js/duel/opponents.js`); the full duel-controller split out of `main.js`
   is still to do.
-- M2 (Nov 18 2026): menu card **School (Preview)** → `#school` screen, `js/world/*` + `js/save.js` + `data/maps/*.json`
-  (courtyard, corridor; ASCII tile rows, not Tiled yet). School duels reuse VS CPU through `schoolDuel` in `main.js`
-  (match-over button becomes "Back to school"; the VS CPU pick in settings isn't changed). `SCHOOL_CHALLENGERS` in
-  `school.js` must list every challenger on the maps (a test checks). Gym/music room doors are locked text until M4.
+- M2–M6 (Nov 18 2026, built while the user was away; they asked for the whole project and a push): menu card
+  **Story: Knuckle Academy** → `#school` screen. `js/world/*` (grid, render, dialogue, script runner, creator, school),
+  `js/art/*` (avatar data + placeholder pack drawn in code), `js/save.js`, `data/maps/*.json` (8 maps, ASCII tile rows,
+  not Tiled), `data/story/*.json` (chapters 0–5, credits). School duels reuse VS CPU through `schoolDuel`/`schoolOpts`
+  in `main.js` (twists, opponent avatar, "Back to school"); the VS CPU pick in settings isn't changed. Story-only cast
+  have `group: "story"` in the roster (not in the picker). `SCHOOL_CHALLENGERS` in `school.js` must list every
+  challenger on the maps (a test checks). Script host methods on `School` must never be shadowed by instance
+  properties (a test checks; `this.duel` once broke every story duel).
+  Not done: M0 controller split, M7 (needs the user's designs; colours/fonts last), M8 online (paid server + safety).
   The browser pane is hidden most of the time, so requestAnimationFrame barely runs there: take screenshots to step it.
 
 ## Not yet verified
@@ -82,8 +87,10 @@ README.md explains the features, controls, rules and architecture, so read it fi
 - Phone focus layout on a real phone (swipe on the sheet handle, badge peek, safe areas).
 - UI v2 with a real camera: hand cursor feel (smoothing/speed defaults), the hand test checks, tile dodging online.
   Checked in the browser pane with the camera off, a simulated denied camera, and simulated cursor input.
-- School map (M2) by real play: walking feel, tap-to-walk and the pad on a real phone, sight ranges, and the
-  encounter → camera duel → back flow with a real camera. Checked in the browser pane with buttons only.
+- The story mode by real play: walking feel, tap-to-walk and the pad on a real phone, sight ranges, story pacing and
+  difficulty, captain twists, coins/prices, and the duel → back flow with a real camera. Checked in the browser pane with
+  buttons only (Chapter 0 with the creator and Rio's duel, gym, festival, stamp card, phone layout); the whole story
+  logic is covered by a node playthrough test, not by playing every chapter in a browser.
 - The self-signed HTTPS LAN path (`:8443`) on a phone.
 - Verified by the user: online play on real devices via the GitHub Pages site.
 

@@ -4,6 +4,6 @@
   "type": "module",
   "scripts": {
     "start": "python3 serve.py 8000",
-    "test": "node --test tests/gesture.test.mjs tests/fight.test.mjs tests/net.test.mjs tests/ui.test.mjs tests/npc.test.mjs tests/opponents.test.mjs tests/world.test.mjs"
+    "test": "node --test tests/gesture.test.mjs tests/fight.test.mjs tests/net.test.mjs tests/ui.test.mjs tests/npc.test.mjs tests/opponents.test.mjs tests/world.test.mjs tests/story.test.mjs"
   }
 }

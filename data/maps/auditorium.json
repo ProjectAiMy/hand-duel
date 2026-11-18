@@ -1,0 +1,67 @@
+{
+  "id": "auditorium",
+  "name": "Auditorium · Drama Club",
+  "ground": ".",
+  "arena": "neon",
+  "spawn": {
+    "x": 8,
+    "y": 10,
+    "face": "up"
+  },
+  "tiles": [
+    "##################",
+    "#CCCCCCCCCCCCCCCC#",
+    "#PPPPPPPPPPPPPPPP#",
+    "#PPPPPPPPPPPPPPPP#",
+    "#................#",
+    "#................#",
+    "#.kkkkk....kkkkk.#",
+    "#................#",
+    "#.kkkkk....kkkkk.#",
+    "#................#",
+    "#................#",
+    "########D#########"
+  ],
+  "doors": [
+    {
+      "x": 8,
+      "y": 11,
+      "to": "corridor",
+      "tx": 28,
+      "ty": 2,
+      "face": "down"
+    }
+  ],
+  "things": [],
+  "events": [
+    {
+      "on": "enter",
+      "if": "!aud_intro",
+      "script": "aud_intro"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "mime",
+      "x": 1,
+      "y": 4,
+      "face": "right",
+      "sight": 6
+    },
+    {
+      "id": "cue",
+      "x": 16,
+      "y": 5,
+      "face": "left",
+      "sight": 7
+    },
+    {
+      "id": "echo",
+      "x": 8,
+      "y": 2,
+      "face": "down",
+      "sight": 0,
+      "script": "echo"
+    }
+  ]
+}

@@ -14,6 +14,11 @@ export const TILES = {
   "=": { name: "path" },
   f: { name: "flowers" },
   m: { name: "mat" },
+  y: { name: "court" },
+  P: { name: "stage" },
+  S: { name: "shelf", solid: true },
+  C: { name: "curtain", solid: true },
+  k: { name: "seats", solid: true },
   "#": { name: "wall", solid: true },
   w: { name: "window", solid: true },
   T: { name: "tree", solid: true },
@@ -49,6 +54,8 @@ export function parseMap(json) {
     doors: json.doors || [],
     npcs: json.npcs || [],
     things: json.things || [],
+    events: json.events || [],
+    arena: json.arena || null,
   };
   for (const list of [map.doors, map.npcs, map.things])
     for (const o of list) if (!inBounds(map, o.x, o.y)) throw new Error(`map ${json.id}: ${o.id || o.to || o.kind} at ${o.x},${o.y} is off the map`);
@@ -64,7 +71,10 @@ export const thingAt = (map, x, y) => map.things.find((t) => t.x === x && t.y ==
 export function isSolid(map, x, y) {
   if (!inBounds(map, x, y)) return true;
   const ch = tileAt(map, x, y);
-  if (ch === "D") return !doorAt(map, x, y)?.to;
+  if (ch === "D") {
+    const d = doorAt(map, x, y);
+    return !d?.to || !!d.locked; // `locked` is set by the school from the story flags
+  }
   if (TILES[ch].solid) return true;
   return !!thingAt(map, x, y);
 }

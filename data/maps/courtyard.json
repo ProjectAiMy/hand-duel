@@ -2,7 +2,11 @@
   "id": "courtyard",
   "name": "Front courtyard",
   "ground": ",",
-  "spawn": { "x": 9, "y": 12, "face": "up" },
+  "spawn": {
+    "x": 9,
+    "y": 12,
+    "face": "up"
+  },
   "tiles": [
     "####################",
     "#ww#ww#ww##ww#ww#ww#",
@@ -21,28 +25,100 @@
     "hhhhhhhGGGGGGhhhhhhh"
   ],
   "doors": [
-    { "x": 9, "y": 2, "to": "corridor", "tx": 11, "ty": 7, "face": "up" }
+    {
+      "x": 9,
+      "y": 2,
+      "to": "corridor",
+      "tx": 17,
+      "ty": 7,
+      "face": "up"
+    }
   ],
   "things": [
-    { "x": 11, "y": 3, "kind": "notice", "name": "Notice board", "emoji": "📌" },
-    { "x": 18, "y": 3, "kind": "vending", "name": "Vending machine", "emoji": "🥤",
-      "lines": ["Everything is sold out except Victory Soda.", "It's also sold out."] },
-    { "x": 9, "y": 14, "kind": "gate", "name": "School gate", "emoji": "🚪",
-      "lines": ["The gate is shut until the last bell."] }
+    {
+      "x": 11,
+      "y": 3,
+      "kind": "notice",
+      "name": "Notice board",
+      "emoji": "📌"
+    },
+    {
+      "x": 18,
+      "y": 3,
+      "kind": "vending",
+      "name": "Vending machine",
+      "emoji": "🥤",
+      "lines": [
+        "Everything is sold out except Victory Soda.",
+        "It's also sold out."
+      ]
+    },
+    {
+      "x": 9,
+      "y": 14,
+      "kind": "gate",
+      "name": "School gate",
+      "emoji": "🚪",
+      "lines": [
+        "The gate is shut until the last bell."
+      ]
+    },
+    {
+      "x": 5,
+      "y": 6,
+      "kind": "text",
+      "name": "Fountain",
+      "emoji": "⛲",
+      "lines": [
+        "A coin glints at the bottom. Someone wished for paper to beat rock. It already does."
+      ]
+    }
   ],
   "npcs": [
-    { "id": "hale", "x": 7, "y": 12, "face": "right",
-      "name": "Mx. Hale", "title": "Caretaker", "emoji": "🧹",
-      "look": { "skin": "#c98e62", "hair": "#d9d9d9", "top": "#5b6b3f" },
-      "talk": [
-        "Ah, the new transfer student. Welcome to Knuckle Academy.",
-        "Here, every argument is settled with a Hand Duel. Lunch, lockers, the music room… everything.",
-        "Walk in front of someone who wants a duel and they'll spot you. Watch for the \"!\".",
-        "Listen to what they say before you throw. Everyone has a habit."
-      ] },
-    { "id": "pip", "x": 3, "y": 9, "face": "right", "sight": 6,
-      "look": { "skin": "#f2c9a0", "hair": "#f0b429", "top": "#e5484d" } },
-    { "id": "luna", "x": 16, "y": 4, "face": "down", "sight": 4, "turns": ["down", "left"],
-      "look": { "skin": "#8d5a3b", "hair": "#2b2350", "top": "#6e56cf" } }
+    {
+      "id": "hale",
+      "x": 7,
+      "y": 12,
+      "face": "right",
+      "name": "Mx. Hale",
+      "title": "Caretaker",
+      "emoji": "🧹",
+      "avatar": {
+        "skin": 3,
+        "hair": "buzz",
+        "hairColor": "#d9d9d9",
+        "top": "jacket",
+        "topColor": "#5b6b3f",
+        "bottom": "trousers",
+        "bottomColor": "#3f3f2f",
+        "extra": "none"
+      },
+      "script": "hale"
+    },
+    {
+      "id": "pip",
+      "x": 3,
+      "y": 9,
+      "face": "right",
+      "sight": 6
+    },
+    {
+      "id": "luna",
+      "x": 16,
+      "y": 4,
+      "face": "down",
+      "sight": 4,
+      "turns": [
+        "down",
+        "left"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "on": "enter",
+      "if": "!ch0_intro",
+      "script": "ch0_intro"
+    }
   ]
 }

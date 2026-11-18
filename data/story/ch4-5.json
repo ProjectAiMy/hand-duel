@@ -1,0 +1,97 @@
+{
+  "aud_intro": [
+    { "say": "echo", "lines": ["Welcome to rehearsal! Tonight's play: The Silent Hand, the legend who never lost a duel.", "Mime and Cue will warm you up. Then come and copy me. I mean, duel me."] },
+    { "flag": "aud_intro" }
+  ],
+
+  "echo": [
+    { "if": "stamp:mirror",
+      "then": [{ "choose": "echo", "line": "An encore?", "options": ["Rematch!", "Not now"], "then": [[{ "duel": "echo", "with": "echo" }], []] }],
+      "else": [
+        { "if": ["beat:mime", "beat:cue"],
+          "then": [
+            { "say": "echo", "lines": ["Every great actor starts by copying.", "On my stage, your last throw stays on the floor, so we can both see it."] },
+            { "choose": "echo", "line": "Places!", "options": ["Duel!", "Later"], "then": [[
+              { "duel": "echo", "with": "echo",
+                "win": [
+                  { "say": "echo", "lines": ["Bravo! An original performance.", "The Mirror stamp is yours."] },
+                  { "give": { "stamp": "mirror", "coins": 100 } },
+                  { "spawn": "hale", "x": 8, "y": 10, "face": "up", "name": "Mx. Hale", "title": "Caretaker", "emoji": "🧹", "avatar": { "skin": 3, "hair": "buzz", "hairColor": "#d9d9d9", "top": "jacket", "topColor": "#5b6b3f", "bottom": "trousers", "bottomColor": "#3f3f2f" } },
+                  { "walk": "hale", "to": "player" },
+                  { "face": "hale", "toward": "player" },
+                  { "face": "player", "toward": "hale" },
+                  { "say": "hale", "lines": ["That play… it's about me, you know.", "I was the Silent Hand. I never lost, because I never stopped reading people.", "Then I thought a lottery would spare everyone the tears, and I stopped duelling. I was wrong. Duels are how we learn to see each other."] },
+                  { "spawn": "rio", "as": "rio", "x": 8, "y": 10, "face": "up", "avatar": { "skin": 3, "hair": "spiky", "hairColor": "#ea580c", "top": "uniform", "topColor": "#1e293b", "bottom": "trousers", "bottomColor": "#0f172a", "extra": "scarf", "extraColor": "#ffcc33" } },
+                  { "walk": "rio", "to": "player" },
+                  { "face": "rio", "toward": "player" },
+                  { "say": "rio", "lines": ["So it's true. Hale was the Silent Hand…", "I joined the Council because I hate losing. One more duel. If you win, I'll listen."] },
+                  { "duel": "rio", "with": "rio",
+                    "win": [{ "say": "rio", "lines": ["You read me. Even with all my studying."] }],
+                    "lose": [{ "say": "rio", "lines": ["I won… but it didn't feel like a lottery would. It felt earned."] }] },
+                  { "say": "rio", "lines": ["A lottery means nobody learns anything. I'm with you. Let's stop Ren."] },
+                  { "despawn": "hale" },
+                  { "despawn": "rio" },
+                  { "flag": "rio_ch4" },
+                  { "chapter": 5, "goal": "Confront the Student Council: their room is at the east end of the corridor." }
+                ],
+                "lose": [{ "say": "echo", "lines": ["You were a wonderful mirror. Try changing the script."] }] }
+            ], []] }
+          ],
+          "else": [{ "say": "echo", "lines": ["Mime and Cue first, darling. Every star needs a warm-up."] }] }
+      ] }
+  ],
+
+  "council_intro": [
+    { "say": "ren", "lines": ["The transfer student. I've read every duel you've had.", "Vale and Quill will see you first."] },
+    { "flag": "council_intro" }
+  ],
+
+  "ren_room": [
+    { "if": "storyDone",
+      "then": [{ "say": "ren", "lines": ["The lottery drum is in storage. If you want a rematch, find me at the festival stage."] }],
+      "else": [
+        { "if": ["beat:vale", "beat:quill"],
+          "then": [
+            { "say": "ren", "lines": ["Very well. Not here.", "The festival stage, tonight, in front of the whole school. If you win, duels stay. If I win, the lottery begins."] },
+            { "fade": "out" },
+            { "warp": { "map": "festival", "x": 9, "y": 12, "face": "up" } },
+            { "fade": "in" }
+          ],
+          "else": [{ "say": "ren", "lines": ["My Secretary and Treasurer first. I don't waste time on unread files."] }] }
+      ] }
+  ],
+
+  "fest_intro": [
+    { "say": "ren_fest", "lines": ["Students of Knuckle Academy! Tonight we decide: duels, or the fair way.", "Step up, transfer student."] },
+    { "say": "hale", "lines": ["Go on. Read Ren the way you've read everyone else."] },
+    { "flag": "fest_intro" },
+    { "chapter": 5, "goal": "Walk up to Ren on the festival stage." }
+  ],
+
+  "ren_final": [
+    { "if": "storyDone",
+      "then": [{ "choose": "ren_fest", "line": "A rematch? That's what duels are for, after all.", "options": ["Rematch!", "Not now"], "then": [[{ "duel": "ren2", "with": "ren_fest" }], []] }],
+      "else": [
+        { "if": "!ren_p1",
+          "then": [
+            { "say": "ren_fest", "lines": ["I've read every duel you've had today. Begin."] },
+            { "duel": "ren", "with": "ren_fest",
+              "win": [{ "flag": "ren_p1" }],
+              "lose": [{ "say": "ren_fest", "lines": ["As expected. The lottery would have been kinder. Come back when you're ready."] }] }
+          ] },
+        { "if": "ren_p1",
+          "then": [
+            { "say": "ren_fest", "lines": ["…You broke my reading.", "No more reading, then. Phase two: best of five, and I play to win."] },
+            { "duel": "ren2", "with": "ren_fest",
+              "win": [
+                { "say": "ren_fest", "lines": ["…Duels stay. You've earned that.", "I wanted a school where nobody loses. You showed me losing is how we learn to read each other."] },
+                { "give": { "stamp": "final", "coins": 300 } },
+                { "flag": "storyDone" },
+                { "chapter": 6, "goal": "After the story: rematch anyone and collect every outfit." },
+                { "credits": true }
+              ],
+              "lose": [{ "say": "ren_fest", "lines": ["Phase two is mine. Talk to me when you want to try again."] }] }
+          ] }
+      ] }
+  ]
+}

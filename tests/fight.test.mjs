@@ -159,3 +159,22 @@ test("powers reset each round and survive snapshot/restore mirrored", () => {
   assert.equal(f.canUse(0, "shield"), true);
   assert.equal(f.canUse(1, "power"), false);
 });
+
+test("rules: extra shields, start powers and longer matches (club twists)", async () => {
+  const { Fight } = await import("../js/fight.js");
+  const f = new Fight({ extraShields: [0, 1], startPowers: [[], ["reverse"]], roundsToWin: 3 });
+  assert.equal(f.roundsToWin, 3);
+  assert.ok(f.canUse(1, "reverse"), "starts with reverse");
+  f.exchange("rock", "scissors", [null, "shield"]);
+  assert.ok(f.canUse(1, "shield"), "second shield use left");
+  f.exchange("rock", "scissors", [null, "shield"]);
+  assert.ok(!f.canUse(1, "shield"), "two uses only");
+  f.nextRound();
+  assert.ok(f.canUse(1, "shield") && f.canUse(1, "reverse"), "refilled each round");
+  // Three round wins needed.
+  const g = new Fight({ roundsToWin: 3 });
+  const winRound = () => { while (g.roundWinner === null) g.exchange("rock", "scissors"); };
+  winRound(); g.nextRound(); winRound(); assert.equal(g.matchWinner, null); g.nextRound(); winRound();
+  assert.equal(g.matchWinner, 0);
+  assert.equal(new Fight().roundsToWin, 2, "defaults unchanged");
+});

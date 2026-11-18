@@ -10,6 +10,7 @@ import * as S from "./settings.js";
 import { HandCursor, palmPoint } from "./cursor.js";
 import { createOpponent } from "./duel/opponents.js";
 import { ROSTER, GROUPS } from "./npc/roster.js";
+import { School } from "./world/school.js";
 
 const $ = (id) => document.getElementById(id);
 const el = Object.fromEntries(
@@ -26,7 +27,7 @@ const el = Object.fromEntries(
     "camHelpSteps", "camRetry", "camSkip", "howto", "howtoBtn", "retestBtn", "settingsPanel", "fsToggle", "fsRow",
     "resetSettings", "layoutSwitch", "cornerL", "cornerR", "dock", "menuTag", "dockGrab", "sheetPowers", "readDot",
     "oppTag", "oppEmoji", "oppName", "oppTrait", "oppSay", "readPanel", "rpName", "rpHist", "rpBars", "rpHint",
-    "oppPicker", "oppList", "oppDifficulty", "matchOpp",
+    "oppPicker", "oppList", "oppDifficulty", "matchOpp", "school",
   ].map((id) => [id, $(id)]),
 );
 const ctx2d = el.overlay.getContext("2d");
@@ -86,6 +87,7 @@ let remoteHand = null; // { b: [x0, y0, x1, y1] in their camera frame, at } sent
 
 let opponent = createOpponent(S.get("opponent"), { easy: S.get("difficulty") === "easy" }); // VS CPU opponent
 let planned = null; // the opponent's throw for the current countdown, decided before yours is read
+let schoolDuel = null; // id of the classmate you're duelling from the school map (VS CPU otherwise)
 const names = () => (mode === "cpu" ? ["YOU", (opponent.npc.short || opponent.npc.name).toUpperCase()] : MODES[mode].names);
 const isGuest = () => mode === "online" && net && !net.isHost;
 
@@ -879,7 +881,9 @@ function showMatchOver() {
   el.matchEmoji.textContent = mode === "local" ? "🏆" : youWon ? "🏆" : mode === "cpu" ? opponent.npc.emoji : "😤";
   el.matchTitle.textContent = n === "YOU" ? "You win the match!" : `${n} wins the match!`;
   el.matchScore.textContent = `Rounds ${fight.roundWins[0]} – ${fight.roundWins[1]}`;
-  el.matchOpp.hidden = mode !== "cpu";
+  el.matchOpp.hidden = mode !== "cpu" || !!schoolDuel;
+  el.matchMenu.textContent = schoolDuel ? "Back to school" : "Main menu";
+  if (schoolDuel) school.duelEnded(w === 0);
   el.rematch.disabled = isGuest();
   el.rematch.textContent = isGuest() ? "Waiting for host…" : "Rematch";
   el.matchModal.hidden = false;
@@ -1130,7 +1134,12 @@ async function shareBase() {
 
 // ---------- events ----------
 document.querySelectorAll(".mode").forEach((b) =>
-  b.addEventListener("click", () => (b.dataset.mode === "cpu" ? openPicker() : chooseMode(b.dataset.mode))),
+  b.addEventListener("click", () => {
+    schoolDuel = null;
+    if (b.dataset.mode === "cpu") openPicker();
+    else if (b.dataset.mode === "school") openSchool();
+    else chooseMode(b.dataset.mode);
+  }),
 );
 el.play.addEventListener("click", () => {
   unlockAudio();
@@ -1139,12 +1148,12 @@ el.play.addEventListener("click", () => {
 });
 el.pause.addEventListener("click", togglePause);
 el.rematch.addEventListener("click", startMatch);
-el.matchMenu.addEventListener("click", () => backToMenu());
+el.matchMenu.addEventListener("click", () => (schoolDuel ? backToSchool() : backToMenu()));
 el.matchOpp.addEventListener("click", () => {
   el.matchModal.hidden = true;
   openPicker();
 });
-el.menuBtn.addEventListener("click", () => backToMenu());
+el.menuBtn.addEventListener("click", () => (schoolDuel ? backToSchool() : backToMenu()));
 el.lobbyBack.addEventListener("click", () => backToMenu());
 el.createRoom.addEventListener("click", createRoom);
 el.joinForm.addEventListener("submit", (e) => {
@@ -1318,7 +1327,7 @@ let frameCount = 0;
 
 /** A full screen or panel that takes over input (game keys and power signs are ignored). */
 function overlayOpen() {
-  return [el.landing, el.handTest, el.menu, el.lobby, el.camHelp, el.howto, el.settingsPanel, el.oppPicker].some((p) => !p.hidden);
+  return [el.landing, el.handTest, el.menu, el.school, el.lobby, el.camHelp, el.howto, el.settingsPanel, el.oppPicker].some((p) => !p.hidden);
 }
 
 /** Esc: close the topmost closable panel. Returns true if it closed one. */
@@ -1335,6 +1344,8 @@ function showScreen(name) {
   el.landing.hidden = name !== "landing";
   el.handTest.hidden = name !== "handtest";
   el.menu.hidden = name !== "menu";
+  if (name !== "school" && !el.school.hidden) school.close();
+  el.school.hidden = name !== "school";
   document.body.dataset.screen = name;
   placeStage(name === "handtest" ? "calib" : "game");
   if (name !== "game") playMusic("menu");
@@ -1575,6 +1586,41 @@ function renderRead() {
 }
 buildPicker();
 
+// ---------- school map (RPG preview) ----------
+const school = new School(el.school, {
+  onDuel: startSchoolDuel,
+  onExit: () => showScreen("menu"),
+  sfx,
+  playMusic,
+  inputBlocked: () => [el.camHelp, el.howto, el.settingsPanel].some((p) => !p.hidden) || !el.lookSheet.hidden,
+});
+
+function openSchool() {
+  unlockAudio();
+  showScreen("school");
+  school.open().catch((e) => {
+    console.error(e);
+    showScreen("menu");
+    setStatus("Couldn't load the school map. Check your connection and try again.", true);
+  });
+}
+
+/** A classmate on the map challenged you: play the duel in the normal VS CPU screen. */
+function startSchoolDuel(id) {
+  schoolDuel = id;
+  opponent = createOpponent(id, { easy: S.get("difficulty") === "easy" });
+  chooseMode("cpu");
+}
+
+function backToSchool() {
+  cancelFlow();
+  el.matchModal.hidden = el.lookSheet.hidden = true;
+  schoolDuel = null;
+  opponent = createOpponent(S.get("opponent"), { easy: S.get("difficulty") === "easy" }); // VS CPU keeps your own pick
+  showScreen("school");
+  school.resume();
+}
+
 // ---------- camera help ----------
 function showCamHelp(e) {
   const code = e instanceof CameraError ? e.code : "model";
@@ -1617,6 +1663,7 @@ function showCamHelp(e) {
 }
 el.camRetry.addEventListener("click", async () => {
   el.camHelp.hidden = true;
+  if (schoolDuel && document.body.dataset.screen === "school") return chooseMode("cpu");
   if (!el.handTest.hidden) await startCameraForTest();
   else {
     wantCam = true;
@@ -1627,6 +1674,7 @@ el.camRetry.addEventListener("click", async () => {
 el.camSkip.addEventListener("click", () => {
   el.camHelp.hidden = true;
   wantCam = false;
+  if (schoolDuel && document.body.dataset.screen === "school") return chooseMode("cpu");
   showScreen(el.handTest.hidden && document.body.dataset.screen === "game" ? "game" : "menu");
 });
 
@@ -1636,6 +1684,7 @@ function cursorScope() {
   if (!el.lookSheet.hidden && !collecting) return el.lookSheet;
   if (!el.landing.hidden) return el.landing;
   if (!el.handTest.hidden) return el.handTest;
+  if (!el.school.hidden) return el.school;
   if (!el.menu.hidden) return el.menu;
   if (!busy && !collecting) return el.dock; // idle between throws: Next throw, layout, settings
   return null;

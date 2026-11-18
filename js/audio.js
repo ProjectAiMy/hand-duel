@@ -150,6 +150,10 @@ export const sfx = {
   /** Hand cursor: soft blip when it lands on a button, click when a hold presses it. */
   hover: () => play(() => tone(1320, 0, 0.05, "sine", 0.04)),
   press: () => play(() => { tone(660, 0, 0.07, "square", 0.06); tone(990, 0.05, 0.09, "square", 0.06); }),
+  /** School map: someone spotted you ("!"), a dialogue blip, going through a door. */
+  alert: () => play(() => { tone(1175, 0, 0.09, "square", 0.08); tone(1568, 0.08, 0.16, "square", 0.08); }),
+  talk: () => play(() => tone(520 + Math.random() * 80, 0, 0.03, "square", 0.025)),
+  door: () => play(() => { noise(0, 0.12, 900, 0.18); tone(330, 0.04, 0.12, "triangle", 0.1); }),
 };
 
 // ---------- music ----------
@@ -167,6 +171,15 @@ const TRACKS = {
     hat: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0],
     kick: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
     leadGain: 0.035,
+  },
+  school: {
+    bpm: 104,
+    chords: [[48, MAJOR], [57, MINOR], [53, MAJOR], [55, MAJOR]], // C Am F G
+    arp: [0, null, 2, null, 1, null, 2, null, 3, null, 2, null, 1, null, 2, null],
+    bass: [0, null, null, null, 7, null, null, null, 0, null, null, null, 7, null, 12, null],
+    hat: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1],
+    kick: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+    leadGain: 0.03,
   },
   fight: {
     bpm: 138,

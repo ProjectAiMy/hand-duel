@@ -205,6 +205,7 @@
           <button id="camBtn" class="btn primary">📷 Turn on camera</button>
         </div>
         <div class="modes">
+          <button class="mode school" data-mode="school"><b class="em">🏫</b><span><b>School <i class="new-tag">Preview</i></b><span>Walk around Knuckle Academy. Classmates spot you and challenge you.</span></span></button>
           <button class="mode cpu" data-mode="cpu"><b class="em">🤖</b><span><b>VS CPU</b><span>12 opponents, each with a habit to spot.</span></span></button>
           <button class="mode local" data-mode="local"><b class="em">👥</b><span><b>2 Players</b><span>Same screen, one camera. P1 left, P2 right.</span></span></button>
           <button class="mode online" data-mode="online"><b class="em">🌐</b><span><b>Online</b><span>Video duel with a friend by room code.</span></span></button>
@@ -217,6 +218,55 @@
         <p class="status" id="status" role="status"></p>
       </div>
       <div class="hint-bar" id="hintBar"><span>👆 Point + hold = press</span><span><kbd>Esc</kbd> closes panels</span></div>
+    </section>
+
+    <!-- ============ School map (RPG preview, M2) ============ -->
+    <section class="screen" id="school" aria-label="School" hidden>
+      <canvas id="schoolCanvas" aria-label="School map. Use the arrow keys to walk and Space to talk."></canvas>
+      <div class="school-top">
+        <div class="school-chips">
+          <div class="school-chip glass" id="schoolPlace">Front courtyard</div>
+          <div class="school-chip glass gold" id="schoolGoal"></div>
+        </div>
+        <div class="topbar-tools">
+          <button class="icon-btn" id="schoolSaveBtn" title="Save code" aria-label="Save code">💾</button>
+          <button class="icon-btn" data-mute title="Mute (M)" aria-label="Mute sound">🔊</button>
+          <button class="icon-btn" data-open-settings title="Settings" aria-label="Settings">⚙️</button>
+          <button class="icon-btn" id="schoolExit" title="Main menu" aria-label="Main menu">☰</button>
+        </div>
+      </div>
+      <div class="school-help glass" id="schoolHelp" hidden></div>
+      <div class="pad" aria-hidden="true">
+        <button type="button" class="pad-btn up" data-dir="up">▲</button>
+        <button type="button" class="pad-btn left" data-dir="left">◀</button>
+        <button type="button" class="pad-btn right" data-dir="right">▶</button>
+        <button type="button" class="pad-btn down" data-dir="down">▼</button>
+      </div>
+      <button type="button" class="pad-a" id="padA" aria-label="Talk">A</button>
+      <div class="talk glass" id="talk" role="dialog" aria-live="polite" hidden>
+        <div class="talk-face" id="talkFace">💬</div>
+        <div class="talk-body">
+          <div class="talk-name"><b id="talkName"></b><span class="trait" id="talkTrait"></span></div>
+          <p class="talk-text" id="talkText"></p>
+          <div class="talk-choices" id="talkChoices" hidden></div>
+        </div>
+        <button type="button" class="talk-next" id="talkNext" aria-label="Next" hidden>▼</button>
+      </div>
+      <div class="school-fade" id="schoolFade"></div>
+      <div class="modal" id="savePanel" role="dialog" aria-labelledby="savePanelTitle" hidden>
+        <div class="card glass save-card">
+          <h2 id="savePanelTitle">💾 Save code</h2>
+          <p class="muted">Your school progress saves on this device by itself. To carry on somewhere else, copy this code and load it there.</p>
+          <textarea id="saveCode" rows="3" spellcheck="false" aria-label="Save code"></textarea>
+          <p class="save-msg" id="saveMsg" role="status"></p>
+          <div class="cta-row center">
+            <button type="button" class="btn primary" id="saveCopy">Copy code</button>
+            <button type="button" class="btn" id="saveLoad">Load this code</button>
+            <button type="button" class="btn" id="saveReset">Start over</button>
+            <button type="button" class="btn" data-close>Close</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ============ Camera help ============ -->

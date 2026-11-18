@@ -1,0 +1,33 @@
+{
+  "id": "corridor",
+  "name": "Main corridor",
+  "ground": ".",
+  "spawn": { "x": 11, "y": 7, "face": "up" },
+  "tiles": [
+    "########################",
+    "#LLLLLLD#LLLLLLLD#LLLLL#",
+    "#......................#",
+    "#......................#",
+    "#..mmmm..........mmmm..#",
+    "#......................#",
+    "#.B..............B.....#",
+    "#......................#",
+    "###########D############"
+  ],
+  "doors": [
+    { "x": 11, "y": 8, "to": "courtyard", "tx": 9, "ty": 3, "face": "down" },
+    { "x": 7, "y": 1, "name": "Music room", "lines": ["The music room. Someone's practising scales inside.", "It's booked all day."] },
+    { "x": 16, "y": 1, "name": "Gym", "lines": ["The gym doors are locked.", "A sign says: STONE CLUB PRACTICE. MEMBERS ONLY."] }
+  ],
+  "things": [],
+  "npcs": [
+    { "id": "bea", "x": 3, "y": 3, "face": "right", "sight": 5,
+      "look": { "skin": "#f5d0b5", "hair": "#c2410c", "top": "#f472b6" } },
+    { "id": "ruth", "x": 6, "y": 2, "face": "down", "sight": 3,
+      "look": { "skin": "#e0ac85", "hair": "#6b7280", "top": "#0f766e" } },
+    { "id": "tank", "x": 15, "y": 2, "face": "down", "sight": 4, "turns": ["down", "right"],
+      "look": { "skin": "#a86b4a", "hair": "#111827", "top": "#dc2626" } },
+    { "id": "dex", "x": 21, "y": 5, "face": "left", "sight": 6, "turns": ["left", "up"],
+      "look": { "skin": "#f1c27d", "hair": "#14532d", "top": "#16a34a" } }
+  ]
+}

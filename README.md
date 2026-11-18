@@ -4,6 +4,9 @@ Hold your hand up to the camera and throw on **“Shoot!”**. Each win knocks h
 opponent; win streaks hit harder; empty the bar for a **K.O.** First to win 2 rounds takes the match.
 
 Modes:
+- **School** (preview of the story mode): walk around Knuckle Academy's courtyard and corridor. Classmates who see
+  you shout "!", walk over and challenge you; the duel is a normal camera match against their personality. Progress
+  saves on the device, and a save code moves it to another one.
 - **VS CPU**: solo, against a cast of 12 opponents who each have a habit (Pip always opens with rock, Ms. Ruth
   cycles rock → paper → scissors, Ren learns your patterns…). Spot the habit to win. **Easy** shows a hint panel.
 - **2 Players**: same device, one camera. P1 stands on the left half and P2 on the right, each raising one hand.
@@ -52,13 +55,16 @@ The game is plain static files, so any free static host works. It gives you a re
 
 Buttons and keys also override the camera during a countdown. **Auto-next** starts the next throw by itself, and pauses after 3 throws in a row with no hands seen.
 
+**School map:** arrow keys or WASD to walk, Space / Enter / E to talk and go through dialogue, or click/tap where to
+go (tap a person or a sign to walk up and talk). Touch screens also get a pad and an **A** button.
+
 **No mouse needed:** on the landing page, menus and panels, point with your palm to move the hand cursor and hold
 still over a button to press it (0.8 s by default). In a match the cursor only appears while the game is idle, so
 it never clashes with a throw.
 
 ## Screens and settings
 - **Title page**: what the game is and a big **Play** button. Nothing starts and the camera stays off until you press Play.
-- **Menu**: pick a game: VS CPU (opens the opponent picker, with Normal/Easy), 2 Players or Online, plus How to play,
+- **Menu**: pick a game: School, VS CPU (opens the opponent picker, with Normal/Easy), 2 Players or Online, plus How to play,
   Test hand and Settings. While the camera is off, a bar at the top has **Turn on camera**. Picking a game also asks
   for the camera; if it's refused you can play with on-screen buttons.
 - **Hand test** (Turn on camera / Test hand): live camera with checks (hand found, distance, light, try all three shapes).
@@ -110,8 +116,9 @@ it never clashes with a throw.
 | Hand cursor | `js/cursor.js` | Palm centre, One Euro filtered (steady when still, little lag when moving), gain around the screen centre, magnetic hit areas with a sticky edge, dwell-to-press. |
 | Settings | `js/settings.js` | Defaults, validation and localStorage (`handduel-settings`). |
 | CPU opponents | `js/npc/strategy.js`, `js/npc/roster.js`, `js/duel/opponents.js` | Each opponent's personality is a spec of small behaviours (bias, opener, win-stay, lose-shift, cycle, copy, counter-last, counter-favourite, Markov, random) mixed by weight with noise, plus moods (e.g. when ahead or low on health), tells and a power-up policy. The opponent plans its throw before the countdown, from earlier throws only. Rio also remembers your throws from past matches (`handduel-npc-memory`). The match flow in `main.js` talks to opponents only through `js/duel/opponents.js`. |
+| School map | `js/world/grid.js`, `render.js`, `dialogue.js`, `school.js`, `js/save.js`, `data/maps/*.json` | Maps are JSON: rows of tile characters plus doors, NPCs (with facing, sight range and optional turning) and things. `grid.js` is pure logic (collisions, line of sight, breadth-first paths). `render.js` draws placeholder pixel art in code at 16 px tiles, scaled by whole numbers. A challenger sees straight ahead until a wall or a person; after a duel or "Later" they won't call you again until you've left their sight. Duels go through the normal VS CPU match (`main.js` `startSchoolDuel` / `backToSchool`). The save (`handduel-school`) is versioned and checked on load; save codes are `HD1.` + base64 JSON. |
 
-Tests: `npm test` (gesture classifier, fight rules, SHA-256, UI markup, NPC strategies and opponents).
+Tests: `npm test` (gesture classifier, fight rules, SHA-256, UI markup, NPC strategies and opponents, school maps and saves).
 
 ## Online limits
 - PeerJS's free server is a shared community service and occasionally goes down. If it does, rooms can't be created until it's back. You can run your own (`npx peer --port 9000`) and point `js/net.js` at it.

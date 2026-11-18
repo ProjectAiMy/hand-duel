@@ -257,7 +257,7 @@ Still a static site on GitHub Pages: no server, no cost.
 |---|---|---|
 | M0 | Refactor: duel controller and opponent interface out of `main.js` (opponent interface done Nov 18; controller split still to do) | The current game works exactly as before |
 | M1 | NPC strategies + tests; VS CPU gets a "pick an opponent" list, with Easy hints (done Nov 18; twists come with M5) | Play Pip, Bea, Granite… in the existing camera game |
-| M2 | Map engine: the school's first areas, movement, collisions, line of sight, dialogue, save | Walk the school; classmates spot you and start duels |
+| M2 | Map engine: the school's first areas, movement, collisions, line of sight, dialogue, save (done Nov 18: courtyard + corridor, maps as JSON rows instead of Tiled for now) | Walk the school; classmates spot you and start duels |
 | M3 | Layered avatars + placeholder pack + avatar creator | Make your character; see it on the map and in duels |
 | M4 | Story engine (event scripts, flags, cutscenes) + Chapters 0–1 | Play the first day and the Stone Club |
 | M5 | Battle screen v1 from your design examples, tells, hint panel, results | Proper avatar duels with personality |

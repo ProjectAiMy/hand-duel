@@ -66,6 +66,11 @@ README.md explains the features, controls, rules and architecture, so read it fi
   (`#readPanel`) and halves the noise. Last opponent is saved (`opponent`). Club twists are not in yet (planned for M5).
   M0 so far is only the opponent interface (`js/duel/opponents.js`); the full duel-controller split out of `main.js`
   is still to do.
+- M2 (Nov 18 2026): menu card **School (Preview)** → `#school` screen, `js/world/*` + `js/save.js` + `data/maps/*.json`
+  (courtyard, corridor; ASCII tile rows, not Tiled yet). School duels reuse VS CPU through `schoolDuel` in `main.js`
+  (match-over button becomes "Back to school"; the VS CPU pick in settings isn't changed). `SCHOOL_CHALLENGERS` in
+  `school.js` must list every challenger on the maps (a test checks). Gym/music room doors are locked text until M4.
+  The browser pane is hidden most of the time, so requestAnimationFrame barely runs there: take screenshots to step it.
 
 ## Not yet verified
 - Masks on a real face (only checked on the canonical mesh in the browser pane), and their phone frame rate.
@@ -77,6 +82,8 @@ README.md explains the features, controls, rules and architecture, so read it fi
 - Phone focus layout on a real phone (swipe on the sheet handle, badge peek, safe areas).
 - UI v2 with a real camera: hand cursor feel (smoothing/speed defaults), the hand test checks, tile dodging online.
   Checked in the browser pane with the camera off, a simulated denied camera, and simulated cursor input.
+- School map (M2) by real play: walking feel, tap-to-walk and the pad on a real phone, sight ranges, and the
+  encounter → camera duel → back flow with a real camera. Checked in the browser pane with buttons only.
 - The self-signed HTTPS LAN path (`:8443`) on a phone.
 - Verified by the user: online play on real devices via the GitHub Pages site.
 

@@ -8,6 +8,8 @@ import { Effects, LOOKS, DEFAULT_LOOK } from "./effects.js";
 import { maskThumb } from "./masks.js";
 import * as S from "./settings.js";
 import { HandCursor, palmPoint } from "./cursor.js";
+import { createOpponent } from "./duel/opponents.js";
+import { ROSTER, GROUPS } from "./npc/roster.js";
 
 const $ = (id) => document.getElementById(id);
 const el = Object.fromEntries(
@@ -23,6 +25,8 @@ const el = Object.fromEntries(
     "calibPill", "chkHand", "chkDist", "chkLight", "camHelp", "camHelpIcon", "camHelpTitle", "camHelpText",
     "camHelpSteps", "camRetry", "camSkip", "howto", "howtoBtn", "retestBtn", "settingsPanel", "fsToggle", "fsRow",
     "resetSettings", "layoutSwitch", "cornerL", "cornerR", "dock", "menuTag", "dockGrab", "sheetPowers", "readDot",
+    "oppTag", "oppEmoji", "oppName", "oppTrait", "oppSay", "readPanel", "rpName", "rpHist", "rpBars", "rpHint",
+    "oppPicker", "oppList", "oppDifficulty", "matchOpp",
   ].map((id) => [id, $(id)]),
 );
 const ctx2d = el.overlay.getContext("2d");
@@ -42,7 +46,6 @@ const MAX_VOIDS = 3; // auto-play pauses after this many throws in a row with no
 const ARM_HOLD_MS = 500; // hold a power sign this long between throws to arm it
 const SIGN_GAP_MS = 300; // a sign lost for less than this (tracker blink, flicker) doesn't restart the hold
 const ARM_BLOCK_MS = 1200; // ...but not right after a throw, so a fouled throw doesn't arm by accident
-const CPU_POWER_CHANCE = 0.25; // chance the CPU uses one of its remaining powers on a throw
 
 const MODES = {
   cpu: { names: ["YOU", "CPU"], hands: 1 },
@@ -81,7 +84,9 @@ let lightOk = true;
 let layout = "them"; // in-game video layout: split | them (opponent big) | me (you big)
 let remoteHand = null; // { b: [x0, y0, x1, y1] in their camera frame, at } sent by an online opponent
 
-const names = () => MODES[mode].names;
+let opponent = createOpponent(S.get("opponent"), { easy: S.get("difficulty") === "easy" }); // VS CPU opponent
+let planned = null; // the opponent's throw for the current countdown, decided before yours is read
+const names = () => (mode === "cpu" ? ["YOU", (opponent.npc.short || opponent.npc.name).toUpperCase()] : MODES[mode].names);
 const isGuest = () => mode === "online" && net && !net.isHost;
 
 // ---------- cancellable sleeps ----------
@@ -183,6 +188,7 @@ function applyModeUI() {
   el.noCam.hidden = cameraOn;
   el.badgeL.hidden = el.badgeR.hidden = !cameraOn;
   el.manualR.hidden = mode !== "local";
+  renderOpponent();
   const guest = isGuest();
   el.play.hidden = el.pause.hidden = guest;
   el.arenaSelect.disabled = guest;
@@ -331,13 +337,6 @@ function toggleArm(i, p) {
   unlockAudio();
   if (armed[i] === p) return setArmed(i, null);
   if (canArm(i, p)) setArmed(i, p);
-}
-
-/** CPU: sometimes spends one of its remaining powers. */
-function cpuPower() {
-  const left = POWER_KEYS.filter((k) => fight.canUse(1, k));
-  if (!left.length || Math.random() >= CPU_POWER_CHANCE) return null;
-  return left[Math.floor(Math.random() * left.length)];
 }
 
 /** Power chips on each fighter's corner: held, armed (own side only) or not held (dimmed). */
@@ -547,6 +546,11 @@ function startMatch() {
   updatePlayButton();
   if (isGuest()) return;
   if (mode === "online") net.send({ t: "rematch" });
+  if (mode === "cpu") {
+    opponent.reset();
+    renderRead();
+    oppSay(opponent.npc.intro, 3200);
+  }
   hostTurn();
 }
 
@@ -571,7 +575,11 @@ async function countdown() {
   pendingManual = [null, null];
   collecting = true;
   duckMusic(true);
-  if (mode === "cpu") el.cpuHand.classList.add("pump");
+  if (mode === "cpu") {
+    el.cpuHand.classList.add("pump");
+    planned = opponent.plan(fight); // before your throw is read, from earlier throws only
+    if (planned.tell) oppSay(planned.tell, BEAT * 3, "tell");
+  }
   const words = ["Rock", "Paper", "Scissors"];
   for (let i = 0; i < words.length; i++) {
     announce(words[i], "small");
@@ -631,8 +639,8 @@ async function turn(intro, ex) {
       await holdBeforeNext();
       return "next";
     }
-    b = cpuPick();
-    pw[1] = cpuPower();
+    b = planned.gesture;
+    pw[1] = opponent.power(fight);
   } else if (mode === "online") {
     announce("…", "small");
     const res = await exchangeOnline(ex, a, fouls[0], pw[0]);
@@ -656,6 +664,10 @@ async function turn(intro, ex) {
     ev = { result: "void", used: [null, null] };
   }
   ev.used.forEach((p, i) => p && armed[i] === p && (armed[i] = null));
+  if (mode === "cpu") {
+    opponent.record(b, a, ev);
+    renderRead();
+  }
   if (mode === "online" && !net.isHost) {
     // The host's state is the source of truth; fixes any drift after a network hiccup.
     const s = await receive(`state:${ex}`, 4000);
@@ -817,6 +829,7 @@ async function koSequence(ev) {
     return "match";
   }
   fight.nextRound();
+  opponent.newRound();
   renderHud();
   return "round";
 }
@@ -853,19 +866,14 @@ async function hostTurn() {
   }
 }
 
-function cpuPick() {
-  const a = new Uint32Array(1);
-  crypto.getRandomValues(a);
-  return GESTURE_KEYS[a[0] % 3];
-}
-
 function showMatchOver() {
   const w = fight.matchWinner;
   const n = names()[w];
   const youWon = mode !== "local" && w === 0;
-  el.matchEmoji.textContent = mode === "local" ? "🏆" : youWon ? "🏆" : mode === "cpu" ? "🤖" : "😤";
+  el.matchEmoji.textContent = mode === "local" ? "🏆" : youWon ? "🏆" : mode === "cpu" ? opponent.npc.emoji : "😤";
   el.matchTitle.textContent = n === "YOU" ? "You win the match!" : `${n} wins the match!`;
   el.matchScore.textContent = `Rounds ${fight.roundWins[0]} – ${fight.roundWins[1]}`;
+  el.matchOpp.hidden = mode !== "cpu";
   el.rematch.disabled = isGuest();
   el.rematch.textContent = isGuest() ? "Waiting for host…" : "Rematch";
   el.matchModal.hidden = false;
@@ -1115,7 +1123,9 @@ async function shareBase() {
 }
 
 // ---------- events ----------
-document.querySelectorAll(".mode").forEach((b) => b.addEventListener("click", () => chooseMode(b.dataset.mode)));
+document.querySelectorAll(".mode").forEach((b) =>
+  b.addEventListener("click", () => (b.dataset.mode === "cpu" ? openPicker() : chooseMode(b.dataset.mode))),
+);
 el.play.addEventListener("click", () => {
   unlockAudio();
   paused = false;
@@ -1124,6 +1134,10 @@ el.play.addEventListener("click", () => {
 el.pause.addEventListener("click", togglePause);
 el.rematch.addEventListener("click", startMatch);
 el.matchMenu.addEventListener("click", () => backToMenu());
+el.matchOpp.addEventListener("click", () => {
+  el.matchModal.hidden = true;
+  openPicker();
+});
 el.menuBtn.addEventListener("click", () => backToMenu());
 el.lobbyBack.addEventListener("click", () => backToMenu());
 el.createRoom.addEventListener("click", createRoom);
@@ -1298,13 +1312,14 @@ let frameCount = 0;
 
 /** A full screen or panel that takes over input (game keys and power signs are ignored). */
 function overlayOpen() {
-  return [el.landing, el.menu, el.lobby, el.camHelp, el.howto, el.settingsPanel].some((p) => !p.hidden);
+  return [el.landing, el.menu, el.lobby, el.camHelp, el.howto, el.settingsPanel, el.oppPicker].some((p) => !p.hidden);
 }
 
 /** Esc: close the topmost closable panel. Returns true if it closed one. */
 function closeTopPanel() {
   if (!el.settingsPanel.hidden) return closeSettings(), true;
   if (!el.howto.hidden) return (el.howto.hidden = true), true;
+  if (!el.oppPicker.hidden) return closePicker(), true;
   if (!el.lookSheet.hidden && overlayOpen()) return toggleLookSheet(false), true;
   return false;
 }
@@ -1457,6 +1472,99 @@ el.howto.addEventListener("click", (e) => {
 document.querySelectorAll("[data-open-look]").forEach((b) => b.addEventListener("click", () => toggleLookSheet(true)));
 document.querySelectorAll("[data-mute]").forEach((b) => b.addEventListener("click", toggleMute));
 
+// ---------- VS CPU opponents: picker, name tag, speech bubble, Easy hint panel ----------
+const stars = (n) => "★".repeat(n) + "☆".repeat(5 - n);
+
+function buildPicker() {
+  el.oppList.innerHTML = GROUPS.map((grp) => {
+    const cards = ROSTER.filter((n) => n.group === grp.id)
+      .map(
+        (n) =>
+          `<button type="button" class="opp" data-opp="${n.id}"><b class="em">${n.emoji}</b>` +
+          `<span class="opp-txt"><b>${n.name}</b><small>${n.title}</small></span>` +
+          `<span class="opp-meta"><span class="trait">${n.trait}</span><span class="stars" aria-label="Difficulty ${n.stars} of 5">${stars(n.stars)}</span></span></button>`,
+      )
+      .join("");
+    return `<section class="opp-group"><h3>${grp.label}</h3><div class="opp-grid">${cards}</div></section>`;
+  }).join("");
+}
+
+function syncPickerDifficulty() {
+  const d = S.get("difficulty");
+  el.oppDifficulty.querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === d)));
+}
+
+function openPicker() {
+  unlockAudio();
+  const cur = S.get("opponent");
+  el.oppList.querySelectorAll(".opp").forEach((b) => b.classList.toggle("on", b.dataset.opp === cur));
+  syncPickerDifficulty();
+  el.oppPicker.hidden = false;
+  (el.oppList.querySelector(".opp.on") || el.oppList.querySelector(".opp"))?.focus();
+}
+
+function closePicker() {
+  el.oppPicker.hidden = true;
+  // Closed from the match-over screen without choosing: show it again.
+  if (document.body.dataset.screen === "game" && mode === "cpu" && fight.matchWinner !== null) el.matchModal.hidden = false;
+}
+
+function pickOpponent(id) {
+  S.set("opponent", id);
+  opponent = createOpponent(id, { easy: S.get("difficulty") === "easy" });
+  el.oppPicker.hidden = true;
+  if (document.body.dataset.screen === "game" && mode === "cpu") {
+    applyModeUI();
+    startMatch();
+  } else chooseMode("cpu");
+}
+
+el.oppPicker.addEventListener("click", (e) => {
+  if (e.target === el.oppPicker || e.target.closest("[data-close]")) return closePicker();
+  const card = e.target.closest("[data-opp]");
+  if (card) return pickOpponent(card.dataset.opp);
+  const d = e.target.closest("#oppDifficulty button");
+  if (d) S.set("difficulty", d.dataset.v);
+});
+
+function renderOpponent() {
+  const n = opponent.npc;
+  el.oppEmoji.textContent = n.emoji;
+  el.oppName.textContent = n.name;
+  el.oppTrait.textContent = n.trait;
+  el.rpName.textContent = n.name;
+  el.oppTag.hidden = mode !== "cpu";
+  renderRead();
+}
+
+let sayTimer = null;
+/** Speech bubble over the opponent: intro lines and tells. */
+function oppSay(text, ms = 2500, cls = "") {
+  clearTimeout(sayTimer);
+  el.oppSay.textContent = text;
+  el.oppSay.className = `opp-say ${cls}`;
+  el.oppSay.hidden = false;
+  sayTimer = setTimeout(() => (el.oppSay.hidden = true), ms);
+}
+
+/** Easy only: the opponent's recent throws, how often they use each, and their habit in words. */
+function renderRead() {
+  const show = mode === "cpu" && opponent.easy;
+  el.readPanel.hidden = !show;
+  if (!show) return;
+  const h = opponent.hint();
+  el.rpHist.innerHTML = h.recent.length
+    ? h.recent.map((r) => `<span class="${r.result}" title="${GESTURES[r.g].label}: they ${r.result === "win" ? "won" : r.result === "lose" ? "lost" : "drew"}">${GESTURES[r.g].emoji}</span>`).join("")
+    : `<em>Their throws will show here</em>`;
+  el.rpBars.innerHTML = GESTURE_KEYS.map((g) => {
+    const c = h.counts[g];
+    const pct = h.total ? Math.round((c / h.total) * 100) : 0;
+    return `<div class="rp-bar"><span>${GESTURES[g].emoji}</span><i><u style="width:${pct}%"></u></i><span>${c}</span></div>`;
+  }).join("");
+  el.rpHint.textContent = `💡 ${h.text}`;
+}
+buildPicker();
+
 // ---------- camera help ----------
 function showCamHelp(e) {
   const code = e instanceof CameraError ? e.code : "model";
@@ -1515,7 +1623,7 @@ el.camSkip.addEventListener("click", () => {
 
 // ---------- hand cursor ----------
 function cursorScope() {
-  for (const p of [el.camHelp, el.settingsPanel, el.howto, el.lobby, el.matchModal]) if (!p.hidden) return p;
+  for (const p of [el.camHelp, el.settingsPanel, el.howto, el.oppPicker, el.lobby, el.matchModal]) if (!p.hidden) return p;
   if (!el.lookSheet.hidden && !collecting) return el.lookSheet;
   if (!el.landing.hidden) return el.landing;
   if (!el.menu.hidden) return el.menu;
@@ -1566,6 +1674,11 @@ function applySettings(k = null) {
   if (k === null || k === "pipSize" || k === "pipAnchor") {
     pipAt = s.pipAnchor;
     placePip();
+  }
+  if (k === null || k === "difficulty") {
+    opponent.setEasy(s.difficulty === "easy");
+    renderRead();
+    syncPickerDifficulty();
   }
   syncSettingsPanel();
 }

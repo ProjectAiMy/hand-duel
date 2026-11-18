@@ -9,7 +9,7 @@ README.md explains the features, controls, rules and architecture, so read it fi
   `/lan.json` gives the game that wifi URL for invite links.
 - `.claude/launch.json` (`rps-cam`) uses port 8000. The user often has their own server on 8000 already,
   so test on another port (`python3 serve.py 8100`) instead of stopping theirs.
-- `npm test` runs the gesture classifier, fight rules and JS SHA-256 tests (node --test).
+- `npm test` runs the gesture classifier, fight rules, JS SHA-256, UI, NPC strategy and opponent tests (node --test).
 - The browser pane can't use the camera or a self-signed cert. To test online play there, open two tabs with
   the camera unticked and throw with the `#manualL [data-throw=…]` buttons.
 
@@ -55,12 +55,22 @@ README.md explains the features, controls, rules and architecture, so read it fi
   is a stacked score card, and `#dock` is a pull-up sheet (`#dockGrab`); your power chips move to `#sheetPowers`.
   This replaced the draggable tile on phones, which got pushed off its spot by dodging and overlapped the dock.
 
+- RPG phase plan v3 (`docs/rpg-phase-plan.md`, Nov 18 2026): single-player school adventure first (Knuckle Academy,
+  rival Rio: placeholder names), five club captains, stamps, chibi art packs, full storyline; online later.
+  Mockups in `mockups/rpg-adventure.html`.
+- M1 (Nov 18 2026): VS CPU opens an opponent picker (`#oppPicker`) with the cast from `js/npc/roster.js`; strategies in
+  `js/npc/strategy.js` (pure, tested). Difficulty is a setting (`difficulty`: normal | easy); Easy shows the hint panel
+  (`#readPanel`) and halves the noise. Last opponent is saved (`opponent`). Club twists are not in yet (planned for M5).
+  M0 so far is only the opponent interface (`js/duel/opponents.js`); the full duel-controller split out of `main.js`
+  is still to do.
+
 ## Not yet verified
 - Masks on a real face (only checked on the canonical mesh in the browser pane), and their phone frame rate.
 - Looks with a real camera (sticker placement, cutout quality, phone frame rate) and over an online call.
 - Foul detection, the capture grace period, and the compact mobile layout (Nov 2026) haven't been tried on a real
   camera/phone yet; the user said they'd test these themselves. Same for power-ups (Nov 2026).
 - Two-hand tracking with a real camera in 2-player mode.
+- NPC opponents (Nov 2026): tuned only by tests and a few button throws in the browser pane, not by real play.
 - Phone focus layout on a real phone (swipe on the sheet handle, badge peek, safe areas).
 - UI v2 with a real camera: hand cursor feel (smoothing/speed defaults), the hand test checks, tile dodging online.
   Checked in the browser pane with the camera off, a simulated denied camera, and simulated cursor input.

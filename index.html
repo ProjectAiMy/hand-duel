@@ -55,6 +55,14 @@
         <div class="stage opponent" id="stageR">
           <video id="remoteVideo" playsinline autoplay></video>
           <div class="cpu-hand" id="cpuHand">✊</div>
+          <div class="opp-tag" id="oppTag"><b class="em" id="oppEmoji">🤖</b><span><b id="oppName">CPU</b><small id="oppTrait">Random</small></span></div>
+          <div class="opp-say" id="oppSay" hidden></div>
+          <div class="read-panel" id="readPanel" hidden>
+            <div class="rp-head"><b>Read <span id="rpName">them</span></b><span class="rp-easy">Easy · hints</span></div>
+            <div class="rp-hist" id="rpHist"></div>
+            <div class="rp-bars" id="rpBars"></div>
+            <p class="rp-hint" id="rpHint"></p>
+          </div>
           <div class="waiting" id="remoteWaiting">Waiting for opponent's camera…</div>
           <div class="pip-tools no-dwell" id="pipToolsR">
             <button type="button" data-pip="size" title="Tile size" aria-label="Change tile size">⤢</button>
@@ -240,6 +248,19 @@
       </div>
     </div>
 
+    <!-- ============ VS CPU: pick an opponent ============ -->
+    <div class="modal" id="oppPicker" role="dialog" aria-labelledby="oppTitle" hidden>
+      <div class="card glass picker-card">
+        <div class="panel-head"><h2 id="oppTitle">Choose your opponent</h2><button class="icon-btn" data-close title="Close" aria-label="Close">✕</button></div>
+        <div class="picker-foot">
+          <p class="muted picker-sub">Everyone has habits. Spot them and you'll win more.</p>
+          <span class="lbl">Difficulty</span>
+          <div class="seg" id="oppDifficulty" role="radiogroup" aria-label="Difficulty"><button type="button" role="radio" data-v="normal">Normal<small>no hints</small></button><button type="button" role="radio" data-v="easy">Easy<small>hints + steadier habits</small></button></div>
+        </div>
+        <div class="opp-list" id="oppList"></div>
+      </div>
+    </div>
+
     <!-- ============ Settings ============ -->
     <div class="modal side" id="settingsPanel" role="dialog" aria-labelledby="settingsTitle" hidden>
       <div class="panel glass">
@@ -279,6 +300,8 @@
           </section>
           <section data-pane="game">
             <div class="set"><div class="lbl"><b>Auto-next</b><span>Start the next throw by itself</span></div><button type="button" class="toggle" role="switch" data-set="autoNext" aria-label="Auto-next"></button></div>
+            <div class="set"><div class="lbl"><b>Difficulty (VS CPU)</b><span>Easy shows a hint panel and makes habits steadier</span></div>
+              <div class="seg" data-set="difficulty" role="radiogroup" aria-label="Difficulty"><button type="button" data-v="normal">Normal</button><button type="button" data-v="easy">Easy</button></div></div>
             <div class="set"><div class="lbl"><b>Arena</b></div>
               <select id="arenaSelect" aria-label="Arena"><option value="random">🎲 Random</option></select></div>
           </section>
@@ -319,6 +342,7 @@
         <p id="matchScore"></p>
         <div class="cta-row center">
           <button id="rematch" class="btn primary">Rematch</button>
+          <button id="matchOpp" class="btn">Change opponent</button>
           <button id="matchMenu" class="btn">Main menu</button>
         </div>
       </div>

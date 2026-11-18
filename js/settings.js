@@ -20,6 +20,8 @@ export const DEFAULTS = Object.freeze({
   dwell: 800, // ms to hold over a button to press it
   // game
   autoNext: true,
+  difficulty: "normal", // VS CPU: normal | easy (hint panel, steadier habits)
+  opponent: "cpu", // last VS CPU opponent (js/npc/roster.js id)
   arena: "random",
   pipAnchor: "br", // where your own video tile sits in spotlight layout
   pipSize: 1, // 0 small, 1 medium, 2 large

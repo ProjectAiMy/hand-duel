@@ -815,3 +815,69 @@ body.compact .controls.open .sheet-powers .powers button span { display: inline;
 body.compact #play { order: 3; flex: 1 1 140px; min-height: 52px; }
 body.compact .manual { order: 4; }
 body.compact .controls.open { box-shadow: 0 0 0 100vmax rgba(0,0,0,.45), 0 -10px 30px #0008; }
+
+/* ===================== VS CPU opponents: picker, name tag, speech, Easy hint panel ===================== */
+.picker-card { max-width: 1060px; text-align: left; padding: 22px 24px; }
+.picker-sub { margin: 0 auto 0 0; }
+.opp-group h3 { margin: 12px 0 6px; font-size: 1.15rem; color: var(--accent); }
+.opp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.opp {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 4px; align-items: center;
+  min-height: var(--tap); padding: 8px 12px; border-radius: 16px; text-align: left;
+  background: rgba(255,255,255,.06); border: 1.5px solid var(--edge); color: var(--text);
+}
+.opp:hover, .opp:focus-visible { background: rgba(255,255,255,.12); }
+.opp.on { border-color: var(--accent); background: rgba(255,204,51,.14); }
+.opp .em { grid-row: span 2; font-size: 2.1rem; font-weight: 400; }
+.opp-txt b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 1.25rem; line-height: 1.1; }
+.opp-txt small { display: block; color: var(--muted); font-size: .82rem; }
+.opp-meta { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.opp-meta .trait { white-space: nowrap; font-size: .75rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: var(--accent); color: #1b1400; }
+.opp-meta .stars { font-size: .8rem; color: var(--accent); letter-spacing: 1px; }
+.picker-foot { display: flex; gap: 14px; align-items: center; justify-content: flex-end; margin-top: 6px; flex-wrap: wrap; }
+.picker-foot .lbl { color: var(--muted); font-weight: 700; }
+#matchOpp[hidden] { display: none; }
+
+.opp-tag {
+  position: absolute; top: 12px; right: 12px; z-index: 3; display: flex; gap: 8px; align-items: center;
+  padding: 6px 12px 6px 8px; border-radius: 14px; background: var(--glass); border: 1.5px solid var(--edge);
+}
+.opp-tag[hidden], body:not([data-mode="cpu"]) .opp-tag, body:not([data-mode="cpu"]) .read-panel, body:not([data-mode="cpu"]) .opp-say { display: none; }
+.opp-tag .em { font-size: 1.6rem; font-weight: 400; }
+.opp-tag b:not(.em) { display: block; font-family: var(--font-display); font-weight: 400; font-size: 1.1rem; line-height: 1.1; }
+.opp-tag small { display: block; font-size: .75rem; color: var(--accent); font-weight: 700; }
+.corner.pip .opp-tag, .corner.pip .read-panel, .corner.pip .opp-say { display: none; }
+
+.opp-say {
+  position: absolute; top: 30%; left: 50%; transform: translateX(-50%); z-index: 4; max-width: min(80%, 460px);
+  padding: 10px 16px; border-radius: 16px; background: #fff8e7; color: #1d1b2e; font-weight: 700; font-size: 1.05rem; text-align: center;
+  border: 3px solid #1d1b2e; box-shadow: 0 6px 0 rgba(0,0,0,.35); animation: pop .3s cubic-bezier(.2,1.6,.4,1);
+}
+.opp-say::after { content: ""; position: absolute; left: 50%; bottom: -14px; margin-left: -8px; border: 7px solid transparent; border-top-color: #1d1b2e; }
+.opp-say[hidden] { display: none; }
+.opp-say.tell { background: #ffe98a; font-style: italic; }
+
+.read-panel {
+  position: absolute; left: 12px; bottom: 12px; z-index: 3; width: min(300px, 46%); padding: 10px 12px; border-radius: 16px;
+  background: var(--glass); border: 1.5px solid var(--edge); font-size: .85rem;
+}
+.read-panel[hidden] { display: none; }
+.rp-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.rp-head b { font-family: var(--font-display); font-weight: 400; font-size: 1.05rem; }
+.rp-easy { font-size: .7rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: rgba(255,255,255,.14); }
+.rp-hist { display: flex; gap: 4px; min-height: 30px; margin-bottom: 6px; }
+.rp-hist span { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 1.05rem; background: rgba(255,255,255,.1); }
+.rp-hist span.win { box-shadow: inset 0 -3px 0 var(--lose); }
+.rp-hist span.lose { box-shadow: inset 0 -3px 0 var(--win); }
+.rp-hist em { color: var(--muted); font-size: .8rem; align-self: center; }
+.rp-bar { display: grid; grid-template-columns: 22px 1fr 22px; gap: 6px; align-items: center; color: var(--muted); margin: 2px 0; }
+.rp-bar i { height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); overflow: hidden; }
+.rp-bar u { display: block; height: 100%; background: var(--p2); text-decoration: none; }
+.rp-hint { margin: 6px 0 0; color: #fff; line-height: 1.35; padding: 5px 8px; border-left: 3px solid var(--accent); background: rgba(255,204,51,.12); border-radius: 6px; }
+
+/* phones: the HUD already names the opponent; the hint panel shrinks and sits above the sheet, opposite the power chips */
+body.compact .opp-tag { display: none; }
+body.compact .opp-say { top: auto; bottom: calc(52% + 10px); font-size: .95rem; }
+body.compact .read-panel { position: fixed; left: auto; right: 10px; bottom: calc(184px + env(safe-area-inset-bottom)); width: min(250px, 62vw); padding: 8px 10px; font-size: .78rem; }
+body.compact .rp-bars { display: none; }
+body.compact .rp-hist span { width: 26px; height: 26px; }

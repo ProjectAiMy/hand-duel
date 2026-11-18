@@ -4,7 +4,8 @@ Hold your hand up to the camera and throw on **“Shoot!”**. Each win knocks h
 opponent; win streaks hit harder; empty the bar for a **K.O.** First to win 2 rounds takes the match.
 
 Modes:
-- **VS CPU**: solo.
+- **VS CPU**: solo, against a cast of 12 opponents who each have a habit (Pip always opens with rock, Ms. Ruth
+  cycles rock → paper → scissors, Ren learns your patterns…). Spot the habit to win. **Easy** shows a hint panel.
 - **2 Players**: same device, one camera. P1 stands on the left half and P2 on the right, each raising one hand.
 - **Online**: play a friend on another device with a 4-letter room code or invite link, and see each other's camera.
 
@@ -58,7 +59,7 @@ it never clashes with a throw.
 ## Screens and settings
 - **Landing**: what the game is, the webcam ask, and a hand test (hand found, distance, light, try all three shapes).
   If the camera fails, a help screen explains the fix for that error and browser (blocked, no camera, busy, http, model download).
-- **Menu**: VS CPU, 2 Players, Online, plus How to play, Test hand and Settings.
+- **Menu**: VS CPU (opens the opponent picker, with Normal/Easy), 2 Players, Online, plus How to play, Test hand and Settings.
 - **In a match**: *Side by side*, *Spotlight them* (default: opponent big, you in a small tile, like a video call) or
   *Spotlight me*. Drag the small tile to any edge or corner and it snaps there; ⤢ resizes it, ⇄ swaps. It moves itself
   out of the way when the opponent's hand would be behind it (online, each side sends a rough hand box for this).
@@ -68,7 +69,7 @@ it never clashes with a throw.
   the dock becomes a sheet you swipe up. Power-ups and Fight / Next throw stay in reach when the sheet is closed.
 - **Settings** (⚙️, saved on this device): master volume, mute, sound effects, music; video quality (480p/720p/1080p),
   fullscreen, lite effects; mirror camera, hand skeleton, hand cursor on/off, smoothing, cursor speed, hold time;
-  auto-next and arena.
+  auto-next, difficulty (VS CPU) and arena.
 
 ## Fight rules (`js/fight.js`)
 - 100 HP each. A won throw deals 25, the 2nd straight win deals 35, and the 3rd or more deals 45, so three in a row is a K.O.
@@ -87,7 +88,7 @@ it never clashes with a throw.
   - 🤘 **Reverse** (horns, index + pinky): earned by losing 2 throws in a row. Lose the throw and the damage hits
     the winner instead. It can K.O. them.
   - Draws, blocks and reverses reset both players' runs. Everything resets at the start of a round.
-  - The CPU uses its powers now and then. Online, your armed power is hashed with your throw, so your rival can't see it coming.
+  - Each CPU opponent has its own power-up habit (never, now and then, when behind, or always). Online, your armed power is hashed with your throw, so your rival can't see it coming.
 - Best of 3 rounds. Rounds show *Perfect!* when the winner took no damage.
 
 ## How it works
@@ -105,8 +106,9 @@ it never clashes with a throw.
 | Sound | `js/audio.js` | Web Audio synth, no sound files: effects plus a chiptune loop (menu and fight tracks), each on its own bus under a master volume. Music ducks during the countdown. |
 | Hand cursor | `js/cursor.js` | Palm centre, One Euro filtered (steady when still, little lag when moving), gain around the screen centre, magnetic hit areas with a sticky edge, dwell-to-press. |
 | Settings | `js/settings.js` | Defaults, validation and localStorage (`handduel-settings`). |
+| CPU opponents | `js/npc/strategy.js`, `js/npc/roster.js`, `js/duel/opponents.js` | Each opponent's personality is a spec of small behaviours (bias, opener, win-stay, lose-shift, cycle, copy, counter-last, counter-favourite, Markov, random) mixed by weight with noise, plus moods (e.g. when ahead or low on health), tells and a power-up policy. The opponent plans its throw before the countdown, from earlier throws only. Rio also remembers your throws from past matches (`handduel-npc-memory`). The match flow in `main.js` talks to opponents only through `js/duel/opponents.js`. |
 
-Tests: `npm test` (gesture classifier + fight rules).
+Tests: `npm test` (gesture classifier, fight rules, SHA-256, UI markup, NPC strategies and opponents).
 
 ## Online limits
 - PeerJS's free server is a shared community service and occasionally goes down. If it does, rooms can't be created until it's back. You can run your own (`npx peer --port 9000`) and point `js/net.js` at it.

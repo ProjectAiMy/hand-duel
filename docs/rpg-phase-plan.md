@@ -118,7 +118,7 @@ Example entry (format only; the values will be tuned in testing):
                 "powers": "whenBehind",
                 "mood": [{ "when": "ahead", "bias": { "rock": 0.7 } }] },
   "tell": { "before": "rock", "anim": "knuckles", "chance": 0.7 },
-  "twist": "shieldEveryRound",
+  "twist": "doubleShield",
   "lines": { "intro": "Stone does not move. Neither do I.", "win": "Solid.", "lose": "...A crack. Well done." },
   "reward": { "stamp": "stone", "coins": 100, "unlock": ["headband-granite"] }
 }
@@ -128,7 +128,7 @@ Example entry (format only; the values will be tuned in testing):
 
 | Captain | Club (where) | Trait | How they play | Tell | Club twist | Stamp |
 |---|---|---|---|---|---|---|
-| **Granite** | Stone Club (gym) | Stubborn | Leans on rock; repeats after a win | Cracks his knuckles before rock | Starts every round with a shield | Stone |
+| **Granite** | Stone Club (gym) | Stubborn | Leans on rock; repeats after a win | Cracks his knuckles before rock | His shield blocks two hits | Stone |
 | **Fold** | Origami Club (library) | Patient | Never repeats a throw; prefers paper | Bows deeper before paper | Can use reverse from round 1 | Paper |
 | **Snip** | Fencing Club (sports hall) | Hot-headed | After a loss, throws what beats your last throw | Shouts louder before switching | Speed rounds: a faster countdown | Blade |
 | **Echo** | Drama Club (stage) | Copycat | Copies your last throw; at half HP, counters the copy | Mirrors your idle pose | Both of you see your last throw on the floor | Mirror |
@@ -255,8 +255,8 @@ Still a static site on GitHub Pages: no server, no cost.
 
 | # | Milestone | What you can try at the end |
 |---|---|---|
-| M0 | Refactor: duel controller and opponent interface out of `main.js` | The current game works exactly as before |
-| M1 | NPC strategies + tests; VS CPU gets a "pick an opponent" list, with Easy hints | Play Pip, Bea, Granite… in the existing camera game |
+| M0 | Refactor: duel controller and opponent interface out of `main.js` (opponent interface done Nov 18; controller split still to do) | The current game works exactly as before |
+| M1 | NPC strategies + tests; VS CPU gets a "pick an opponent" list, with Easy hints (done Nov 18; twists come with M5) | Play Pip, Bea, Granite… in the existing camera game |
 | M2 | Map engine: the school's first areas, movement, collisions, line of sight, dialogue, save | Walk the school; classmates spot you and start duels |
 | M3 | Layered avatars + placeholder pack + avatar creator | Make your character; see it on the map and in duels |
 | M4 | Story engine (event scripts, flags, cutscenes) + Chapters 0–1 | Play the first day and the Stone Club |

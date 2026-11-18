@@ -472,7 +472,13 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 400; letter-spacing:
   background: radial-gradient(1200px 700px at 15% 0%, #2a1d5c 0%, transparent 60%),
               radial-gradient(900px 600px at 100% 100%, #11385a 0%, transparent 60%), var(--bg);
 }
-#menu { background: linear-gradient(180deg, rgba(8,9,22,.86), rgba(8,9,22,.7) 50%, rgba(8,9,22,.9)); }
+#handTest {
+  background: radial-gradient(900px 600px at 50% 0%, #2a1d5c 0%, transparent 60%), var(--bg);
+}
+#menu {
+  background: radial-gradient(1000px 600px at 50% 0%, #2a1d5c 0%, transparent 60%),
+              radial-gradient(900px 600px at 100% 100%, #11385a 0%, transparent 60%), var(--bg);
+}
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 28px; }
 .topbar-tools { display: flex; align-items: center; gap: 10px; }
 .logo { font-family: var(--font-display); font-size: 2rem; letter-spacing: .03em; line-height: 1; }
@@ -715,8 +721,8 @@ body.lite .hp-fill.low, body.lite .tracking-chip i { animation: none; }
   .layout-switch button span { display: none; }
   .controls { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 }
-/* the landing covers everything: don't paint the arena under it (no flash while it fades in, less GPU work) */
-body[data-screen="landing"] :is(.hud, .ring, .controls, .result, .announcer) { visibility: hidden; }
+/* the title page, hand test and menu cover everything (no match shows until you pick one): don't paint the arena under them (no flash, less GPU work) */
+body:is([data-screen="landing"], [data-screen="handtest"], [data-screen="menu"]) :is(.hud, .ring, .controls, .result, .announcer) { visibility: hidden; }
 @media (max-width: 760px) { .calib-cam { aspect-ratio: 1; } }
 
 /* ---------- phones: focus layout (approved mockup D, mockups/mobile-v3.html) ----------
@@ -881,3 +887,37 @@ body.compact .opp-say { top: auto; bottom: calc(52% + 10px); font-size: .95rem; 
 body.compact .read-panel { position: fixed; left: auto; right: 10px; bottom: calc(184px + env(safe-area-inset-bottom)); width: min(250px, 62vw); padding: 8px 10px; font-size: .78rem; }
 body.compact .rp-bars { display: none; }
 body.compact .rp-hist span { width: 26px; height: 26px; }
+
+/* ===================== Title page, hand test screen, menu camera bar ===================== */
+.title-wrap { max-width: 760px; margin: 0 auto; padding: 4vh 24px 40px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.title-wrap h1 { font-size: clamp(2.6rem, 7vw, 5.2rem); line-height: .98; margin: 6px 0 0; }
+.title-wrap h1 em { font-style: normal; color: var(--accent); }
+.title-wrap .lede { margin: 18px auto 26px; }
+.title-wrap #startBtn { min-width: min(340px, 100%); min-height: 76px; font-size: 1.7rem; margin-bottom: 30px; }
+.title-wrap .steps { width: 100%; text-align: left; }
+.title-hands { display: flex; gap: 18px; font-size: clamp(2.6rem, 6vw, 4rem); }
+.title-hands span { animation: title-bob 1.6s ease-in-out infinite; }
+.title-hands span:nth-child(2) { animation-delay: .2s; }
+.title-hands span:nth-child(3) { animation-delay: .4s; }
+@keyframes title-bob { 50% { transform: translateY(-8px) rotate(-6deg); } }
+body.lite .title-hands span { animation: none; }
+
+.test-wrap { max-width: 640px; margin: 0 auto; padding: 4px 18px 32px; }
+.test-cta { justify-content: flex-end; margin-top: 14px; }
+/* the idle message must never be cut off: let the box grow on narrow screens */
+.calib-cam:has(.calib-idle:not([hidden])) { aspect-ratio: auto; min-height: 300px; }
+.calib-idle:not([hidden]) { position: relative; inset: auto; min-height: 300px; }
+
+.cam-bar { display: flex; gap: 14px; align-items: center; max-width: 900px; margin: 0 auto 20px; padding: 14px 18px; text-align: left; }
+.cam-bar[hidden] { display: none; }
+.cam-bar-ico { font-size: 2rem; }
+.cam-bar-txt { flex: 1; min-width: 0; }
+.cam-bar-txt b { display: block; font-size: 1.1rem; }
+.cam-bar-txt span { color: var(--muted); font-size: .95rem; }
+.cam-bar .btn { flex: none; }
+@media (max-width: 760px), (orientation: portrait) and (max-width: 1000px) {
+  .title-wrap { padding: 2vh 18px 28px; }
+  .title-wrap #startBtn { width: 100%; }
+  .cam-bar { flex-wrap: wrap; }
+  .cam-bar .btn { width: 100%; }
+}

@@ -57,9 +57,12 @@ still over a button to press it (0.8 s by default). In a match the cursor only a
 it never clashes with a throw.
 
 ## Screens and settings
-- **Landing**: what the game is, the webcam ask, and a hand test (hand found, distance, light, try all three shapes).
+- **Title page**: what the game is and a big **Play** button. Nothing starts and the camera stays off until you press Play.
+- **Menu**: pick a game: VS CPU (opens the opponent picker, with Normal/Easy), 2 Players or Online, plus How to play,
+  Test hand and Settings. While the camera is off, a bar at the top has **Turn on camera**. Picking a game also asks
+  for the camera; if it's refused you can play with on-screen buttons.
+- **Hand test** (Turn on camera / Test hand): live camera with checks (hand found, distance, light, try all three shapes).
   If the camera fails, a help screen explains the fix for that error and browser (blocked, no camera, busy, http, model download).
-- **Menu**: VS CPU (opens the opponent picker, with Normal/Easy), 2 Players, Online, plus How to play, Test hand and Settings.
 - **In a match**: *Side by side*, *Spotlight them* (default: opponent big, you in a small tile, like a video call) or
   *Spotlight me*. Drag the small tile to any edge or corner and it snaps there; ⤢ resizes it, ⇄ swaps. It moves itself
   out of the way when the opponent's hand would be behind it (online, each side sends a rough hand box for this).

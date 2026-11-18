@@ -21,7 +21,7 @@ const el = Object.fromEntries(
     "matchScore", "rematch", "matchMenu", "fx", "arenaBg", "nameL", "nameR", "pipsL", "pipsR", "hpL", "hpR",
     "ghostL", "ghostR", "roundLabel", "arenaName", "manualL", "manualR",
     "look", "lookBtn", "lookSheet", "lookStatus", "lookDone", "lookMask", "lookFace", "lookBackground", "lookFilter",
-    "landing", "startBtn", "noCamBtn", "landingStatus", "inviteNote", "calibSlot", "calibIdle", "calibStart",
+    "landing", "handTest", "calibDone", "camBar", "camBtn", "startBtn", "landingStatus", "inviteNote", "calibSlot", "calibIdle", "calibStart",
     "calibPill", "chkHand", "chkDist", "chkLight", "camHelp", "camHelpIcon", "camHelpTitle", "camHelpText",
     "camHelpSteps", "camRetry", "camSkip", "howto", "howtoBtn", "retestBtn", "settingsPanel", "fsToggle", "fsRow",
     "resetSettings", "layoutSwitch", "cornerL", "cornerR", "dock", "menuTag", "dockGrab", "sheetPowers", "readDot",
@@ -79,7 +79,7 @@ let guestQueue = Promise.resolve();
 let armed = [null, null]; // power-up each side has armed for its next throw
 const signHold = [{}, {}]; // power sign currently held per side: { p, since, done }
 let armBlockUntil = 0;
-let wantCam = true; // the player chose to play with the camera (landing: "Play without camera" sets false)
+let wantCam = true; // the player wants the camera ("Play with buttons" on the camera help screen sets false)
 let lightOk = true;
 let layout = "them"; // in-game video layout: split | them (opponent big) | me (you big)
 let remoteHand = null; // { b: [x0, y0, x1, y1] in their camera frame, at } sent by an online opponent
@@ -122,8 +122,14 @@ function setStatus(msg, isError = false) {
   }
 }
 
-/** Start the camera and tracker if the player wants them. Returns true when tracking is running. */
-async function ensureCamera() {
+/** Start the camera and tracker if the player wants them. Returns true when tracking is running.
+ *  Calls made while one is already starting share it, so the camera is never opened twice. */
+let cameraStarting = null;
+function ensureCamera() {
+  cameraStarting ??= startCamera().finally(() => (cameraStarting = null));
+  return cameraStarting;
+}
+async function startCamera() {
   if (!wantCam) {
     cameraOn = false;
     tracker.stopCamera();
@@ -278,7 +284,7 @@ function loop(now) {
     pt = [tracker.mirrored ? 1 - px : px, py];
   }
   cursor.update(pt, t);
-  if (!el.landing.hidden) updateCalibration(t);
+  if (!el.handTest.hidden) updateCalibration(t);
   updateTrackChip(t);
   if (mode === "online") sendHand(t);
 }
@@ -1312,7 +1318,7 @@ let frameCount = 0;
 
 /** A full screen or panel that takes over input (game keys and power signs are ignored). */
 function overlayOpen() {
-  return [el.landing, el.menu, el.lobby, el.camHelp, el.howto, el.settingsPanel, el.oppPicker].some((p) => !p.hidden);
+  return [el.landing, el.handTest, el.menu, el.lobby, el.camHelp, el.howto, el.settingsPanel, el.oppPicker].some((p) => !p.hidden);
 }
 
 /** Esc: close the topmost closable panel. Returns true if it closed one. */
@@ -1324,25 +1330,26 @@ function closeTopPanel() {
   return false;
 }
 
+/** Screens: landing (title page) → menu (pick a game) → game. The hand test is its own screen. */
 function showScreen(name) {
   el.landing.hidden = name !== "landing";
+  el.handTest.hidden = name !== "handtest";
   el.menu.hidden = name !== "menu";
   document.body.dataset.screen = name;
-  placeStage(name === "landing" ? "calib" : "game");
+  placeStage(name === "handtest" ? "calib" : "game");
   if (name !== "game") playMusic("menu");
-  if (name === "landing") {
-    resetCalibration();
-    updateStartBtn();
-  }
-  if (name === "menu") {
-    el.menuTag.textContent = cameraOn
-      ? "Point at a mode and hold, or click."
-      : "Camera is off, so you'll play with the buttons or keys.";
-  }
+  if (name === "handtest") resetCalibration();
+  if (name === "menu") renderCamBar();
   applyLayout();
 }
 
-/** The one camera stage lives in the hand test card on the landing screen, and in the arena otherwise. */
+/** Menu: a clear way to turn the camera on while it's off. */
+function renderCamBar() {
+  el.camBar.hidden = cameraOn;
+  el.menuTag.textContent = cameraOn ? "Point at a mode and hold, or click." : "Pick a game.";
+}
+
+/** The one camera stage lives in the hand test card on the hand test screen, and in the arena otherwise. */
 function placeStage(where) {
   const host = where === "calib" ? el.calibSlot : el.cornerL;
   if (el.stage.parentElement !== host) host.appendChild(el.stage);
@@ -1374,7 +1381,7 @@ function updateTrackChip(t = performance.now()) {
   setTrackChip(any ? "hand" : "nohand", any ? `Hand tracked · ${fps} fps` : "Show your hand");
 }
 
-// ---------- landing: camera + hand test ----------
+// ---------- hand test screen ----------
 const tried = new Set();
 let tryHold = { g: null, since: 0 };
 
@@ -1412,7 +1419,7 @@ function renderCalib(l = {}, dist = null, g = null) {
   const distText = { far: "Come closer", near: "Move back", edge: "Move hand in", ok: "Good distance" };
   setNode(el.chkDist, dist === "ok" ? "ok" : dist ? "warn" : "", distText[dist] || "Good distance");
   setNode(el.chkLight, !cameraOn ? "" : lightOk ? "ok" : "warn", !cameraOn || lightOk ? "Good light" : "More light");
-  el.landing.querySelectorAll("[data-try]").forEach((n) => {
+  el.handTest.querySelectorAll("[data-try]").forEach((n) => {
     n.classList.toggle("done", tried.has(n.dataset.try));
     n.classList.toggle("live", g === n.dataset.try);
   });
@@ -1426,45 +1433,48 @@ function renderCalib(l = {}, dist = null, g = null) {
   setNode(el.calibPill, pill[0], pill[1]);
 }
 
-function updateStartBtn() {
-  el.startBtn.textContent = cameraOn ? "▶ PLAY" : "📷 Turn on camera";
-  el.startBtn.disabled = false;
-}
-
-async function startCameraFromLanding() {
+/** Hand test screen: start the camera (the browser asks for permission) and show the live checks. */
+async function startCameraForTest() {
   wantCam = true;
   unlockAudio();
-  el.startBtn.disabled = el.calibStart.disabled = true;
+  el.calibStart.disabled = el.camBtn.disabled = true;
   await ensureCamera();
-  el.calibStart.disabled = false;
-  if (!el.landing.hidden) placeStage("calib");
-  updateStartBtn();
+  el.calibStart.disabled = el.camBtn.disabled = false;
+  if (!el.handTest.hidden) placeStage("calib");
   renderCalib();
 }
 
-/** Leave the landing screen: an invite link goes straight to the online lobby. */
+function openHandTest() {
+  mode = "cpu";
+  document.body.dataset.mode = "cpu";
+  showScreen("handtest");
+  if (!cameraOn) startCameraForTest();
+  else tracker.setNumHands(1);
+}
+
+/** Leave the title page: an invite link goes straight to the online lobby, otherwise to the game menu. */
+async function cameraAllowed() {
+  try {
+    return window.isSecureContext && (await navigator.permissions?.query({ name: "camera" }))?.state === "granted";
+  } catch {
+    return false;
+  }
+}
+
 function leaveLanding() {
   unlockAudio();
+  // Allowed on an earlier visit: start the camera now (no prompt appears). Nothing starts before Play.
+  cameraAllowed().then((ok) => ok && !cameraOn && ensureCamera().then(() => !el.menu.hidden && renderCamBar()));
   const code = cleanCode(new URLSearchParams(location.search).get("room"));
   if (code.length === 4) chooseMode("online");
   else showScreen("menu");
 }
 
-el.startBtn.addEventListener("click", () => (cameraOn ? leaveLanding() : startCameraFromLanding()));
-el.calibStart.addEventListener("click", startCameraFromLanding);
-el.noCamBtn.addEventListener("click", () => {
-  wantCam = false;
-  cameraOn = false;
-  tracker.stopCamera();
-  updateTrackChip();
-  leaveLanding();
-});
-el.retestBtn.addEventListener("click", async () => {
-  mode = "cpu";
-  document.body.dataset.mode = "cpu";
-  await tracker.setNumHands(1);
-  showScreen("landing");
-});
+el.startBtn.addEventListener("click", leaveLanding);
+el.calibStart.addEventListener("click", startCameraForTest);
+el.calibDone.addEventListener("click", () => showScreen("menu"));
+el.camBtn.addEventListener("click", openHandTest);
+el.retestBtn.addEventListener("click", openHandTest);
 el.howtoBtn.addEventListener("click", () => (el.howto.hidden = false));
 el.howto.addEventListener("click", (e) => {
   if (e.target === el.howto || e.target.closest("[data-close]")) el.howto.hidden = true;
@@ -1607,7 +1617,7 @@ function showCamHelp(e) {
 }
 el.camRetry.addEventListener("click", async () => {
   el.camHelp.hidden = true;
-  if (!el.landing.hidden) await startCameraFromLanding();
+  if (!el.handTest.hidden) await startCameraForTest();
   else {
     wantCam = true;
     await ensureCamera();
@@ -1617,8 +1627,7 @@ el.camRetry.addEventListener("click", async () => {
 el.camSkip.addEventListener("click", () => {
   el.camHelp.hidden = true;
   wantCam = false;
-  if (!el.landing.hidden) leaveLanding();
-  else showScreen("menu");
+  showScreen(el.handTest.hidden && document.body.dataset.screen === "game" ? "game" : "menu");
 });
 
 // ---------- hand cursor ----------
@@ -1626,6 +1635,7 @@ function cursorScope() {
   for (const p of [el.camHelp, el.settingsPanel, el.howto, el.oppPicker, el.lobby, el.matchModal]) if (!p.hidden) return p;
   if (!el.lookSheet.hidden && !collecting) return el.lookSheet;
   if (!el.landing.hidden) return el.landing;
+  if (!el.handTest.hidden) return el.handTest;
   if (!el.menu.hidden) return el.menu;
   if (!busy && !collecting) return el.dock; // idle between throws: Next throw, layout, settings
   return null;
@@ -2019,12 +2029,5 @@ showScreen("landing");
 const invite = cleanCode(new URLSearchParams(location.search).get("room"));
 if (invite.length === 4) {
   el.inviteNote.hidden = false;
-  el.inviteNote.textContent = `🎟️ You're invited to online room ${invite}. Turn on your camera, then press Play to join.`;
+  el.inviteNote.textContent = `🎟️ You're invited to online room ${invite}. Press Play to join.`;
 }
-navigator.permissions
-  ?.query({ name: "camera" })
-  .then((p) => {
-    // Already allowed on an earlier visit: start the camera now, no prompt will appear.
-    if (p.state === "granted" && window.isSecureContext) startCameraFromLanding();
-  })
-  .catch(() => {});

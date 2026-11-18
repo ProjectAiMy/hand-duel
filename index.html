@@ -118,8 +118,35 @@
       <div class="look-row"><h4>Filter</h4><div class="chips" id="lookFilter"></div></div>
     </div>
 
-    <!-- ============ Landing: premise, camera, hand test ============ -->
+    <!-- ============ Landing: the title page ============ -->
     <section class="screen" id="landing" aria-labelledby="landingTitle">
+      <div class="topbar">
+        <div class="logo">HAND <span>DUEL</span></div>
+        <div class="topbar-tools">
+          <button class="icon-btn" data-open-settings title="Settings" aria-label="Settings">⚙️</button>
+        </div>
+      </div>
+      <div class="title-wrap">
+        <div class="title-hands" aria-hidden="true"><span>✊</span><span>✋</span><span>✌️</span></div>
+        <h1 id="landingTitle">Rock. Paper.<br /><em>Scissors.</em> Fight!</h1>
+        <p class="lede">
+          A rock-paper-scissors fighting game you play with your real hand on the webcam. Throw on <b>“Shoot!”</b>,
+          land hits, and K.O. the CPU, a friend beside you, or someone online.
+        </p>
+        <p class="invite" id="inviteNote" hidden></p>
+        <button id="startBtn" class="btn primary big">▶ Play</button>
+        <div class="steps">
+          <div class="step"><b>🎮</b><span>Pick a game: VS CPU, 2 players or online.</span></div>
+          <div class="step"><b>📷</b><span>Turn on your camera, or play with on-screen buttons.</span></div>
+          <div class="step"><b>✋</b><span>Throw with your hand. Point and hold to press buttons.</span></div>
+        </div>
+        <p class="status" id="landingStatus" role="status"></p>
+        <p class="privacy">🔒 Nothing is uploaded. Online matches send your video only to your opponent.</p>
+      </div>
+    </section>
+
+    <!-- ============ Hand test: turn on the camera and check your hand ============ -->
+    <section class="screen" id="handTest" aria-labelledby="handTestTitle" hidden>
       <div class="topbar">
         <div class="logo">HAND <span>DUEL</span></div>
         <div class="topbar-tools">
@@ -127,30 +154,10 @@
           <button class="icon-btn" data-open-settings title="Settings" aria-label="Settings">⚙️</button>
         </div>
       </div>
-      <div class="landing-wrap">
-        <div class="pitch">
-          <h1 id="landingTitle">Rock. Paper.<br /><em>Scissors.</em> Fight!</h1>
-          <p class="lede">
-            A rock-paper-scissors fighting game you play with your real hand. Throw on <b>“Shoot!”</b>, land hits,
-            and K.O. the CPU, a friend beside you, or someone online.
-          </p>
-          <p class="invite" id="inviteNote" hidden></p>
-          <div class="steps">
-            <div class="step"><b>📷</b><span>Uses your webcam. Video stays on your device.</span></div>
-            <div class="step"><b>✋</b><span>Raise one hand 40–80 cm from the camera.</span></div>
-            <div class="step"><b>👆</b><span>Point and hold to press buttons. No mouse needed.</span></div>
-          </div>
-          <div class="cta-row">
-            <button id="startBtn" class="btn primary big">📷 Turn on camera</button>
-            <button id="noCamBtn" class="btn">⌨️ Play without camera</button>
-          </div>
-          <p class="status" id="landingStatus" role="status"></p>
-          <p class="privacy">🔒 Nothing is uploaded. Online matches send your video only to your opponent.</p>
-        </div>
-
+      <div class="test-wrap">
         <div class="glass calib">
           <div class="calib-head">
-            <h2>Test your hand</h2>
+            <h2 id="handTestTitle">Test your hand</h2>
             <span class="pill" id="calibPill">Not started</span>
           </div>
           <div class="calib-cam" id="calibSlot">
@@ -171,6 +178,9 @@
             <div class="shape" data-try="paper">✋<small>Paper</small></div>
             <div class="shape" data-try="scissors">✌️<small>Scissors</small></div>
           </div>
+          <div class="cta-row test-cta">
+            <button id="calibDone" class="btn primary">✓ Done</button>
+          </div>
         </div>
       </div>
     </section>
@@ -189,8 +199,13 @@
       <div class="menu-center">
         <h1 class="menu-title" id="menuTitle">CHOOSE YOUR <span>FIGHT</span></h1>
         <p class="menu-tag" id="menuTag">Point at a mode and hold, or click.</p>
+        <div class="cam-bar glass" id="camBar" hidden>
+          <span class="cam-bar-ico">📷</span>
+          <span class="cam-bar-txt"><b>Camera is off</b><span>Turn it on to throw with your hand, or play with on-screen buttons.</span></span>
+          <button id="camBtn" class="btn primary">📷 Turn on camera</button>
+        </div>
         <div class="modes">
-          <button class="mode cpu" data-mode="cpu"><b class="em">🤖</b><span><b>VS CPU</b><span>Solo practice. Learn the power-ups.</span></span></button>
+          <button class="mode cpu" data-mode="cpu"><b class="em">🤖</b><span><b>VS CPU</b><span>12 opponents, each with a habit to spot.</span></span></button>
           <button class="mode local" data-mode="local"><b class="em">👥</b><span><b>2 Players</b><span>Same screen, one camera. P1 left, P2 right.</span></span></button>
           <button class="mode online" data-mode="online"><b class="em">🌐</b><span><b>Online</b><span>Video duel with a friend by room code.</span></span></button>
         </div>

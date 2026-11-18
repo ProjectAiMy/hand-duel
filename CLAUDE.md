@@ -44,6 +44,9 @@ README.md explains the features, controls, rules and architecture, so read it fi
   tasks-vision 0.10.14. `outgoingStream()` swaps the online video track between the raw camera and the effects
   canvas. `.claude/launch.json` has `rps-cam-test` on port 8100 for checks.
 
+- Screens (changed Nov 18 2026 at the user's request): title page (`#landing`, only a Play button, no camera) → menu
+  (`#menu`, with `#camBar` "Turn on camera" while it's off) → game. The hand test is its own screen (`#handTest`).
+  If the camera was allowed before, it starts on Play, never on page load. The menu hides the arena behind it.
 - UI v2 (Nov 18 2026, approved from `mockups/`): landing + hand test, camera help, full-screen menu, settings panel,
   hand cursor (`js/cursor.js`, hold only: the user chose no pinch), spotlight layout with a snapping self tile
   (default "Spotlight them", not remembered between matches by the user's choice; tile spot and size are saved).

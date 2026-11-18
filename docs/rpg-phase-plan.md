@@ -1,211 +1,270 @@
 # Hand Duel World: design plan for the RPG phase
 
-*Draft, 18 Nov 2026. Status: plan only, nothing built yet. Working name: "Hand Duel World" (placeholder).*
+*Draft v2, 18 Nov 2026. Status: plan only, nothing built yet. Working name: "Hand Duel World" (placeholder).*
+
+What changed in v2 (your feedback on the town mockups):
+- **Single-player adventure first.** The town is a top-down adventure, like classic handheld monster-catching RPGs:
+  you explore, NPCs notice you and challenge you, and you work through a series of dojos. Online multiplayer is
+  moved to a later phase and slots into the same world (section 9).
+- **Dojo masters and townsfolk, each with a personality** that changes *how they play* Rock-Paper-Scissors, not
+  just what they say (section 4).
+- **Art built for change.** Avatars are layered "paper-doll" sprites described by data, and all the art lives in a
+  swappable art pack. Your later design examples can replace the look without touching game code or anyone's save
+  (section 5).
+- The avatar duel screen stays a placeholder until you send design examples.
 
 ## 1. The idea in one paragraph
 
-A small online pixel-art world in the style of old handheld RPGs: a top-down town you walk around in, where you
-see other players moving, wave at them, and **challenge anyone you meet to a Hand Duel**. A duel can be a
-**camera duel** (today's game: you see each other's webcams) or an **avatar duel** (both players appear as pixel
-fighters, animated by their real hand, which is tracked in the background; no video is sent). Think "Gather.town
-meets a retro RPG battle screen", with your hand as the controller.
+You arrive in a small pixel town that is crazy about Hand Duels. Five dojos stand around the town, each run by a
+master with a signature style. Townsfolk on the streets spot you ("!") and challenge you; every one of them plays
+differently, and the dialogue gives away hints about their habits. Beat townsfolk for coins and XP, beat masters for
+belts, unlock new areas and cosmetics, and finally face the Grandmaster. Every duel is played with your real hand
+on the webcam, while the battle screen shows your custom pixel avatar.
 
-The look and the world are **our own**. The old-school RPG is a mood (pixel tiles, top-down map, a battle screen
-with sprites and HP bars), not a source. No creatures, names, tiles, music, menus or maps copied from any existing
-game.
+The world, characters, names and story are **our own**. The classic handheld RPG is a format (top-down town,
+"trainer spots you", gym-style progression, a battle screen with HP bars), not a source: no creatures, names, tiles,
+music, menus or maps from any existing game.
 
-## 2. Patterns borrowed from the inspirations
-
-| Inspiration | Pattern to borrow | How it shows up here |
-|---|---|---|
-| Classic top-down handheld RPGs (as a genre) | Grid movement, readable 16×16/32×32 tiles, a dedicated battle screen with HP bars, "!" when someone notices you | Grid movement in town; a duel opens a battle screen; a "!" bubble appears when someone challenges you |
-| Gather.town | Proximity is the interface: walk near someone to interact; private spaces | Walk next to a player to see "Challenge"; arenas are rooms you enter; video only inside a duel |
-| Neal.fun | One idea, zero friction, instantly playable | No account to start: pick a name and a sprite, then you're in town in under 10 s |
-| Poki / CrazyGames top titles | Fast first load, play before sign-up, big clear CTAs | World loads in about 1 MB; the hand tracker (8 MB) loads only when you enter your first duel |
-| Google Experiments (Teachable Machine and others) | Explain the camera before asking, show what the model sees | The landing hand test we just built is reused before the first duel |
-| visionOS / spatial UI | Large targets, hover feedback before commit, glass over live content | The hand cursor, hold-to-press and glass panels from UI v2 carry over to world menus |
-
-## 3. Player experience
-
-### 3.1 First visit
-1. Landing (existing UI v2), with a new primary button: **Enter the world**. The existing modes stay under "Quick duel".
-2. Pick a name and an avatar (6–8 original pixel characters, plus 2–3 colour swaps).
-3. You appear in the town square. A short arrow-key / joystick tip, then you're free.
-
-### 3.2 In the world
-- **Move:** arrow keys or WASD; tap or click a tile to walk there; an on-screen joystick on phones.
-  The hand is *not* used for walking (holding an arm up to walk is tiring). The hand cursor still works for menus.
-- **See people:** other players walk around with name tags. Above 30 people on screen, distant players are drawn as
-  simple dots or hidden.
-- **Interact:** walk next to someone and press E, tap them, or hold the hand cursor on them. A small menu offers
-  *Challenge*, *Wave 👋* and *Mute/Block*.
-- **Challenge:** they see "‼ Sam challenges you!" with *Camera duel*, *Avatar duel* or *No thanks*, auto-declined after
-  15 s. The challenger can preselect the mode.
-- **Places:** a town square (spawn), **arenas** (step on a pad to queue for a random opponent), a **training dojo**
-  (CPU opponents with fixed styles, e.g. one who favours rock), and a notice board with the leaderboard.
-- **Emotes:** 4 quick emotes (👋 😂 😤 🤝), shown as pixel bubbles. No free-text chat at first (see Safety).
-
-### 3.3 The duel
-- Both players are pulled into a **battle screen** while their world sprites show a ⚔️ bubble to everyone else.
-- **Camera duel:** today's online game, unchanged (spotlight layout, commit-reveal, power-ups).
-- **Avatar duel:** a side-on pixel battle scene:
-  - Each fighter has idle, wind-up (in time with "Rock, Paper, Scissors"), rock/paper/scissors throw, hit, block
-    (shield), power (finger gun), reverse (horns) and K.O. animations.
-  - Your own camera appears small, **only on your screen**, with the hand skeleton, so you can see the tracking working.
-    Your opponent only ever sees your avatar.
-  - Arena backdrops reuse the four existing arenas as pixel-art versions.
-- After the match: *Rematch* or *Back to town*, plus a result card (W/L, perfect rounds) and a small reward (see 3.4).
-
-### 3.4 Light progression (later milestone)
-- Win count, streaks and a seasonal leaderboard on the notice board.
-- Cosmetics earned by playing: avatar colours, hats, battle backdrops, victory poses. No pay-to-win.
-- Training dojo "badges" for beating each CPU style: a reason to come back.
-
-## 4. Technical architecture
-
-### 4.1 What stays the same
-- A static site on GitHub Pages: plain ES modules, no build step.
-- `js/tracker.js`, `js/gesture.js` and `js/fight.js` (pure rules) are reused unchanged.
-- `js/net.js` (PeerJS WebRTC + commit-reveal) is still the 1:1 duel channel, already verified by the user on real devices.
-
-### 4.2 What's new
+## 2. The game loop
 
 ```
-Browser                                              Cloud
-┌───────────────────────────────┐   WebSocket   ┌──────────────────────────────┐
-│ world/   map, movement, render│◀────────────▶│ World server (one room per    │
-│ duel/    duel controller      │   presence,   │ map shard): positions,        │
-│          (camera | avatar)    │   challenges  │ challenges, emotes, duel      │
-│ tracker/ gesture/ fight/      │               │ codes, results                │
-│ net.js   1:1 WebRTC duel ─────┼──────────────▶│ (signalling for the duel is   │
-└───────────────────────────────┘   P2P video   │  PeerJS at first, ours later) │
-                                    + moves     └──────────────────────────────┘
+explore town ──▶ NPC spots you "!" ──▶ dialogue (hints at their habit) ──▶ duel (your hand vs their trait AI)
+     ▲                                                                              │
+     └── new area / cosmetic / power unlocked ◀── coins, XP, belt ◀── win ◀─────────┘
+                                                                     lose → retry, with a hint
 ```
 
-**World server: recommended Cloudflare Durable Objects, using the PartyKit / PartyServer library.**
-- One Durable Object per map "shard" (for example 50 players). It holds positions in memory and broadcasts
-  changes about 10 times a second. WebSockets are built in, and it runs close to players.
-- Cost: Durable Objects have a free allowance, but Cloudflare's own pages disagree on whether the free plan
-  includes them. Plan for the **$5/month Workers Paid plan**, which comfortably covers a hobby-sized world. Incoming
-  WebSocket messages are billed at 20:1, which keeps 10 Hz movement cheap. Check the current pricing page before launch.
-- Cloudflare bought PartyKit in 2024 and said there are no charges beyond normal Workers usage.
+- **Session length:** one duel is about 1 minute; a townsfolk route about 5 minutes; a dojo (2–3 students, then the
+  master) about 10 minutes. Good for short play on a phone.
+- **Losing is fine:** no game over. You go back to the dojo door with a tip ("Granite threw rock 4 times out of 6").
+- **Save:** in the browser (localStorage) at first. No account needed. An export/import code to move a save between
+  devices; accounts come with online play.
 
-Alternatives considered:
+## 3. The town
 
-| Option | Fit | Why not first |
+### 3.1 Layout (first version: one town, five dojos)
+
+| Area | What's there | Unlocked by |
 |---|---|---|
-| **Colyseus** (open source, room state sync) | Very good for game rooms; self-host free or Colyseus Cloud from $15/month | Needs a Node server to run and update; more than we need for positions + challenges |
-| **Supabase Realtime** | Easy presence/broadcast; free plan has 200 concurrent connections and 100 messages/s | 100 msg/s is too tight for movement once ~20 players move at 10 Hz; better for accounts/leaderboards later |
-| **PeerJS mesh only** (no server) | Free | A mesh doesn't scale past a handful of players, and there's no authority for challenges |
-| Firebase Realtime DB | Fine presence | Per-download billing gets expensive for movement streams |
+| Town square | Your home, the shop (cosmetics for coins), the notice board (your record), a fountain | Start |
+| Stone Dojo | Master Granite and two students | Start |
+| Paper Dojo | Sensei Fold | Stone Belt |
+| Blade Dojo | Master Snip | Paper Belt |
+| Mirror Dojo | Echo | Blade Belt |
+| Summit Dojo (up the hill) | Grandmaster Ren | All four belts |
+| Streets between them | 2–3 townsfolk per street, a few who only appear at night, or after a belt | Walking past |
 
-**Movement sync (simple and robust):**
-- Grid-based movement: a client sends "move to tile (x, y)" only on each step, not every frame. The server checks the
-  step is adjacent and walkable (no teleporting through walls) and rebroadcasts. Other clients tween the sprite
-  over about 150 ms.
-- Batches: the server sends one combined update per 100 ms tick per shard.
-- Interest management: send each client only players within ~20 tiles.
+Later areas (a beach, a market, a night festival) are just new maps plus NPC data; the engine doesn't change.
 
-**Duel handoff:**
-1. A sends `challenge(B, mode)` → the server forwards it to B. B accepts.
-2. The server makes a one-time duel code and tells both players. A hosts and B joins, using today's `net.js` flow with that code.
-3. The duel runs peer-to-peer exactly as now: commit-reveal moves, plus video only in camera mode.
-4. Both clients report the result to the server, which records a win only if the two reports agree.
-5. Later: move signalling from the public PeerJS server onto our own server (the Durable Object can relay
-   WebRTC offers/answers), and add a TURN relay for the ~10% of networks that can't connect directly.
+### 3.2 Exploring
+- **Move:** arrow keys/WASD, tap to walk (pathfinding), or an on-screen joystick on phones. The hand isn't used to
+  walk; the hand cursor still works for menus and dialogue.
+- **Line of sight:** a challenger looks along a line of tiles. Step into it and they see you: "!" bubble, they walk
+  up to you, the dialogue opens. You can't sneak past a challenger who has seen you, but you can say *Later*, and they
+  wait there.
+- **Talk:** walk up and press E or tap. Townsfolk who aren't challengers give tips, lore, or hints about a master.
+- **Camera:** off while you walk. It only turns on for a duel (the tracker preloads in the background so the duel
+  opens fast). Players without a camera can duel with on-screen ✊ ✋ ✌️ buttons (the existing manual mode).
 
-### 4.3 Client modules (new)
+### 3.3 Duels against NPCs
+- The same rules as now (`js/fight.js`): HP, rounds, shield/power/reverse, fouls, the capture timing you tuned.
+- The battle screen shows **your avatar vs theirs**, with your own camera small in a corner (only you see it).
+- **Dojo twists:** each dojo changes one rule, so every master feels different (see section 4.3).
+- **Hints (on by default, can be turned off):** after a few throws a small "Read" panel shows the NPC's recent throws
+  and a one-line hint. This teaches players to look for patterns, which is the actual skill in RPS.
+
+## 4. NPCs with character traits
+
+### 4.1 Traits drive the AI, not just the dialogue
+Each NPC is a data entry: look, dialogue, rewards, and a **strategy** built from small, reusable behaviours. These
+come from patterns real people show when playing RPS: many beginners open with rock, winners tend to repeat their
+throw and losers tend to switch to the next one ("win-stay, lose-shift", shown in a large 2014 study by Wang, Xu
+and Zhou), and people avoid repeating a throw three times.
+
+| Behaviour | What it does | Typical trait |
+|---|---|---|
+| `bias` | Weights for ✊ ✋ ✌️ | Stubborn (rock), Gentle (paper), Sharp (scissors) |
+| `opener` | Fixed first throw | Eager kids |
+| `winStay` / `loseShift` | Repeat after a win; switch after a loss | Most "human-like" townsfolk |
+| `noRepeat` | Never the same throw twice in a row | Patient, careful |
+| `cycle` | ✊ → ✋ → ✌️ → … | Rhythmic, musical |
+| `copy` | Throws your last throw | Copycat |
+| `counterLast` | Throws what beats your last throw | Hot-headed, competitive |
+| `counterFavourite` | Throws what beats your most-used throw | Show-off, analytical |
+| `markov` | Learns what you throw after each of your last 1–2 throws | Grandmaster |
+| `random` | No pattern at all | Mysterious (teaches that some opponents can't be read) |
+| `powers` | When to arm shield/power/reverse: always, when behind, never | Aggressive vs cautious |
+
+- Behaviours are **mixed with weights plus a `noise` value**, so NPCs are readable but never a sure thing. Difficulty
+  is mostly `noise` (lower = more predictable = easier) and how many behaviours are stacked.
+- **Mood:** some NPCs switch behaviour mid-match: when their HP is below half (Echo starts countering), after two
+  losses in a row (Bea panics into paper), or when they're ahead (Granite gets even more stubborn).
+- **Tells:** each trait has a visible tell in the battle sprite (Granite cracks his knuckles before rock) and a line in
+  the dialogue ("Rock is the strongest! I always start with rock!"). Players learn to read people, not just odds.
+
+Example entry (format only; the values will be tuned in testing):
+
+```json
+{
+  "id": "granite", "name": "Master Granite", "title": "Stone Dojo", "trait": "Stubborn",
+  "avatar": { "body": "broad", "skin": 2, "hair": "none", "top": "gi", "topColor": "#8a8fa8", "bottom": "hakama", "extra": "headband" },
+  "strategy": { "bias": { "rock": 0.5, "paper": 0.25, "scissors": 0.25 }, "winStay": 0.8, "noise": 0.25,
+                "powers": "whenBehind",
+                "mood": [{ "when": "ahead", "bias": { "rock": 0.7 } }] },
+  "tell": { "before": "rock", "anim": "knuckles", "chance": 0.7 },
+  "twist": "shieldEveryRound",
+  "lines": { "intro": "Stone does not move. Neither do I.", "win": "Solid.", "lose": "...A crack. Well done." },
+  "reward": { "belt": "stone", "coins": 100, "unlock": ["shield-skin-granite"] }
+}
+```
+
+### 4.2 The five dojo masters
+
+| Master | Trait | How they play | Tell | Dojo twist | Reward |
+|---|---|---|---|---|---|
+| **Master Granite**, Stone Dojo | Stubborn | Leans on rock; repeats after a win | Cracks his knuckles before rock | Starts every round with a shield | Stone Belt |
+| **Sensei Fold**, Paper Dojo | Patient | Never repeats a throw; prefers paper | Bows deeper before paper | Can use reverse from round 1 | Paper Belt |
+| **Master Snip**, Blade Dojo | Hot-headed | After a loss, throws what beats your last throw | Shouts louder before switching | Speed rounds: a faster countdown | Blade Belt |
+| **Echo**, Mirror Dojo | Copycat | Copies your last throw; at half HP, counters the copy instead | Mirrors your idle pose | Both of you see your last throw on the floor | Mirror Belt |
+| **Grandmaster Ren**, Summit Dojo | Reader | Learns your habits (Markov on your last 2 throws) | None. A "reading you" meter fills instead | Best of 5, two phases | Black Belt + title |
+
+Each dojo also has 2 students who use a weaker version of the master's style, so you can practise reading it
+before the master.
+
+### 4.3 Townsfolk (first set)
+
+| NPC | Trait | Plays | Dialogue tell |
+|---|---|---|---|
+| **Pip**, a kid | Eager | Always opens with rock, then random | "Rock is the strongest!" |
+| **Nana Ruth**, retired champion | Rhythmic | Cycles rock → paper → scissors | Hums a three-note tune |
+| **Dex**, gamer | Show-off | Counters your most-used throw | "I've got your number." |
+| **Bea**, baker | Nervous | Win-stay; panics into paper after a loss | "Oh no, oh no…" |
+| **Coach Tank** | Loud | Arms every power the moment he has it | "FULL POWER!" |
+| **Luna** | Mysterious | Pure random | "Even I don't know." |
+
+Adding an NPC is adding one JSON entry and placing them on the map in Tiled, so you can design characters yourself.
+
+## 5. Art built for customisation and later redesign
+
+### 5.1 Avatars are data
+An avatar is a small object, the same for you, every NPC and (later) online players:
+
+```json
+{ "v": 1, "body": "base", "skin": 3, "hair": "spiky", "hairColor": "#2a2236",
+  "top": "hoodie", "topColor": "#3fe0ff", "bottom": "shorts", "bottomColor": "#3b3f6b",
+  "shoes": "sneakers", "hat": "none", "extra": "glasses" }
+```
+
+- **Layers (slots):** cape/back → body (skin tone) → bottom → top → face extra → hair → hat. Draw order can change
+  per facing direction (hair goes behind the head when walking up).
+- **Recolourable:** each item is drawn in a few grey "ramps" that are tinted at load time, so one hoodie drawing gives
+  every colour. Colour pickers cost no extra art.
+- **Baked once:** the game combines an avatar's layers into one sprite sheet when it loads and caches it, so drawing
+  dozens of characters stays cheap on phones.
+- **Unlocks:** items have a `lock` field (coins, a belt, beating a certain NPC), shown with a 🔒 in the creator.
+
+### 5.2 Art packs: swap the whole look later
+All art sits in one folder per pack, with a manifest:
+
+```
+art/packs/placeholder/
+  pack.json      tile size, sprite sizes, frame layout per animation, slot list, palette ramps
+  tiles/         town tilesets (from Tiled)
+  avatar/        one sheet per slot item: town (walk 4 directions × 3 frames), battle poses, portrait
+  ui/            dialogue frames, bubbles, icons
+```
+
+- The game reads sizes and frame layouts from `pack.json`, never hard-coded, so a new pack can use 16×16 or 32×32
+  tiles, chibi or taller characters, more animation frames, or a portrait style.
+- Saves store **item ids**, not pictures. When a new pack replaces the art, everyone's avatar is redrawn in the new
+  style. Items missing from a new pack fall back to the nearest one.
+- **Three renditions per item:** town sprite (small, walking), battle sprite (big, posed: idle, wind-up, ✊ ✋ ✌️,
+  hit, K.O., power auras) and portrait (for dialogue). A pack can start with only the town sprite and scale it up for
+  battle, as the placeholder does, then add proper battle art later.
+- When you send design examples, they become a new pack. The placeholder pack stays as a fallback.
+
+### 5.3 Sources
+1. Original art (yours, commissioned, or drawn for this project).
+2. CC0 / permissive pixel packs as placeholders, listed in `CREDITS.md`.
+3. Never ripped or traced sprites. AI tools only for concept sketches.
+
+**Tools:** Tiled for maps (JSON export), Aseprite or LibreSprite for sprites.
+
+## 6. Screens
+
+| Screen | Notes |
+|---|---|
+| Landing | Existing UI v2, with **Adventure** as the main button; Quick duel / VS CPU / Online stay as they are |
+| Avatar creator | Live preview in all three renditions; slots with item tiles and colour swatches; locked items show what unlocks them |
+| Town | Top-down, HUD with belts, coins and the current goal ("Next: Stone Dojo"); a menu for bag/avatar/map/settings |
+| Dialogue | Classic boxed dialogue with a portrait, name, trait chip and choices (*Duel!* / *Later*); works with tap, keys and the hand cursor |
+| Battle | Avatars on a dojo backdrop, HP, round, power chips, the Read panel, your camera small; layout to be redesigned with your examples |
+| Results | Coins, XP, belt ceremony for masters, unlock popups |
+| Map / notice board | Dojos beaten, NPCs met, records against each |
+
+## 7. Technical architecture (single-player)
+
+Still a static site on GitHub Pages: no server, no cost.
 
 | Module | Job |
 |---|---|
-| `js/world/map.js` | Load a map exported from **Tiled** (JSON): tile layers, collision layer, objects (arenas, doors, signs) |
-| `js/world/render.js` | Canvas 2D, integer-scaled pixel art (`image-rendering: pixelated`). Static layers pre-drawn once to an offscreen canvas; only sprites redrawn each frame |
-| `js/world/players.js` | Local and remote players, tweened grid movement, name tags, bubbles |
-| `js/world/input.js` | Keyboard, tap-to-walk with A* pathfinding on the collision grid, phone joystick, hand-cursor interactions |
-| `js/world/client.js` | WebSocket to the world server, reconnect with backoff, message schema/versioning |
-| `js/duel/controller.js` | The match flow currently in `main.js`, extracted so it can run in either presentation |
-| `js/duel/avatar-view.js` | Pixel battle screen: sprite sheets, timings tied to the countdown and the reveal |
+| `js/duel/controller.js` | The match flow now in `main.js`, extracted, so camera view, avatar view and NPC opponents share it |
+| `js/duel/opponents.js` | Opponent interface: `cpu` (today), `npc(strategy)` (new), `online` (today's net.js, later presence) |
+| `js/npc/strategy.js` | The behaviours from 4.1, mixed by weight. Pure functions, unit-tested like `gesture.js` |
+| `js/world/map.js`, `render.js`, `input.js` | Tiled map loader, Canvas 2D pixel renderer with cached layers, keyboard/tap/joystick |
+| `js/world/actors.js` | Player and NPCs: grid movement, facing, line of sight, walking up to you, bubbles |
+| `js/world/dialogue.js` | Dialogue boxes and choices from NPC data |
+| `js/art/pack.js`, `avatar.js` | Load a pack, tint ramps, bake avatar sheets, fallbacks |
+| `js/save.js` | Progress, coins, unlocks, avatar; versioned with migrations; export/import code |
+| `data/npcs.json`, `data/items.json`, `maps/*.json` | Content, editable without touching code |
 
-**Renderer choice:** plain Canvas 2D first. A 20×15 tile view with a few dozen sprites is tiny work, and it keeps the
-page light. Phaser (~1 MB) only if we later want physics, tile animation tooling or particle systems.
+- **Renderer:** plain Canvas 2D (`image-rendering: pixelated`, integer scaling). Phaser only if we need much more later.
+- **Hand tracking stays smooth:** one animation loop; the tracker is off in town and on only in duels; world rendering
+  pauses behind the battle screen.
+- **NPC fairness:** the NPC picks its throw **before** reading yours (the same as the CPU now), using only the
+  history of earlier throws. Tells and hints are generated from that pre-chosen plan, so they're honest.
 
-### 4.4 Keeping hand tracking smooth
-- **One `requestAnimationFrame` loop owns the frame.** In the world, the hand tracker is **off** (camera off, no
-  model running) unless the hand cursor is turned on, and then it uses Low quality (480p). Entering a duel switches
-  the tracker to full mode and pauses world rendering (the world is hidden behind the battle screen).
-- Pixel art is cheap to draw: cached background layers and no blur or filters on world canvases.
-- Load the 8 MB tracker in the background during the walk to your first duel (`import()` after first input),
-  so the battle screen opens instantly.
+## 8. Milestones (single-player first)
 
-### 4.5 Avatar duel: hand → sprite
-- `classify()` already returns `gesture`, `foul` and `power`. The avatar mirrors the live result:
-  open hand → "ready" pose; a power sign held → glowing aura; at "Shoot!" → the throw pose for the read gesture.
-- During the countdown the avatar does a wind-up bob in time with each beat, matching the existing `pump`.
-- The opponent's avatar only reveals its throw after commit-reveal completes, exactly like the CPU hand now, so
-  avatar mode is as cheat-proof as camera mode.
-- **Bandwidth:** avatar mode sends no video, only a few small messages, so it works on weak mobile data.
-- Optional later: a "live hands" option that streams your (smoothed) gesture state between throws so the other
-  avatar visibly fidgets. This is cosmetic and never affects the result.
+| # | Milestone | What you can try at the end |
+|---|---|---|
+| M0 | Refactor: duel controller and opponent interface out of `main.js` | The current game works exactly as before |
+| M1 | NPC strategies + tests; VS CPU gets a "pick an opponent" list using them | Play Pip, Bea, Granite… in the existing camera game |
+| M2 | Town engine: one map, movement, collisions, line of sight, dialogue, save | Walk the town; NPCs spot you and start duels |
+| M3 | Layered avatars + placeholder pack + avatar creator | Make your character; see it in town and in duels |
+| M4 | Battle screen v1 (to your design examples), tells, Read panel, results | Proper avatar duels with personality |
+| M5 | Five dojos, students, twists, belts, shop and unlocks | The full first adventure |
+| M6 | Art pass with your designs as a new pack | The look you want |
+| M7+ | Online (section 9) | Meet friends in town |
 
-## 5. Art and audio
-- **Style:** 16×16 tiles drawn at 3–4× scale, a limited palette (32 colours) for cohesion, and 32×32 battle sprites
-  with 4–6 frames per action.
-- **Tools:** Aseprite or the free LibreSprite for sprites, **Tiled** for maps (exports the JSON we load).
-- **Sources, in order of preference:**
-  1. Original art made for this project (commissioned or drawn).
-  2. CC0 / permissively licensed pixel packs as placeholders. Check each pack's licence and keep a `CREDITS.md`.
-  3. Never ripped or traced sprites from existing games.
-- ComfyUI or similar only for **concept sketches**; final sprites drawn or cleaned by hand (AI pixel art is rarely
-  grid-clean, and the provenance matters).
-- **Audio:** extend the chiptune synth in `js/audio.js` with a town theme and a battle theme. Footstep and bump
-  blips are free (synth, no files).
+M1 is a quick win that improves the current game straight away, and it tests the trait AI before any town exists.
 
-## 6. Safety, privacy and fair play
-- **Camera only in duels, only with consent:** camera duels require both players to accept. Avatar mode is the
-  default for random arena matches with strangers, and camera mode is opt-in.
-- **No free-text chat at launch:** emotes only. This avoids most moderation work. Add preset phrases later.
-- **Block / mute / report** on every player menu. Blocked players are invisible to you and can't challenge you.
-- **Names:** length limits and a simple word filter; host-side rate limits on challenges (e.g. 1 per 10 s).
-- **Fair play:** commit-reveal (existing). The server records a result only when both reports agree. Rank only from
-  agreed results, and rate-limit rematches between the same pair so nobody can farm wins.
-- **Age:** a general-audience game with webcam video to strangers needs a minimum-age gate for camera duels (13+),
-  and parental guidance in the privacy note. To be confirmed with you before launch.
+## 9. Later: online in the same world
 
-## 7. Prerequisites in the current code
-1. **Split `js/main.js` (~1,700 lines)** into a duel controller, a presentation layer (camera view today) and app
-   shell/screens. This is the main enabler, and it also makes the current game easier to maintain.
-2. Give `net.js` a way to accept a duel code from outside (the world server) instead of only the lobby.
-3. Move landing/menu screens to a small screen router so "World" and "Quick duel" are both entries.
+Kept from v1, now built on top of the single-player world:
+- **Presence:** see other players walking in town, wave, emote, challenge them. Recommended host: Cloudflare Durable
+  Objects (PartyServer), about $5/month for a hobby-sized world; Colyseus or Supabase Realtime as alternatives.
+- **Movement sync:** grid steps only, checked by the server, batched every 100 ms, only for players within ~20 tiles.
+- **Duels:** the server hands both players a one-time code; the duel runs peer-to-peer with today's `net.js`
+  (commit-reveal), in camera or avatar mode. A result counts only when both reports agree.
+- **Why it slots in:** online players are just another opponent type (`online`), and their avatar is the same small
+  JSON as everyone else's, so sending your look costs a few hundred bytes.
+- **Safety:** camera duels only with consent (avatar mode by default with strangers), no free-text chat at launch,
+  block/mute/report, rate limits, a 13+ age gate for camera duels.
 
-## 8. Milestones
-
-| # | Milestone | What you can try at the end | Rough effort |
-|---|---|---|---|
-| M0 | Refactor: duel controller extracted from `main.js` | The current game works exactly as before | 2–3 days |
-| M1 | Offline world: one town map, movement, collisions, NPC challengers who start CPU duels | Walk around alone and fight CPU "trainers" | 3–5 days |
-| M2 | Avatar duel vs CPU: battle screen, placeholder sprites driven by your hand | Fight the CPU as a pixel fighter | 4–6 days (+ art) |
-| M3 | Multiplayer presence: world server, names, avatars, emotes, interest management | See friends walk around in the same town | 4–6 days |
-| M4 | Challenges → online duels in camera or avatar mode, agreed results | Challenge a friend you meet in town | 3–4 days |
-| M5 | Safety and robustness: block/report, rate limits, reconnects, own signalling + TURN | Ready for strangers | 3–5 days |
-| M6 | Progression: stats, leaderboard board, cosmetics, dojo badges | Reasons to come back | 1–2 weeks |
-| — | Final art pass, colours and fonts (your "last stage") | | depends on art |
-
-M0–M2 need no server or money, so the look and feel can be judged before any hosting commitment.
-
-## 9. Open questions for you
-1. **Setting:** a town with a dojo/arena theme (matches the current arenas), or something else (a school, a
-   space station, a fantasy village)?
-2. **Avatars:** a fixed cast of characters, or a simple character creator (body, hair, outfit, colours)?
-3. **Default duel mode with strangers:** avatar (safer, lighter) as proposed, or camera?
-4. **Accounts:** guest-only at first (proposed), or sign-in from day one so wins and cosmetics persist?
-5. **Art:** will you draw or commission sprites, or should M1–M2 use CC0 placeholder packs?
-6. **Scale target:** a friends-and-classmates world (tens of players), or open to the public (hundreds)? This
-   decides the hosting tier and how much moderation is needed.
-7. **Audience age:** anyone under 13 expected? This affects camera duels and data rules.
+## 10. Open questions for you
+1. **Setting and name:** a dojo town as described, or a different theme (school, island, space station)?
+2. **Five dojos** in the first version, or start with fewer (say 3) and add more?
+3. **Belts** as the reward for masters (as proposed), or something else (stamps, scrolls, trophies)?
+4. **Hints (Read panel):** on by default for everyone, or only on an "easy" setting?
+5. **Character proportions** for the art packs: small chibi (big head, like the placeholder), or taller characters?
+   This matters most for your design examples.
+6. **Story:** light (a few lines per NPC, as proposed), or a real storyline with a rival character?
 
 ## Sources (checked Nov 2026)
-- Cloudflare Durable Objects pricing: <https://developers.cloudflare.com/durable-objects/platform/pricing> and
-  <https://www.cloudflare.com/developer-platform/products/durable-objects/>
+- Wang, Xu & Zhou (2014), *Social cycling and conditional responses in the Rock-Paper-Scissors game*,
+  Scientific Reports 4, 5830: <https://www.nature.com/articles/srep05830>
+- Cloudflare Durable Objects pricing: <https://developers.cloudflare.com/durable-objects/platform/pricing>
 - Cloudflare acquires PartyKit: <https://blog.cloudflare.com/cloudflare-acquires-partykit>
-- Colyseus pricing: <https://colyseus.io/pricing>, <https://docs.colyseus.io/cloud/pricing-billing>
+- Colyseus pricing: <https://colyseus.io/pricing>
 - Supabase Realtime limits: <https://supabase.com/docs/guides/realtime/limits>

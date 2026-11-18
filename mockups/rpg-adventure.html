@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hand Duel Adventure mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lilita+One&display=swap" rel="stylesheet" />
+<style>
+/* Mockup only (RPG phase v2): single-player adventure. All art is placeholder, drawn in code from layered
+   "paper-doll" parts. Pick a screen with ?s=creator|roster|encounter|master */
+:root {
+  --glass: rgba(18, 20, 40, .82); --edge: rgba(255,255,255,.22);
+  --text: #fff; --muted: #c9cdf0; --accent: #ffd23f; --ink: #1d1b2e; --paper: #fff8e7;
+  --p1: #3fe0ff; --p2: #ff8f45; --ok: #3ef08f; --bad: #ff5d73; --power: #b98bff;
+  --font-display: "Lilita One", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: #1b1d33; }
+body { color: var(--text); font-family: var(--font-body); font-size: 16px; }
+canvas.px { image-rendering: pixelated; display: block; }
+.display { font-family: var(--font-display); font-weight: 400; letter-spacing: .02em; }
+.glass { background: var(--glass); border: 1.5px solid var(--edge); border-radius: 18px; backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+.chip { display: inline-block; font-size: 13px; padding: 2px 10px; border-radius: 99px; background: rgba(255,255,255,.12); white-space: nowrap; }
+.chip.y { background: var(--accent); color: var(--ink); font-weight: 700; }
+.chip.p { background: var(--power); color: #170a33; font-weight: 700; }
+.chip.lock { background: rgba(0,0,0,.35); color: var(--muted); }
+
+/* ---------- creator ---------- */
+.creator { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; padding: 22px; height: 100vh; }
+.creator h1 { margin: 0 0 4px; font-size: 34px; }
+.creator .sub { color: var(--muted); margin-bottom: 14px; }
+.stage { position: relative; border-radius: 22px; overflow: hidden; background: linear-gradient(#7ec8ff 0 55%, #5fb54d 55%); border: 4px solid var(--ink); display: flex; flex-direction: column; }
+.stage .views { flex: 1; display: grid; grid-template-columns: 1fr 1.5fr 1fr; align-items: end; padding: 20px 20px 0; gap: 12px; }
+.view { text-align: center; }
+.view canvas { margin: 0 auto; }
+.view .lab { display: inline-block; margin: 10px 0 18px; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); border: 3px solid var(--ink); border-radius: 10px; padding: 3px 10px; }
+.stage .namebar { display: flex; gap: 10px; align-items: center; padding: 14px 18px; background: rgba(29,27,46,.88); }
+.namebar .in { flex: 1; background: rgba(255,255,255,.1); border: 1.5px solid var(--edge); border-radius: 12px; padding: 10px 14px; font-size: 18px; }
+.btn { border: 4px solid var(--ink); border-radius: 14px; padding: 10px 20px; background: var(--accent); color: var(--ink); font-family: var(--font-display); font-size: 20px; box-shadow: 0 5px 0 var(--ink); }
+.btn.ghost { background: var(--paper); }
+.panel { padding: 16px 18px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { padding: 8px 14px; border-radius: 12px; background: rgba(255,255,255,.08); font-weight: 700; font-size: 15px; }
+.tab.on { background: var(--paper); color: var(--ink); }
+.slot h3 { margin: 0 0 8px; font-size: 15px; color: var(--muted); font-weight: 700; display: flex; justify-content: space-between; }
+.items { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.item { position: relative; border-radius: 12px; background: rgba(255,255,255,.08); border: 2px solid transparent; aspect-ratio: 1; display: grid; place-items: center; }
+.item.on { border-color: var(--accent); background: rgba(255,210,63,.16); }
+.item.locked canvas { filter: brightness(.25) saturate(0); }
+.item .lk { position: absolute; inset: auto 4px 4px auto; font-size: 13px; }
+.item .tip { position: absolute; left: 50%; top: calc(100% + 6px); z-index: 2; transform: translateX(-50%); white-space: nowrap; font-size: 12px; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: 8px; padding: 3px 8px; font-weight: 700; }
+.sw { display: flex; gap: 8px; margin-top: 8px; }
+.sw i { width: 30px; height: 30px; border-radius: 50%; border: 3px solid rgba(255,255,255,.25); }
+.sw i.on { border-color: #fff; box-shadow: 0 0 0 3px var(--accent); }
+.packnote { margin-top: auto; display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; background: rgba(185,139,255,.14); border: 1.5px dashed rgba(185,139,255,.6); font-size: 14px; color: var(--muted); }
+.packnote b { color: #fff; }
+.packnote code { font-size: 12px; color: #e3d6ff; }
+
+/* ---------- roster ---------- */
+.roster { padding: 22px 26px; }
+.roster h1 { margin: 0; font-size: 32px; }
+.roster .sub { color: var(--muted); margin: 2px 0 14px; }
+.row { display: grid; gap: 12px; }
+.masters { grid-template-columns: repeat(5, 1fr); }
+.folk { grid-template-columns: repeat(6, 1fr); margin-top: 12px; }
+.ncard { background: var(--paper); color: var(--ink); border: 4px solid var(--ink); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.ncard .pic { position: relative; display: grid; place-items: center; padding: 8px 0 0; }
+.ncard .pic .lv { position: absolute; top: 8px; left: 8px; font-size: 12px; font-weight: 700; background: var(--ink); color: #fff; border-radius: 8px; padding: 2px 7px; }
+.ncard .pic .tr { position: absolute; top: 8px; right: 8px; }
+.ncard .body { padding: 8px 12px 12px; border-top: 4px solid var(--ink); flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.ncard .nm { font-family: var(--font-display); font-size: 20px; line-height: 1.05; }
+.ncard .ti { font-size: 13px; color: #5a5677; margin-top: -3px; }
+.ncard .k { font-size: 13px; line-height: 1.35; }
+.ncard .k b { display: inline-block; min-width: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #8a5a3c; margin-right: 4px; }
+.ncard .rw { margin-top: auto; font-size: 12px; font-weight: 700; background: #f1eadb; border-radius: 8px; padding: 4px 8px; }
+.folk .ncard .nm { font-size: 18px; }
+.datanote { margin-top: 14px; display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; }
+.datanote pre { margin: 0; font-size: 11.5px; line-height: 1.45; color: #dfe3ff; padding: 12px 14px; overflow: hidden; }
+.datanote pre .key { color: #7cf0ff; } .datanote pre .s { color: #ffd98a; } .datanote pre .n { color: #b8ffcf; }
+.beh { padding: 12px 16px; font-size: 14px; color: var(--muted); }
+.beh h3 { margin: 0 0 8px; color: #fff; font-family: var(--font-display); font-weight: 400; font-size: 20px; }
+.beh .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+/* ---------- world scenes ---------- */
+canvas#world { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+.hud { position: fixed; inset: 0; pointer-events: none; }
+.goal { position: absolute; top: 16px; left: 16px; padding: 10px 16px; display: flex; gap: 14px; align-items: center; }
+.goal canvas { width: 52px; height: 52px; background: #2c3a63; border-radius: 12px; }
+.goal .n { font-family: var(--font-display); font-size: 20px; }
+.goal .s { font-size: 14px; color: var(--muted); }
+.belts { position: absolute; top: 16px; right: 16px; padding: 10px 14px; display: flex; gap: 8px; align-items: center; }
+.belts i { width: 34px; height: 14px; border-radius: 4px; border: 2px solid rgba(255,255,255,.4); }
+.belts .coins { margin-left: 8px; font-weight: 700; }
+.quest { position: absolute; top: 92px; left: 16px; padding: 8px 14px; font-size: 14px; }
+.quest b { color: var(--accent); }
+.dialog { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); width: min(1000px, 94vw);
+  background: var(--paper); color: var(--ink); border: 6px solid var(--ink); border-radius: 14px;
+  box-shadow: 0 0 0 6px var(--paper), 0 0 0 10px var(--ink), 0 18px 40px rgba(0,0,0,.5);
+  display: grid; grid-template-columns: 140px 1fr; gap: 20px; padding: 18px 22px; }
+.dialog canvas { width: 140px; height: 140px; background: #cfe3ff; border-radius: 10px; border: 4px solid var(--ink); }
+.dialog .who { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
+.dialog .who h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 28px; }
+.dialog .who .chip { background: #f1eadb; color: var(--ink); font-weight: 700; }
+.dialog .who .chip.y { background: var(--accent); }
+.dialog p { margin: 4px 0 12px; font-size: 20px; line-height: 1.4; }
+.dialog p em { font-style: normal; background: #ffe98a; padding: 0 4px; border-radius: 4px; }
+.dialog .next { float: right; font-size: 18px; animation: b 1s infinite; }
+@keyframes b { 50% { transform: translateY(3px); } }
+.choices { display: flex; gap: 12px; }
+.choice { border: 4px solid var(--ink); border-radius: 12px; padding: 10px 16px; background: #fff; display: flex; gap: 10px; align-items: center; }
+.choice b { font-family: var(--font-display); font-weight: 400; font-size: 20px; display: block; }
+.choice small { font-size: 13px; color: #5a5677; }
+.choice .ic { font-size: 26px; }
+.choice.hot { background: var(--accent); box-shadow: 0 6px 0 var(--ink); transform: translateY(-3px); }
+/* battle */
+.bars { position: absolute; top: 16px; left: 16px; right: 16px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: start; }
+.fighter { padding: 10px 14px; }
+.fighter .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.fighter .top b { font-family: var(--font-display); font-weight: 400; font-size: 24px; }
+.fighter .top span { color: var(--muted); font-size: 14px; }
+.hp { height: 18px; border-radius: 9px; background: rgba(255,255,255,.12); margin-top: 8px; overflow: hidden; border: 2px solid rgba(0,0,0,.4); }
+.hp i { display: block; height: 100%; border-radius: 7px; }
+.chips { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.right .top { flex-direction: row-reverse; } .right .hp { direction: rtl; } .right .chips { justify-content: flex-end; }
+.round { text-align: center; padding: 8px 18px; }
+.round b { font-family: var(--font-display); font-weight: 400; font-size: 26px; display: block; }
+.round span { color: var(--muted); font-size: 14px; }
+.twist { position: absolute; top: 124px; left: 50%; transform: translateX(-50%); padding: 8px 16px; font-size: 15px; display: flex; gap: 8px; align-items: center; }
+.twist b { color: var(--accent); }
+.say { position: absolute; padding: 10px 16px; background: var(--paper); color: var(--ink); border: 4px solid var(--ink); border-radius: 14px; font-weight: 700; font-size: 18px; }
+.say:after { content: ""; position: absolute; bottom: -16px; left: 30px; border: 8px solid transparent; border-top-color: var(--ink); }
+.shout { position: absolute; left: 50%; top: 47%; transform: translate(-50%,-50%) rotate(-4deg); font-family: var(--font-display);
+  font-size: 84px; color: var(--accent); -webkit-text-stroke: 8px var(--ink); paint-order: stroke fill; text-shadow: 0 10px 0 var(--ink); white-space: nowrap; }
+.read { position: absolute; left: 16px; bottom: 16px; padding: 12px 16px; width: 330px; }
+.read h3 { margin: 0 0 8px; font-family: var(--font-display); font-weight: 400; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
+.read .hist { display: flex; gap: 6px; margin-bottom: 8px; }
+.read .hist span { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-size: 22px; background: rgba(255,255,255,.1); }
+.read .hist span.w { box-shadow: inset 0 -4px 0 var(--bad); } .read .hist span.l { box-shadow: inset 0 -4px 0 var(--ok); }
+.read .bar { display: grid; grid-template-columns: 26px 1fr 40px; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); margin: 3px 0; }
+.read .bar i { height: 10px; border-radius: 5px; background: rgba(255,255,255,.12); overflow: hidden; }
+.read .bar i u { display: block; height: 100%; background: var(--p2); }
+.read .hint { margin-top: 8px; font-size: 14px; color: #fff; background: rgba(255,210,63,.14); border-left: 4px solid var(--accent); padding: 6px 10px; border-radius: 6px; }
+.selfcam { position: absolute; right: 16px; bottom: 16px; width: 250px; padding: 8px; }
+.selfcam .v { height: 150px; border-radius: 12px; background: linear-gradient(160deg,#3a3550,#1c1a2a); position: relative; overflow: hidden; }
+.selfcam svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.selfcam .cap { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 6px 4px 0; }
+.selfcam .cap b { color: var(--ok); }
+.ph { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font-size: 13px; color: var(--muted); padding: 6px 12px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const scene = new URLSearchParams(location.search).get("s") || "creator";
+const INK = "#1d1b2e";
+function shade(hex, a) { const n = parseInt(hex.slice(1), 16); const c = (v) => Math.max(0, Math.min(255, v + a)); return `rgb(${c(n >> 16)},${c((n >> 8) & 255)},${c(n & 255)})`; }
+
+// ================= layered "paper-doll" avatars =================
+// Each part is rows of chars on a 16×20 grid; "." is transparent. Letters map to palette slots, so every part
+// can be recoloured from the avatar data. Real packs would be sprite sheets with the same idea.
+const G = 16, GH = 20;
+const PARTS = {
+  body: { base: [
+    "................","................","................",
+    ".....SSSSSS.....","....SSSSSSSS....","....SSSSSSSS....","....SSESSESS....","....SSSSSSSS....",".....SSMMSS.....","......SSSS......",
+    "....TTTTTTTT....","...TTTTTTTTTT...","...STTTTTTTTS...","...STTTTTTTTS...","...S.BBBBBB.S...",
+    ".....BBBBBB.....",".....BB..BB.....",".....BB..BB.....",".....FF..FF.....","....FFF..FFF...."] },
+  hair: {
+    none: [],
+    short: [null, null, ".....HHHHHH.....", "....HHHHHHHH....", "...HHHHHHHHHH...", "...HH......HH...", "...H........H..."],
+    spiky: ["....H..H..H.....", "....HH.HH.HH....", "...HHHHHHHHHH...", "...HHHHHHHHHHH..", "...HHHHHHHHHH...", "...HHH....HHH...", "...H........H..."],
+    long: [null, null, ".....HHHHHH.....", "....HHHHHHHH....", "...HHHHHHHHHH...", "...HHH....HHH...", "...HH......HH...", "...HH......HH...", "...HH......HH...", "...HH......HH...", "...hH......Hh...", "...h........h..."],
+    bun: ["......HHHH......", "......HHHH......", ".....HHHHHH.....", "....HHHHHHHH....", "...HHHHHHHHHH...", "...HH......HH..."],
+    puff: ["....HHHHHHHH....", "...HHHHHHHHHH...", "..HHHHHHHHHHHH..", "..HHHHHHHHHHHH..", "..HHHHHHHHHHHH..", "..HHH......HHH..", "..HH........HH..", "...H........H..."],
+  },
+  top: {
+    tee: [], // the base body already wears a tee
+    gi: [...Array(10).fill(null), "....TTTttTTT....", "...TTTTTtTTTT...", "...TTTTTtTTTT...", "...SKKKKKKKKS..."],
+    hoodie: [...Array(9).fill(null), "....T......T....", "....TTTTTTTT....", "...TTTTTTTTTT...", "...TTTTTTTTTT...", "...TTTttttTTT...", "...S........S..."],
+    jacket: [...Array(10).fill(null), "....TTttttTT....", "...TTTttttTTT...", "...TTTttttTTT...", "...STTttttTTS..."],
+  },
+  bottom: {
+    pants: [],
+    shorts: [...Array(16).fill(null), ".....SS..SS.....", ".....SS..SS....."],
+    skirt: [...Array(15).fill(null), "....BBBBBBBB....", "...BBBBBBBBBB...", ".....SS..SS....."],
+    hakama: [...Array(15).fill(null), "....BBBBBBBB....", "....BBB..BBB....", "...BBBB..BBBB...", "...BBBB..BBBB..."],
+  },
+  hat: {
+    none: [],
+    cap: [null, null, "....AAAAAAA.....", "...AAAAAAAAA....", "...aaaaaaaaaaaa."],
+    band: [...Array(4).fill(null), "...AAAAAAAAAA...", "............AA..", ".............A.."],
+    straw: [null, "......AAAA......", ".....AAAAAA.....", ".....aaaaaa.....", ".AAAAAAAAAAAAAA."],
+    crown: [null, "....A..A..A.....", "....AAAAAAA.....", "....aaaaaaa....."],
+  },
+  extra: {
+    none: [],
+    glasses: [...Array(6).fill(null), "....GgEggEgG...."],
+    scarf: [...Array(9).fill(null), "....CCCCCCCC....", "....CCCCCCCC....", "...........CC...", "...........CC..."],
+    mask: [...Array(7).fill(null), "....CCCCCCCC....", "....CCCCCCCC....", "......CCCC......"],
+    cape: "back",
+  },
+};
+const CAPE = [...Array(10).fill(null), "...CCCCCCCCCC...", "..CCCCCCCCCCCC..", "..CCCCCCCCCCCC..", "..CCCCCCCCCCCC..", "..CCCCCCCCCCCC..", "..cCCCCCCCCCCc..", "...cCCCCCCCCc...", "...cccccccccc..."];
+const SKINS = ["#ffe0c4", "#f2c8a0", "#d9a277", "#b07a52", "#7f5539", "#5a3a26"];
+
+function compose(av) {
+  const grid = Array.from({ length: GH }, () => Array(G).fill("."));
+  const paint = (rows) => rows.forEach((r, y) => { if (!r) return; [...r].forEach((ch, x) => { if (ch !== ".") grid[y][x] = ch; }); });
+  if (av.extra === "cape") paint(CAPE);
+  paint(PARTS.body.base);
+  paint(PARTS.bottom[av.bottom] || []);
+  paint(PARTS.top[av.top] || []);
+  if (av.extra !== "cape") paint(PARTS.extra[av.extra] || []);
+  paint(PARTS.hair[av.hair] || []);
+  paint(PARTS.hat[av.hat] || []);
+  const pal = {
+    S: SKINS[av.skin ?? 1], E: INK, M: "#b5524a",
+    H: av.hairColor, h: shade(av.hairColor, -35),
+    T: av.topColor, t: av.topAccent || shade(av.topColor, -50), K: av.belt || INK,
+    B: av.bottomColor, F: av.shoes || "#2a2236",
+    A: av.hatColor || "#c0392b", a: shade(av.hatColor || "#c0392b", -45),
+    G: INK, g: "#bfe6ff", C: av.extraColor || "#c0392b", c: shade(av.extraColor || "#c0392b", -45),
+  };
+  return { rows: grid.map((r) => r.join("")), pal };
+}
+// Draw with an automatic 1px outline (all packs could share this or ship outlined art).
+function drawAvatar(ctx, av, x, y, flip = false) {
+  const { rows, pal } = compose(av);
+  const at = (cx, cy) => cy >= 0 && cy < GH && cx >= 0 && cx < G && rows[cy][cx] !== ".";
+  for (let cy = -1; cy <= GH; cy++) for (let cx = -1; cx <= G; cx++) {
+    const ox = flip ? G - 1 - cx : cx;
+    if (at(cx, cy)) { ctx.fillStyle = pal[rows[cy][cx]] || "#f0f"; ctx.fillRect(x + ox, y + cy, 1, 1); }
+    else if (at(cx - 1, cy) || at(cx + 1, cy) || at(cx, cy - 1) || at(cx, cy + 1)) { ctx.fillStyle = INK; ctx.fillRect(x + ox, y + cy, 1, 1); }
+  }
+}
+function avatarCanvas(av, scale, { flip = false, crop = null, bg = null } = {}) {
+  const c = document.createElement("canvas");
+  const [sx, sy, sw, sh] = crop || [-1, -1, G + 2, GH + 2];
+  c.width = sw * scale; c.height = sh * scale; c.className = "px";
+  const s = document.createElement("canvas"); s.width = G + 2; s.height = GH + 2;
+  drawAvatar(s.getContext("2d"), av, 1, 1, flip);
+  const x = c.getContext("2d"); x.imageSmoothingEnabled = false;
+  if (bg) { x.fillStyle = bg; x.fillRect(0, 0, c.width, c.height); }
+  x.drawImage(s, sx + 1, sy + 1, sw, sh, 0, 0, c.width, c.height);
+  return c;
+}
+const portrait = (av, scale, bg) => avatarCanvas(av, scale, { crop: [1, -1, 14, 12], bg });
+
+// ================= cast (data) =================
+const ME = { skin: 1, hair: "spiky", hairColor: "#2a2236", top: "hoodie", topColor: "#3fe0ff", topAccent: "#1f8fb0", bottom: "shorts", bottomColor: "#3b3f6b", hat: "none", extra: "scarf", extraColor: "#ff8f45" };
+const MASTERS = [
+  { n: "Master Granite", ti: "Stone Dojo", tr: "Stubborn", lv: 8, bg: "#c9c4b8",
+    av: { skin: 2, hair: "none", top: "gi", topColor: "#8a8fa8", topAccent: "#e7e9f5", bottom: "hakama", bottomColor: "#3b3f6b", hat: "band", hatColor: "#c0392b", extra: "none", hairColor: "#000000" },
+    plays: "Leans on ✊ rock. Repeats after a win.", tell: "Cracks his knuckles before rock.", twist: "🛡 Starts every round shielded.", rw: "🥋 Stone Belt" },
+  { n: "Sensei Fold", ti: "Paper Dojo", tr: "Patient", lv: 12, bg: "#f3e6c8",
+    av: { skin: 0, hair: "bun", hairColor: "#e7e9f5", top: "gi", topColor: "#fff8e7", topAccent: "#c9b98f", belt: "#3c5aa8", bottom: "hakama", bottomColor: "#3c5aa8", hat: "none", extra: "glasses" },
+    plays: "Never repeats a throw. Prefers ✋ paper.", tell: "Bows deeper before paper.", twist: "🤘 Can reverse from round 1.", rw: "🥋 Paper Belt" },
+  { n: "Master Snip", ti: "Blade Dojo", tr: "Hot-headed", lv: 16, bg: "#ffc9b8",
+    av: { skin: 3, hair: "spiky", hairColor: "#ff5d73", top: "jacket", topColor: "#1d1b2e", topAccent: "#ff5d73", bottom: "pants", bottomColor: "#2a2236", hat: "none", extra: "mask", extraColor: "#2a2236" },
+    plays: "After a loss, throws what beats your last throw.", tell: "Shouts louder before switching.", twist: "⚡ Speed rounds: faster countdown.", rw: "🥋 Blade Belt" },
+  { n: "Echo", ti: "Mirror Dojo", tr: "Copycat", lv: 20, bg: "#cfe8ff",
+    av: { skin: 4, hair: "long", hairColor: "#9fd6ff", top: "tee", topColor: "#b98bff", bottom: "skirt", bottomColor: "#6a4fb3", hat: "none", extra: "none" },
+    plays: "Copies your last throw. At half HP, counters the copy.", tell: "Mirrors your idle pose.", twist: "🪞 Your last throw shows on the floor.", rw: "🥋 Mirror Belt" },
+  { n: "Grandmaster Ren", ti: "Summit Dojo", tr: "Reader", lv: 30, bg: "#2c3a63",
+    av: { skin: 1, hair: "long", hairColor: "#e7e9f5", top: "gi", topColor: "#1d1b2e", topAccent: "#ffd23f", belt: "#ffd23f", bottom: "hakama", bottomColor: "#1d1b2e", hat: "none", extra: "cape", extraColor: "#7a1f2b" },
+    plays: "Learns your habits from your last two throws.", tell: "None. A ‘reading you’ meter fills up.", twist: "👑 Best of 5, two phases.", rw: "🥋 Black Belt + title" },
+];
+const FOLK = [
+  { n: "Pip", ti: "Kid on Elm Street", tr: "Eager", lv: 2, bg: "#d6f5c9", av: { skin: 2, hair: "short", hairColor: "#6b4226", top: "tee", topColor: "#ffd23f", bottom: "shorts", bottomColor: "#3c5aa8", hat: "cap", hatColor: "#3fa86b", extra: "none" },
+    plays: "Always opens with ✊, then random.", tell: "“Rock is the strongest!”" },
+  { n: "Nana Ruth", ti: "Retired champion", tr: "Rhythmic", lv: 6, bg: "#f5d9ef", av: { skin: 0, hair: "bun", hairColor: "#c9cdf0", top: "jacket", topColor: "#8a4fb3", topAccent: "#f5d9ef", bottom: "skirt", bottomColor: "#4a3a6b", hat: "none", extra: "glasses" },
+    plays: "Cycles ✊ → ✋ → ✌️.", tell: "Hums a three-note tune." },
+  { n: "Dex", ti: "Arcade regular", tr: "Show-off", lv: 9, bg: "#d3d0ff", av: { skin: 3, hair: "short", hairColor: "#1d1b2e", top: "hoodie", topColor: "#3ef08f", topAccent: "#1f8f55", bottom: "pants", bottomColor: "#2a2236", hat: "none", extra: "glasses" },
+    plays: "Counters your most-used throw.", tell: "“I’ve got your number.”" },
+  { n: "Bea", ti: "Baker", tr: "Nervous", lv: 4, bg: "#ffe9c8", av: { skin: 4, hair: "puff", hairColor: "#2a2236", top: "tee", topColor: "#ffffff", bottom: "pants", bottomColor: "#ff8fb1", hat: "none", extra: "scarf", extraColor: "#ff8fb1" },
+    plays: "Win-stay; panics into ✋ after a loss.", tell: "“Oh no, oh no…”" },
+  { n: "Coach Tank", ti: "Gym owner", tr: "Loud", lv: 7, bg: "#ffd6c4", av: { skin: 5, hair: "none", hairColor: "#000000", top: "tee", topColor: "#c0392b", bottom: "shorts", bottomColor: "#1d1b2e", hat: "band", hatColor: "#ffffff", extra: "none" },
+    plays: "Arms every power the moment he can.", tell: "“FULL POWER!”" },
+  { n: "Luna", ti: "Fortune teller", tr: "Mysterious", lv: 10, bg: "#2c3a63", av: { skin: 1, hair: "long", hairColor: "#1d1b2e", top: "tee", topColor: "#6a4fb3", bottom: "skirt", bottomColor: "#2a2236", hat: "none", extra: "cape", extraColor: "#3c5aa8" },
+    plays: "Pure random. No pattern to find.", tell: "“Even I don’t know.”" },
+];
+
+const app = document.getElementById("app");
+const h = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+
+// ================= scene: creator =================
+function sceneCreator() {
+  const root = h(`<div class="creator">
+    <div class="stage">
+      <div class="views">
+        <div class="view" id="vTown"><div></div><span class="lab">In town</span></div>
+        <div class="view" id="vBattle"><div></div><span class="lab">In duels</span></div>
+        <div class="view" id="vPort"><div></div><span class="lab">Dialogue</span></div>
+      </div>
+      <div class="namebar"><div class="in">Kai<span style="opacity:.5">|</span></div><span class="btn ghost">🎲</span><span class="btn">Start adventure</span></div>
+    </div>
+    <div class="panel glass">
+      <div><h1 class="display">Make your fighter</h1><div class="sub">Pick parts and colours. Everything here is data, so later art styles redraw it.</div></div>
+      <div class="tabs"><span class="tab">Body</span><span class="tab on">Hair</span><span class="tab">Top</span><span class="tab">Bottom</span><span class="tab">Hat</span><span class="tab">Extra</span></div>
+      <div class="slot" id="sHair"><h3>Hair style <span>6 of 9 unlocked</span></h3><div class="items"></div>
+        <div class="sw" id="hairSw"></div></div>
+      <div class="slot" id="sTop"><h3>Top <span>colour: tap a swatch</span></h3><div class="items"></div>
+        <div class="sw" id="topSw"></div></div>
+      <div class="slot" id="sExtra"><h3>Extra <span>🔒 earned in dojos</span></h3><div class="items"></div></div>
+      <div class="packnote"><span style="font-size:28px">🎨</span><div><b>Art pack: Placeholder v0</b> · your future designs become a new pack.<br>
+        Saves keep part ids (<code>hair: "spiky"</code>), not pictures, so every avatar redraws in the new style.</div></div>
+    </div></div>`);
+  app.append(root);
+  root.querySelector("#vTown div").append(avatarCanvas(ME, 6));
+  root.querySelector("#vBattle div").append(avatarCanvas(ME, 13));
+  root.querySelector("#vPort div").append(portrait(ME, 9, "#cfe3ff"));
+  const fill = (sel, list, key, mk, opts = {}) => {
+    const box = root.querySelector(sel + " .items");
+    list.forEach((id) => {
+      const av = mk(id);
+      const locked = (opts.locked || {})[id];
+      const it = h(`<div class="item ${ME[key] === id ? "on" : ""} ${locked ? "locked" : ""}"></div>`);
+      it.append(portrait(av, 4));
+      if (locked) { it.append(h(`<span class="lk">🔒</span>`)); if (opts.tip === id) it.append(h(`<span class="tip">${locked}</span>`)); }
+      box.append(it);
+    });
+  };
+  fill("#sHair", ["none", "short", "spiky", "long", "bun", "puff"], "hair", (id) => ({ ...ME, hair: id, hat: "none", extra: "none" }));
+  fill("#sTop", ["tee", "hoodie", "jacket", "gi"], "top", (id) => ({ ...ME, top: id, extra: "none" }), { locked: { gi: "Beat Master Granite" } });
+  // tops are below the portrait crop, so show them full body
+  root.querySelectorAll("#sTop .item").forEach((it, i) => { it.firstChild.replaceWith(avatarCanvas({ ...ME, top: ["tee", "hoodie", "jacket", "gi"][i], extra: "none" }, 2)); });
+  fill("#sExtra", ["none", "scarf", "glasses", "mask", "cape"], "extra", (id) => ({ ...ME, extra: id }), { locked: { mask: "Beat Master Snip", cape: "Beat Grandmaster Ren" }, tip: "mask" });
+  root.querySelectorAll("#sExtra .item").forEach((it, i) => { const c = avatarCanvas({ ...ME, extra: ["none", "scarf", "glasses", "mask", "cape"][i] }, 2); it.firstChild.replaceWith(c); });
+  const sw = (sel, cols, on) => cols.forEach((c) => root.querySelector(sel).append(h(`<i style="background:${c}" class="${c === on ? "on" : ""}"></i>`)));
+  sw("#hairSw", ["#2a2236", "#6b4226", "#c0392b", "#ffd23f", "#e7e9f5", "#3fe0ff", "#b98bff", "#3ef08f"], "#2a2236");
+  sw("#topSw", ["#3fe0ff", "#ff8f45", "#ff5d73", "#3ef08f", "#ffd23f", "#b98bff", "#ffffff", "#2a2236"], "#3fe0ff");
+}
+
+// ================= scene: roster =================
+function card(p, master) {
+  const c = h(`<div class="ncard"><div class="pic" style="background:${p.bg}"><span class="lv">Lv ${p.lv}</span><span class="chip y tr">${p.tr}</span></div>
+    <div class="body"><div class="nm">${p.n}</div><div class="ti">${p.ti}</div>
+      <div class="k"><b>Plays</b>${p.plays}</div><div class="k"><b>Tell</b>${p.tell}</div>
+      ${master ? `<div class="k"><b>Twist</b>${p.twist}</div><div class="rw">${p.rw}</div>` : ""}</div></div>`);
+  c.querySelector(".pic").prepend(avatarCanvas(p.av, master ? 6 : 5));
+  return c;
+}
+function sceneRoster() {
+  const root = h(`<div class="roster">
+    <h1 class="display">Who you’ll meet</h1><div class="sub">Five dojo masters and the townsfolk. Each trait changes how they actually throw, and the tell gives it away.</div>
+    <div class="row masters"></div><div class="row folk"></div>
+    <div class="datanote">
+      <pre class="glass">{ <span class="key">"id"</span>: <span class="s">"granite"</span>, <span class="key">"trait"</span>: <span class="s">"Stubborn"</span>,
+  <span class="key">"avatar"</span>: { <span class="key">"hair"</span>: <span class="s">"none"</span>, <span class="key">"top"</span>: <span class="s">"gi"</span>, <span class="key">"hat"</span>: <span class="s">"band"</span>, … },
+  <span class="key">"strategy"</span>: { <span class="key">"bias"</span>: { <span class="key">"rock"</span>: <span class="n">0.5</span> }, <span class="key">"winStay"</span>: <span class="n">0.8</span>, <span class="key">"noise"</span>: <span class="n">0.25</span>,
+    <span class="key">"mood"</span>: [{ <span class="key">"when"</span>: <span class="s">"ahead"</span>, <span class="key">"bias"</span>: { <span class="key">"rock"</span>: <span class="n">0.7</span> } }] },
+  <span class="key">"tell"</span>: { <span class="key">"before"</span>: <span class="s">"rock"</span>, <span class="key">"anim"</span>: <span class="s">"knuckles"</span> }, <span class="key">"twist"</span>: <span class="s">"shieldEveryRound"</span> }</pre>
+      <div class="beh glass"><h3>Traits are built from behaviours</h3>
+        <div class="chips"><span class="chip">bias</span><span class="chip">opener</span><span class="chip">winStay</span><span class="chip">loseShift</span><span class="chip">noRepeat</span><span class="chip">cycle</span><span class="chip">copy</span><span class="chip">counterLast</span><span class="chip">counterFavourite</span><span class="chip">markov</span><span class="chip">random</span><span class="chip p">powers</span><span class="chip y">mood</span></div>
+        Mixed by weight with some <b style="color:#fff">noise</b>, so NPCs are readable but never certain. A new character is one JSON entry, placed on the map in Tiled.</div>
+    </div></div>`);
+  app.append(root);
+  MASTERS.forEach((m) => root.querySelector(".masters").append(card(m, true)));
+  FOLK.forEach((m) => root.querySelector(".folk").append(card(m, false)));
+}
+
+// ================= world map (encounter) =================
+const T = 16;
+function drawStreet() {
+  const W = 34, H = 20;
+  const art = document.createElement("canvas"); art.width = W * T; art.height = H * T;
+  const g = art.getContext("2d");
+  let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const px = (x, y, c, w = 1, hh = 1) => { g.fillStyle = c; g.fillRect(x, y, w, hh); };
+  for (let y = 0; y < H * T; y++) for (let x = 0; x < W * T; x++) { const r = rnd(); px(x, y, r < .06 ? "#55a845" : r < .085 ? "#77c95a" : "#5fb54d"); }
+  const path = (tx, ty, tw, th) => { px(tx * T, ty * T, "#e3c58a", tw * T, th * T); for (let i = 0; i < tw * th * 6; i++) px(tx * T + rnd() * tw * T, ty * T + rnd() * th * T, "#cfae70", 2, 1); };
+  path(0, 11, W, 3); path(15, 0, 3, 11);
+  // fences
+  for (let x = 0; x < W; x++) if (x < 14 || x > 18) { px(x * T, 10 * T + 6, "#8a5a3c", T, 3); px(x * T + 2, 10 * T, INK, 3, 11); px(x * T + 3, 10 * T + 1, "#c9925f", 1, 9); }
+  // houses
+  const house = (tx, ty, tw, th, roof, wall, sign) => {
+    const X = tx * T, Y = ty * T, w = tw * T, hh = th * T, rh = Math.floor(hh * .5);
+    px(X - 3, Y - 2, INK, w + 6, rh + 4); px(X - 2, Y - 1, roof, w + 4, rh + 2);
+    for (let i = 0; i < rh; i += 4) px(X - 2, Y + i, shade(roof, -25), w + 4, 1);
+    px(X - 1, Y + rh, INK, w + 2, hh - rh + 1); px(X, Y + rh, wall, w, hh - rh);
+    px(X + w / 2 - 7, Y + hh - 16, INK, 14, 16); px(X + w / 2 - 6, Y + hh - 15, "#6b4226", 12, 15);
+    for (const wx of [X + 8, X + w - 22]) { px(wx - 1, Y + rh + 6, INK, 16, 12); px(wx, Y + rh + 7, "#9fd6ff", 14, 10); }
+    if (sign) { g.font = "bold 9px Atkinson Hyperlegible"; g.textAlign = "center"; px(X + w / 2 - 26, Y + rh - 12, INK, 52, 13); px(X + w / 2 - 25, Y + rh - 11, "#fff8e7", 50, 11); g.fillStyle = INK; g.fillText(sign, X + w / 2, Y + rh - 2.5); }
+  };
+  house(2, 3, 9, 6, "#c0392b", "#efe2c2", "STONE DOJO");
+  house(21, 2, 7, 6, "#3c5aa8", "#fff8e7", "BAKERY");
+  house(4, 15, 7, 4, "#3fa86b", "#efe2c2");
+  const tree = (tx, ty) => { const X = tx * T, Y = ty * T; px(X + 6, Y + 10, "#6b4226", 4, 8); g.fillStyle = INK; g.beginPath(); g.arc(X + 8, Y + 6, 9, 0, 7); g.fill(); g.fillStyle = "#3d8a3a"; g.beginPath(); g.arc(X + 8, Y + 6, 8, 0, 7); g.fill(); g.fillStyle = "#57a84b"; g.beginPath(); g.arc(X + 6, Y + 4, 4, 0, 7); g.fill(); };
+  [[13, 2], [13, 5], [19, 6], [30, 3], [31, 7], [0, 16], [26, 16], [29, 17], [14, 16], [22, 17]].forEach(([x, y]) => tree(x, y));
+  // flowers
+  for (let i = 0; i < 40; i++) { const x = rnd() * W * T, y = (15 + rnd() * 5) * T; px(x, y, ["#ffd23f", "#ff8fb1", "#ffffff"][i % 3], 2, 2); }
+  return { art, W, H, g };
+}
+function sceneEncounter() {
+  const cv = document.createElement("canvas"); cv.id = "world"; cv.className = "px"; document.body.prepend(cv);
+  const { art, W, H, g } = drawStreet();
+  // actors: you on the path walking right, Pip spotted you from the doorway, line of sight tiles
+  const me = { x: 12, y: 12 }, pip = { x: 16, y: 6 };
+  for (let ty = pip.y + 1; ty <= me.y - 1; ty++) { g.fillStyle = "rgba(255,210,63,.35)"; g.fillRect(pip.x * T, ty * T, T, T); g.strokeStyle = "rgba(255,210,63,.9)"; g.setLineDash([2, 2]); g.strokeRect(pip.x * T + .5, ty * T + .5, T - 1, T - 1); g.setLineDash([]); }
+  // Pip walked down 4 tiles towards you
+  pip.y = 9;
+  const put = (p, av, ring) => {
+    const X = p.x * T, Y = p.y * T - 6;
+    g.fillStyle = "rgba(0,0,0,.25)"; g.beginPath(); g.ellipse(X + 8, Y + 21, 7, 3, 0, 0, 7); g.fill();
+    if (ring) { g.strokeStyle = ring; g.lineWidth = 1.5; g.beginPath(); g.ellipse(X + 8, Y + 21, 10, 4.5, 0, 0, 7); g.stroke(); }
+    drawAvatar(g, av, X, Y);
+  };
+  put({ x: 24, y: 12 }, FOLK[3].av); put({ x: 7, y: 9.6 }, MASTERS[0].av); put({ x: 28, y: 9.2 }, FOLK[1].av);
+  put(me, ME, "#3fe0ff"); put(pip, FOLK[0].av, "#ffd23f");
+  const ctx = cv.getContext("2d"); const VW = innerWidth, VH = innerHeight; cv.width = VW; cv.height = VH;
+  const S = Math.max(3, Math.floor(Math.min(VW / 380, VH / 230)));
+  let camX = Math.round(15 * T * S - VW / 2), camY = Math.round(9.5 * T * S - VH / 2);
+  camX = Math.max(0, Math.min(W * T * S - VW, camX)); camY = Math.max(0, Math.min(H * T * S - VH, camY));
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(art, -camX, -camY, W * T * S, H * T * S);
+  // "!" bubble over Pip
+  const bx = (pip.x * T + 8) * S - camX, by = (pip.y * T - 8) * S - camY;
+  ctx.fillStyle = INK; ctx.beginPath(); ctx.roundRect(bx - 22, by - 54, 44, 48, 10); ctx.fill();
+  ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.roundRect(bx - 18, by - 50, 36, 40, 8); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(bx - 7, by - 7); ctx.lineTo(bx + 7, by - 7); ctx.lineTo(bx, by + 4); ctx.fillStyle = INK; ctx.fill();
+  ctx.font = "34px Lilita One"; ctx.textAlign = "center"; ctx.fillStyle = INK; ctx.fillText("!", bx, by - 17);
+  ctx.fillStyle = "rgba(10,12,30,.35)"; ctx.fillRect(0, 0, VW, VH);
+  const hud = h(`<div class="hud">
+    <div class="goal glass"><span id="pf"></span><div><div class="n">Kai</div><div class="s">Lv 3 · 🪙 140 · 8W 3L</div></div></div>
+    <div class="quest glass">Goal: <b>Earn the Stone Belt</b> at the Stone Dojo</div>
+    <div class="belts glass"><i style="background:#8a8fa8;border-color:#fff" title="Stone"></i><i></i><i></i><i></i><i style="background:#1d1b2e"></i><span class="coins">0 / 5 belts</span></div>
+    <div class="dialog"><span id="pp"></span><div>
+      <div class="who"><h2>Pip</h2><span class="chip y">Eager</span><span class="chip">Lv 2</span><span class="chip">🪙 20 if you win</span></div>
+      <p>Hey! You’re new! <em>Rock is the strongest</em>, so I ALWAYS start with rock. Bet you can’t beat me!</p>
+      <div class="choices">
+        <div class="choice hot"><span class="ic">✊</span><div><b>Duel!</b><small>camera on for the duel</small></div></div>
+        <div class="choice"><span class="ic">🕒</span><div><b>Later</b><small>Pip waits here</small></div></div>
+      </div></div></div></div>`);
+  document.body.append(hud);
+  hud.querySelector("#pf").replaceWith(portrait(ME, 4, "#2c3a63"));
+  const pp = portrait(FOLK[0].av, 10, "#cfe3ff"); hud.querySelector("#pp").replaceWith(pp);
+}
+
+// ================= scene: master duel =================
+function sceneMaster() {
+  const cv = document.createElement("canvas"); cv.id = "world"; cv.className = "px"; document.body.prepend(cv);
+  const d = document.createElement("canvas"); d.width = 400; d.height = 225; const q = d.getContext("2d");
+  // stone dojo: grey stone wall, rope, wood floor
+  for (let y = 0; y < 130; y++) for (let x = 0; x < 400; x++) {
+    const row = Math.floor(y / 14), off = row % 2 ? 18 : 0;
+    q.fillStyle = y % 14 === 0 || (x + off) % 36 === 0 ? "#6e6a78" : ((x + off) / 36 | 0) % 3 === 0 ? "#b7b2bf" : "#a8a3b1"; q.fillRect(x, y, 1, 1);
+  }
+  q.fillStyle = "#4a2e1c"; q.fillRect(0, 118, 400, 12);
+  // rope + paper streamers
+  q.strokeStyle = "#e3c58a"; q.lineWidth = 3; q.beginPath(); q.moveTo(0, 18); q.quadraticCurveTo(200, 48, 400, 18); q.stroke();
+  for (let i = 1; i < 8; i++) { const x = i * 50, y = 18 + Math.sin(i / 8 * Math.PI) * 30; q.fillStyle = "#fff8e7"; q.fillRect(x - 3, y, 6, 14); q.fillStyle = INK; q.fillRect(x - 3, y + 14, 6, 1); }
+  // big rock on a plinth
+  q.fillStyle = INK; q.beginPath(); q.ellipse(200, 92, 34, 22, 0, 0, 7); q.fill(); q.fillStyle = "#8a8fa8"; q.beginPath(); q.ellipse(200, 92, 32, 20, 0, 0, 7); q.fill();
+  q.fillStyle = "#a9adc4"; q.beginPath(); q.ellipse(192, 85, 14, 7, 0, 0, 7); q.fill();
+  q.fillStyle = INK; q.fillRect(176, 108, 48, 12); q.fillStyle = "#6b4226"; q.fillRect(178, 110, 44, 10);
+  for (let y = 130; y < 225; y++) for (let x = 0; x < 400; x++) { const o = (Math.floor((y - 130) / 12) % 2) * 25; q.fillStyle = (y - 130) % 12 === 0 || (x + o) % 50 === 0 ? "#8a5a3c" : Math.floor((x + o) / 50) % 2 ? "#c9925f" : "#bf8756"; q.fillRect(x, y, 1, 1); }
+  q.fillStyle = INK; q.fillRect(58, 150, 284, 48); q.fillStyle = "#c0392b"; q.fillRect(60, 152, 280, 44); q.fillStyle = "#fff8e7"; q.fillRect(198, 152, 4, 44);
+  const shadow = (x) => { q.fillStyle = "rgba(0,0,0,.3)"; q.beginPath(); q.ellipse(x, 184, 24, 5, 0, 0, 7); q.fill(); };
+  shadow(130); shadow(270);
+  const f1 = avatarCanvas(ME, 1), f2 = avatarCanvas(MASTERS[0].av, 1, { flip: true });
+  q.imageSmoothingEnabled = false; q.drawImage(f1, 103, 120, 54, 66); q.drawImage(f2, 243, 120, 54, 66);
+  // shield bubble around Granite
+  q.strokeStyle = "rgba(63,224,255,.85)"; q.lineWidth = 2; q.beginPath(); q.ellipse(270, 152, 36, 40, 0, 0, 7); q.stroke();
+  q.fillStyle = "rgba(63,224,255,.12)"; q.fill();
+  const ctx = cv.getContext("2d"); const VW = innerWidth, VH = innerHeight; cv.width = VW; cv.height = VH;
+  const s = Math.max(VW / 400, VH / 225), ox = (VW - 400 * s) / 2, oy = (VH - 225 * s) / 2;
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(d, ox, oy, 400 * s, 225 * s);
+  // tell: knuckle-crack sparks near Granite's hand
+  ctx.strokeStyle = "#ffd23f"; ctx.lineWidth = 5; ctx.lineCap = "round";
+  const hx = ox + 246 * s, hy = oy + 158 * s;
+  [[-1, -1], [-1.4, .1], [-1, 1]].forEach(([a, b]) => { ctx.beginPath(); ctx.moveTo(hx + a * 14, hy + b * 14); ctx.lineTo(hx + a * 34, hy + b * 34); ctx.stroke(); });
+  const hud = h(`<div class="hud">
+    <div class="bars">
+      <div class="fighter glass"><div class="top"><b>Kai</b><span>✋ tracked</span></div><div class="hp"><i style="width:64%;background:linear-gradient(90deg,#3fe0ff,#7cf0ff)"></i></div>
+        <div class="chips"><span class="chip">🛡 shield</span><span class="chip p">👉 power ready</span></div></div>
+      <div class="round glass"><b>ROUND 3</b><span>best of 3 · 1–1</span></div>
+      <div class="fighter glass right"><div class="top"><b>Master Granite</b><span>Stubborn · Lv 8</span></div><div class="hp"><i style="width:48%;background:linear-gradient(270deg,#ff8f45,#ff5d73)"></i></div>
+        <div class="chips"><span class="chip">🛡 stone skin</span><span class="chip y">ahead → more stubborn</span></div></div>
+    </div>
+    <div class="twist glass">🥋 <b>Stone Dojo twist:</b> Granite starts every round with a shield</div>
+    <div class="say" style="right:16%;top:31%">Stone does not move.</div>
+    <div class="shout">ROCK… PAPER…</div>
+    <div class="read glass"><h3>Read Granite <span class="chip">hints on</span></h3>
+      <div class="hist"><span class="w">✊</span><span class="w">✊</span><span class="l">✋</span><span class="w">✊</span><span class="l">✌️</span><span>✊</span></div>
+      <div class="bar"><span>✊</span><i><u style="width:66%"></u></i><span>4 / 6</span></div>
+      <div class="bar"><span>✋</span><i><u style="width:17%"></u></i><span>1 / 6</span></div>
+      <div class="bar"><span>✌️</span><i><u style="width:17%"></u></i><span>1 / 6</span></div>
+      <div class="hint">💡 He cracked his knuckles. Last time that meant rock.</div></div>
+    <div class="selfcam glass"><div class="v"><svg viewBox="0 0 250 150"><g stroke="#3fe0ff" stroke-width="4" fill="none" stroke-linecap="round">
+      <path d="M125 132 L100 104 L90 80 M125 132 L115 92 L113 70 M125 132 L130 90 L131 68 M125 132 L145 94 L147 74 M125 132 L158 106 L167 90"/><path d="M100 104 L115 92 L130 90 L145 94 L158 106"/></g></svg></div>
+      <div class="cap"><span>Your camera · only you</span><b>✋ paper</b></div></div>
+    <div class="ph glass">Placeholder battle layout · to be redesigned from your examples</div></div>`);
+  document.body.append(hud);
+}
+
+document.fonts.ready.then(() => {
+  ({ creator: sceneCreator, roster: sceneRoster, encounter: sceneEncounter, master: sceneMaster }[scene] || sceneCreator)();
+});
+</script>
+</body>
+</html>

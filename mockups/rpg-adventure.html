@@ -64,7 +64,7 @@ canvas.px { image-rendering: pixelated; display: block; }
 .roster .sub { color: var(--muted); margin: 2px 0 14px; }
 .row { display: grid; gap: 12px; }
 .masters { grid-template-columns: repeat(5, 1fr); }
-.folk { grid-template-columns: repeat(6, 1fr); margin-top: 12px; }
+.folk { grid-template-columns: repeat(7, 1fr); margin-top: 12px; }
 .ncard { background: var(--paper); color: var(--ink); border: 4px solid var(--ink); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
 .ncard .pic { position: relative; display: grid; place-items: center; padding: 8px 0 0; }
 .ncard .pic .lv { position: absolute; top: 8px; left: 8px; font-size: 12px; font-weight: 700; background: var(--ink); color: #fff; border-radius: 8px; padding: 2px 7px; }
@@ -91,7 +91,7 @@ canvas#world { position: fixed; inset: 0; width: 100vw; height: 100vh; }
 .goal .n { font-family: var(--font-display); font-size: 20px; }
 .goal .s { font-size: 14px; color: var(--muted); }
 .belts { position: absolute; top: 16px; right: 16px; padding: 10px 14px; display: flex; gap: 8px; align-items: center; }
-.belts i { width: 34px; height: 14px; border-radius: 4px; border: 2px solid rgba(255,255,255,.4); }
+.belts i { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); }
 .belts .coins { margin-left: 8px; font-weight: 700; }
 .quest { position: absolute; top: 92px; left: 16px; padding: 8px 14px; font-size: 14px; }
 .quest b { color: var(--accent); }
@@ -251,35 +251,37 @@ const portrait = (av, scale, bg) => avatarCanvas(av, scale, { crop: [1, -1, 14, 
 // ================= cast (data) =================
 const ME = { skin: 1, hair: "spiky", hairColor: "#2a2236", top: "hoodie", topColor: "#3fe0ff", topAccent: "#1f8fb0", bottom: "shorts", bottomColor: "#3b3f6b", hat: "none", extra: "scarf", extraColor: "#ff8f45" };
 const MASTERS = [
-  { n: "Master Granite", ti: "Stone Dojo", tr: "Stubborn", lv: 8, bg: "#c9c4b8",
+  { n: "Granite", ti: "Captain · Stone Club (gym)", tr: "Stubborn", lv: 8, bg: "#c9c4b8",
     av: { skin: 2, hair: "none", top: "gi", topColor: "#8a8fa8", topAccent: "#e7e9f5", bottom: "hakama", bottomColor: "#3b3f6b", hat: "band", hatColor: "#c0392b", extra: "none", hairColor: "#000000" },
-    plays: "Leans on ✊ rock. Repeats after a win.", tell: "Cracks his knuckles before rock.", twist: "🛡 Starts every round shielded.", rw: "🥋 Stone Belt" },
-  { n: "Sensei Fold", ti: "Paper Dojo", tr: "Patient", lv: 12, bg: "#f3e6c8",
+    plays: "Leans on ✊ rock. Repeats after a win.", tell: "Cracks his knuckles before rock.", twist: "🛡 Starts every round shielded.", rw: "🪨 Stone stamp" },
+  { n: "Fold", ti: "Captain · Origami Club (library)", tr: "Patient", lv: 12, bg: "#f3e6c8",
     av: { skin: 0, hair: "bun", hairColor: "#e7e9f5", top: "gi", topColor: "#fff8e7", topAccent: "#c9b98f", belt: "#3c5aa8", bottom: "hakama", bottomColor: "#3c5aa8", hat: "none", extra: "glasses" },
-    plays: "Never repeats a throw. Prefers ✋ paper.", tell: "Bows deeper before paper.", twist: "🤘 Can reverse from round 1.", rw: "🥋 Paper Belt" },
-  { n: "Master Snip", ti: "Blade Dojo", tr: "Hot-headed", lv: 16, bg: "#ffc9b8",
+    plays: "Never repeats a throw. Prefers ✋ paper.", tell: "Bows deeper before paper.", twist: "🤘 Can reverse from round 1.", rw: "📄 Paper stamp" },
+  { n: "Snip", ti: "Captain · Fencing Club", tr: "Hot-headed", lv: 16, bg: "#ffc9b8",
     av: { skin: 3, hair: "spiky", hairColor: "#ff5d73", top: "jacket", topColor: "#1d1b2e", topAccent: "#ff5d73", bottom: "pants", bottomColor: "#2a2236", hat: "none", extra: "mask", extraColor: "#2a2236" },
-    plays: "After a loss, throws what beats your last throw.", tell: "Shouts louder before switching.", twist: "⚡ Speed rounds: faster countdown.", rw: "🥋 Blade Belt" },
-  { n: "Echo", ti: "Mirror Dojo", tr: "Copycat", lv: 20, bg: "#cfe8ff",
+    plays: "After a loss, throws what beats your last throw.", tell: "Shouts louder before switching.", twist: "⚡ Speed rounds: faster countdown.", rw: "🤺 Blade stamp" },
+  { n: "Echo", ti: "Captain · Drama Club (stage)", tr: "Copycat", lv: 20, bg: "#cfe8ff",
     av: { skin: 4, hair: "long", hairColor: "#9fd6ff", top: "tee", topColor: "#b98bff", bottom: "skirt", bottomColor: "#6a4fb3", hat: "none", extra: "none" },
-    plays: "Copies your last throw. At half HP, counters the copy.", tell: "Mirrors your idle pose.", twist: "🪞 Your last throw shows on the floor.", rw: "🥋 Mirror Belt" },
-  { n: "Grandmaster Ren", ti: "Summit Dojo", tr: "Reader", lv: 30, bg: "#2c3a63",
+    plays: "Copies your last throw. At half HP, counters the copy.", tell: "Mirrors your idle pose.", twist: "🪞 Your last throw shows on the floor.", rw: "🎭 Mirror stamp" },
+  { n: "Ren", ti: "Student Council President", tr: "Reader", lv: 30, bg: "#2c3a63",
     av: { skin: 1, hair: "long", hairColor: "#e7e9f5", top: "gi", topColor: "#1d1b2e", topAccent: "#ffd23f", belt: "#ffd23f", bottom: "hakama", bottomColor: "#1d1b2e", hat: "none", extra: "cape", extraColor: "#7a1f2b" },
-    plays: "Learns your habits from your last two throws.", tell: "None. A ‘reading you’ meter fills up.", twist: "👑 Best of 5, two phases.", rw: "🥋 Black Belt + title" },
+    plays: "Learns your habits from your last two throws.", tell: "None. A ‘reading you’ meter fills up.", twist: "👑 Best of 5, two phases.", rw: "🏫 Final duel · the festival" },
 ];
 const FOLK = [
-  { n: "Pip", ti: "Kid on Elm Street", tr: "Eager", lv: 2, bg: "#d6f5c9", av: { skin: 2, hair: "short", hairColor: "#6b4226", top: "tee", topColor: "#ffd23f", bottom: "shorts", bottomColor: "#3c5aa8", hat: "cap", hatColor: "#3fa86b", extra: "none" },
+  { n: "Pip", ti: "First-year", tr: "Eager", lv: 2, bg: "#d6f5c9", av: { skin: 2, hair: "short", hairColor: "#6b4226", top: "tee", topColor: "#ffd23f", bottom: "shorts", bottomColor: "#3c5aa8", hat: "cap", hatColor: "#3fa86b", extra: "none" },
     plays: "Always opens with ✊, then random.", tell: "“Rock is the strongest!”" },
-  { n: "Nana Ruth", ti: "Retired champion", tr: "Rhythmic", lv: 6, bg: "#f5d9ef", av: { skin: 0, hair: "bun", hairColor: "#c9cdf0", top: "jacket", topColor: "#8a4fb3", topAccent: "#f5d9ef", bottom: "skirt", bottomColor: "#4a3a6b", hat: "none", extra: "glasses" },
+  { n: "Ms. Ruth", ti: "Music teacher", tr: "Rhythmic", lv: 6, bg: "#f5d9ef", av: { skin: 0, hair: "bun", hairColor: "#c9cdf0", top: "jacket", topColor: "#8a4fb3", topAccent: "#f5d9ef", bottom: "skirt", bottomColor: "#4a3a6b", hat: "none", extra: "glasses" },
     plays: "Cycles ✊ → ✋ → ✌️.", tell: "Hums a three-note tune." },
-  { n: "Dex", ti: "Arcade regular", tr: "Show-off", lv: 9, bg: "#d3d0ff", av: { skin: 3, hair: "short", hairColor: "#1d1b2e", top: "hoodie", topColor: "#3ef08f", topAccent: "#1f8f55", bottom: "pants", bottomColor: "#2a2236", hat: "none", extra: "glasses" },
+  { n: "Dex", ti: "Games club regular", tr: "Show-off", lv: 9, bg: "#d3d0ff", av: { skin: 3, hair: "short", hairColor: "#1d1b2e", top: "hoodie", topColor: "#3ef08f", topAccent: "#1f8f55", bottom: "pants", bottomColor: "#2a2236", hat: "none", extra: "glasses" },
     plays: "Counters your most-used throw.", tell: "“I’ve got your number.”" },
-  { n: "Bea", ti: "Baker", tr: "Nervous", lv: 4, bg: "#ffe9c8", av: { skin: 4, hair: "puff", hairColor: "#2a2236", top: "tee", topColor: "#ffffff", bottom: "pants", bottomColor: "#ff8fb1", hat: "none", extra: "scarf", extraColor: "#ff8fb1" },
+  { n: "Bea", ti: "Runs the bake sale", tr: "Nervous", lv: 4, bg: "#ffe9c8", av: { skin: 4, hair: "puff", hairColor: "#2a2236", top: "tee", topColor: "#ffffff", bottom: "pants", bottomColor: "#ff8fb1", hat: "none", extra: "scarf", extraColor: "#ff8fb1" },
     plays: "Win-stay; panics into ✋ after a loss.", tell: "“Oh no, oh no…”" },
-  { n: "Coach Tank", ti: "Gym owner", tr: "Loud", lv: 7, bg: "#ffd6c4", av: { skin: 5, hair: "none", hairColor: "#000000", top: "tee", topColor: "#c0392b", bottom: "shorts", bottomColor: "#1d1b2e", hat: "band", hatColor: "#ffffff", extra: "none" },
+  { n: "Coach Tank", ti: "PE teacher", tr: "Loud", lv: 7, bg: "#ffd6c4", av: { skin: 5, hair: "none", hairColor: "#000000", top: "tee", topColor: "#c0392b", bottom: "shorts", bottomColor: "#1d1b2e", hat: "band", hatColor: "#ffffff", extra: "none" },
     plays: "Arms every power the moment he can.", tell: "“FULL POWER!”" },
-  { n: "Luna", ti: "Fortune teller", tr: "Mysterious", lv: 10, bg: "#2c3a63", av: { skin: 1, hair: "long", hairColor: "#1d1b2e", top: "tee", topColor: "#6a4fb3", bottom: "skirt", bottomColor: "#2a2236", hat: "none", extra: "cape", extraColor: "#3c5aa8" },
+  { n: "Luna", ti: "Astronomy club", tr: "Mysterious", lv: 10, bg: "#2c3a63", av: { skin: 1, hair: "long", hairColor: "#1d1b2e", top: "tee", topColor: "#6a4fb3", bottom: "skirt", bottomColor: "#2a2236", hat: "none", extra: "cape", extraColor: "#3c5aa8" },
     plays: "Pure random. No pattern to find.", tell: "“Even I don’t know.”" },
+  { n: "Rio", ti: "Your rival", tr: "Adaptive", lv: "?", bg: "#ffe0a8", av: { skin: 2, hair: "spiky", hairColor: "#c0392b", top: "jacket", topColor: "#ffd23f", topAccent: "#1d1b2e", bottom: "pants", bottomColor: "#1d1b2e", hat: "none", extra: "none" },
+    plays: "Learns from your own saved throws.", tell: "Gets smug once it’s worked you out." },
 ];
 
 const app = document.getElementById("app");
@@ -303,7 +305,7 @@ function sceneCreator() {
         <div class="sw" id="hairSw"></div></div>
       <div class="slot" id="sTop"><h3>Top <span>colour: tap a swatch</span></h3><div class="items"></div>
         <div class="sw" id="topSw"></div></div>
-      <div class="slot" id="sExtra"><h3>Extra <span>🔒 earned in dojos</span></h3><div class="items"></div></div>
+      <div class="slot" id="sExtra"><h3>Extra <span>🔒 earned in clubs</span></h3><div class="items"></div></div>
       <div class="packnote"><span style="font-size:28px">🎨</span><div><b>Art pack: Placeholder v0</b> · your future designs become a new pack.<br>
         Saves keep part ids (<code>hair: "spiky"</code>), not pictures, so every avatar redraws in the new style.</div></div>
     </div></div>`);
@@ -323,10 +325,10 @@ function sceneCreator() {
     });
   };
   fill("#sHair", ["none", "short", "spiky", "long", "bun", "puff"], "hair", (id) => ({ ...ME, hair: id, hat: "none", extra: "none" }));
-  fill("#sTop", ["tee", "hoodie", "jacket", "gi"], "top", (id) => ({ ...ME, top: id, extra: "none" }), { locked: { gi: "Beat Master Granite" } });
+  fill("#sTop", ["tee", "hoodie", "jacket", "gi"], "top", (id) => ({ ...ME, top: id, extra: "none" }), { locked: { gi: "Win the Stone stamp" } });
   // tops are below the portrait crop, so show them full body
   root.querySelectorAll("#sTop .item").forEach((it, i) => { it.firstChild.replaceWith(avatarCanvas({ ...ME, top: ["tee", "hoodie", "jacket", "gi"][i], extra: "none" }, 2)); });
-  fill("#sExtra", ["none", "scarf", "glasses", "mask", "cape"], "extra", (id) => ({ ...ME, extra: id }), { locked: { mask: "Beat Master Snip", cape: "Beat Grandmaster Ren" }, tip: "mask" });
+  fill("#sExtra", ["none", "scarf", "glasses", "mask", "cape"], "extra", (id) => ({ ...ME, extra: id }), { locked: { mask: "Win the Blade stamp", cape: "Finish the story" }, tip: "mask" });
   root.querySelectorAll("#sExtra .item").forEach((it, i) => { const c = avatarCanvas({ ...ME, extra: ["none", "scarf", "glasses", "mask", "cape"][i] }, 2); it.firstChild.replaceWith(c); });
   const sw = (sel, cols, on) => cols.forEach((c) => root.querySelector(sel).append(h(`<i style="background:${c}" class="${c === on ? "on" : ""}"></i>`)));
   sw("#hairSw", ["#2a2236", "#6b4226", "#c0392b", "#ffd23f", "#e7e9f5", "#3fe0ff", "#b98bff", "#3ef08f"], "#2a2236");
@@ -344,10 +346,10 @@ function card(p, master) {
 }
 function sceneRoster() {
   const root = h(`<div class="roster">
-    <h1 class="display">Who you’ll meet</h1><div class="sub">Five dojo masters and the townsfolk. Each trait changes how they actually throw, and the tell gives it away.</div>
+    <h1 class="display">Who you’ll meet at Knuckle Academy</h1><div class="sub">Five club captains, then classmates, staff and your rival. Each trait changes how they actually throw, and the tell gives it away.</div>
     <div class="row masters"></div><div class="row folk"></div>
     <div class="datanote">
-      <pre class="glass">{ <span class="key">"id"</span>: <span class="s">"granite"</span>, <span class="key">"trait"</span>: <span class="s">"Stubborn"</span>,
+      <pre class="glass">{ <span class="key">"id"</span>: <span class="s">"granite"</span>, <span class="key">"title"</span>: <span class="s">"Captain, Stone Club"</span>, <span class="key">"trait"</span>: <span class="s">"Stubborn"</span>,
   <span class="key">"avatar"</span>: { <span class="key">"hair"</span>: <span class="s">"none"</span>, <span class="key">"top"</span>: <span class="s">"gi"</span>, <span class="key">"hat"</span>: <span class="s">"band"</span>, … },
   <span class="key">"strategy"</span>: { <span class="key">"bias"</span>: { <span class="key">"rock"</span>: <span class="n">0.5</span> }, <span class="key">"winStay"</span>: <span class="n">0.8</span>, <span class="key">"noise"</span>: <span class="n">0.25</span>,
     <span class="key">"mood"</span>: [{ <span class="key">"when"</span>: <span class="s">"ahead"</span>, <span class="key">"bias"</span>: { <span class="key">"rock"</span>: <span class="n">0.7</span> } }] },
@@ -384,8 +386,8 @@ function drawStreet() {
     for (const wx of [X + 8, X + w - 22]) { px(wx - 1, Y + rh + 6, INK, 16, 12); px(wx, Y + rh + 7, "#9fd6ff", 14, 10); }
     if (sign) { g.font = "bold 9px Atkinson Hyperlegible"; g.textAlign = "center"; px(X + w / 2 - 26, Y + rh - 12, INK, 52, 13); px(X + w / 2 - 25, Y + rh - 11, "#fff8e7", 50, 11); g.fillStyle = INK; g.fillText(sign, X + w / 2, Y + rh - 2.5); }
   };
-  house(2, 3, 9, 6, "#c0392b", "#efe2c2", "STONE DOJO");
-  house(21, 2, 7, 6, "#3c5aa8", "#fff8e7", "BAKERY");
+  house(2, 3, 9, 6, "#c0392b", "#efe2c2", "GYM");
+  house(21, 2, 7, 6, "#3c5aa8", "#fff8e7", "LIBRARY");
   house(4, 15, 7, 4, "#3fa86b", "#efe2c2");
   const tree = (tx, ty) => { const X = tx * T, Y = ty * T; px(X + 6, Y + 10, "#6b4226", 4, 8); g.fillStyle = INK; g.beginPath(); g.arc(X + 8, Y + 6, 9, 0, 7); g.fill(); g.fillStyle = "#3d8a3a"; g.beginPath(); g.arc(X + 8, Y + 6, 8, 0, 7); g.fill(); g.fillStyle = "#57a84b"; g.beginPath(); g.arc(X + 6, Y + 4, 4, 0, 7); g.fill(); };
   [[13, 2], [13, 5], [19, 6], [30, 3], [31, 7], [0, 16], [26, 16], [29, 17], [14, 16], [22, 17]].forEach(([x, y]) => tree(x, y));
@@ -423,8 +425,8 @@ function sceneEncounter() {
   ctx.fillStyle = "rgba(10,12,30,.35)"; ctx.fillRect(0, 0, VW, VH);
   const hud = h(`<div class="hud">
     <div class="goal glass"><span id="pf"></span><div><div class="n">Kai</div><div class="s">Lv 3 · 🪙 140 · 8W 3L</div></div></div>
-    <div class="quest glass">Goal: <b>Earn the Stone Belt</b> at the Stone Dojo</div>
-    <div class="belts glass"><i style="background:#8a8fa8;border-color:#fff" title="Stone"></i><i></i><i></i><i></i><i style="background:#1d1b2e"></i><span class="coins">0 / 5 belts</span></div>
+    <div class="quest glass">Chapter 1 · <b>Find the Stone Club</b> in the gym</div>
+    <div class="belts glass"><i style="background:#8a8fa8;border-color:#fff" title="Stone"></i><i></i><i></i><i></i><i style="background:#1d1b2e"></i><span class="coins">0 / 5 stamps</span></div>
     <div class="dialog"><span id="pp"></span><div>
       <div class="who"><h2>Pip</h2><span class="chip y">Eager</span><span class="chip">Lv 2</span><span class="chip">🪙 20 if you win</span></div>
       <p>Hey! You’re new! <em>Rock is the strongest</em>, so I ALWAYS start with rock. Bet you can’t beat me!</p>
@@ -475,13 +477,13 @@ function sceneMaster() {
       <div class="fighter glass"><div class="top"><b>Kai</b><span>✋ tracked</span></div><div class="hp"><i style="width:64%;background:linear-gradient(90deg,#3fe0ff,#7cf0ff)"></i></div>
         <div class="chips"><span class="chip">🛡 shield</span><span class="chip p">👉 power ready</span></div></div>
       <div class="round glass"><b>ROUND 3</b><span>best of 3 · 1–1</span></div>
-      <div class="fighter glass right"><div class="top"><b>Master Granite</b><span>Stubborn · Lv 8</span></div><div class="hp"><i style="width:48%;background:linear-gradient(270deg,#ff8f45,#ff5d73)"></i></div>
+      <div class="fighter glass right"><div class="top"><b>Granite</b><span>Stone Club captain · Lv 8</span></div><div class="hp"><i style="width:48%;background:linear-gradient(270deg,#ff8f45,#ff5d73)"></i></div>
         <div class="chips"><span class="chip">🛡 stone skin</span><span class="chip y">ahead → more stubborn</span></div></div>
     </div>
-    <div class="twist glass">🥋 <b>Stone Dojo twist:</b> Granite starts every round with a shield</div>
+    <div class="twist glass">🪨 <b>Stone Club twist:</b> Granite starts every round with a shield</div>
     <div class="say" style="right:16%;top:31%">Stone does not move.</div>
     <div class="shout">ROCK… PAPER…</div>
-    <div class="read glass"><h3>Read Granite <span class="chip">hints on</span></h3>
+    <div class="read glass"><h3>Read Granite <span class="chip">Easy · hints</span></h3>
       <div class="hist"><span class="w">✊</span><span class="w">✊</span><span class="l">✋</span><span class="w">✊</span><span class="l">✌️</span><span>✊</span></div>
       <div class="bar"><span>✊</span><i><u style="width:66%"></u></i><span>4 / 6</span></div>
       <div class="bar"><span>✋</span><i><u style="width:17%"></u></i><span>1 / 6</span></div>
